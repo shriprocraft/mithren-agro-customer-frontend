@@ -10,9 +10,9 @@ export function AccountMenu() {
     <Popover>
       <PopoverTrigger
         aria-label="Account"
-        className="inline-flex min-h-11 items-center gap-2 rounded-full text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 xl:pr-1"
+        className="inline-flex min-h-11 items-center gap-2 rounded-full text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring xl:pr-1"
       >
-        <span className="grid size-11 place-items-center rounded-full bg-linear-to-b from-white/70 to-secondary text-brand shadow-[inset_0_0_0_1px_rgb(255_255_255/0.85),0_6px_16px_-10px_rgb(46_64_34/0.4)]">
+        <span className="grid size-11 place-items-center rounded-full bg-linear-to-b from-white/70 to-secondary text-brand shadow-[inset_0_0_0_1px_rgb(255_255_255/0.85),0_6px_16px_-10px_rgb(var(--shadow-tint)/0.4)]">
           <UserRound className="size-5" aria-hidden="true" />
         </span>
         <span className="hidden xl:inline" aria-hidden="true">

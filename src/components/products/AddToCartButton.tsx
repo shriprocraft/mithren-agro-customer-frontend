@@ -47,7 +47,7 @@ export function AddToCartButton({ productId, productName, stockStatus, className
   return (
     <Button
       onClick={handleAdd}
-      className={cn("w-full", justAdded && "bg-brand bg-none hover:bg-brand", className)}
+      className={cn("w-full", justAdded && "bg-primary-hover hover:bg-primary-hover", className)}
     >
       {justAdded ? <Check aria-hidden="true" /> : <ShoppingCart aria-hidden="true" />}
       {justAdded ? "Added" : "Add to cart"}

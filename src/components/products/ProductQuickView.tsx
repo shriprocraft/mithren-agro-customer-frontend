@@ -29,7 +29,7 @@ export function ProductQuickView({ product, vendorName, children }: ProductQuick
 
   return (
     <Dialog>
-      <DialogTrigger className="text-left outline-none after:absolute after:inset-0 after:z-0 after:rounded-2xl focus-visible:after:ring-3 focus-visible:after:ring-ring/60">
+      <DialogTrigger className="text-left outline-none after:absolute after:inset-0 after:z-0 after:rounded-2xl focus-visible:after:ring-2 focus-visible:after:ring-ring">
         {children}
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] gap-0 overflow-y-auto p-0 sm:max-w-3xl">

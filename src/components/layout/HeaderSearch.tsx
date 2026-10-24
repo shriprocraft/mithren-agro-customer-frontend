@@ -29,11 +29,11 @@ export function HeaderSearch({ className }: { className?: string }) {
       role="search"
       onSubmit={handleSubmit}
       className={cn(
-        "glass-field flex h-11 items-center rounded-full pr-2 transition-shadow has-focus-visible:ring-3 has-focus-visible:ring-ring/50",
+        "glass-field flex h-11 items-center rounded-full pr-2 transition-shadow has-focus-visible:ring-2 has-focus-visible:ring-ring",
         className,
       )}
     >
-      <Button type="submit" variant="ghost" size="icon" className="shrink-0 text-foreground hover:bg-white/70" aria-label="Search">
+      <Button type="submit" variant="ghost" size="icon" className="shrink-0 text-foreground" aria-label="Search">
         <Search className="size-5" aria-hidden="true" />
       </Button>
       <label htmlFor="site-search" className="sr-only">

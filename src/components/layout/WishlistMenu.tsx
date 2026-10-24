@@ -16,7 +16,7 @@ export function WishlistMenu({ catalog }: { catalog: Product[] }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative hover:bg-white/70" aria-label={`Wishlist, ${saved.length} saved`}>
+        <Button variant="ghost" size="icon" className="relative" aria-label={`Wishlist, ${saved.length} saved`}>
           <Heart className="size-5" aria-hidden="true" />
           <CountBadge count={saved.length} />
         </Button>

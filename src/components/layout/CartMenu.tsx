@@ -21,7 +21,7 @@ export function CartMenu({ catalog }: { catalog: Product[] }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative hover:bg-white/70" aria-label={`Cart, ${count} ${count === 1 ? "item" : "items"}`}>
+        <Button variant="ghost" size="icon" className="relative" aria-label={`Cart, ${count} ${count === 1 ? "item" : "items"}`}>
           <ShoppingCart className="size-5" aria-hidden="true" />
           <CountBadge count={count} />
         </Button>

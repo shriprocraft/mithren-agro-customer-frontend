@@ -20,7 +20,7 @@ function ColumnTitle({ children, id }: { children: string; id?: string }) {
 
 export function SiteFooter({ categories }: { categories: Category[] }) {
   return (
-    <footer className="mt-12 bg-card shadow-[0_-1px_0_rgb(46_64_34/0.07)]">
+    <footer className="mt-12 border-t bg-card">
       <Container className="grid grid-cols-2 gap-x-6 gap-y-8 py-10 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
         <div className="col-span-2 space-y-4 lg:col-span-1">
           <BrandMark className="h-14" />

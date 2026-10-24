@@ -33,7 +33,7 @@ export function PromoBanners() {
           <a
             key={banner.href}
             href={banner.href}
-            className="group surface-card relative isolate flex min-h-36 overflow-hidden rounded-3xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="group surface-card relative isolate flex min-h-36 overflow-hidden rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span aria-hidden="true" className="absolute inset-y-0 right-0 -z-10 w-[62%] banner-photo-fade">
               <Image
@@ -53,7 +53,7 @@ export function PromoBanners() {
                 <span className="block font-medium text-primary">{banner.accent}</span>
               </span>
               <span className="mt-1.5 text-[0.8125rem] leading-snug text-muted-foreground">{banner.text}</span>
-              <span className="liquid-primary mt-3 inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-medium text-primary-foreground transition group-hover:brightness-[0.93]">
+              <span className="surface-primary mt-3 inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-medium text-primary-foreground transition group-hover:bg-primary-hover">
                 {banner.cta}
                 <ArrowRight className="size-4" aria-hidden="true" />
               </span>

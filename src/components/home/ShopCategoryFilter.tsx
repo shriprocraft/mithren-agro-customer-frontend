@@ -23,8 +23,8 @@ export function ShopCategoryFilter({ options, value, onChange }: ShopCategoryFil
             aria-pressed={selected}
             onClick={() => onChange(option.value)}
             className={cn(
-              "inline-flex min-h-11 shrink-0 scroll-mt-32 items-center gap-2 rounded-full px-4 text-[0.8125rem] font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 lg:scroll-mt-72",
-              selected ? "liquid-primary text-primary-foreground" : "surface-card text-foreground hover:bg-muted",
+              "inline-flex min-h-11 shrink-0 scroll-mt-32 items-center gap-2 rounded-full px-4 text-[0.8125rem] font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring lg:scroll-mt-72",
+              selected ? "surface-primary text-primary-foreground hover:bg-primary-hover" : "surface-card text-foreground hover:bg-soft hover:text-primary",
             )}
           >
             {option.label}

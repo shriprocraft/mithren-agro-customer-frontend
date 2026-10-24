@@ -80,7 +80,7 @@ The development guide states that **the scope wins** where the two disagree. The
 | 1 | Backend | Real full-stack app with persistent data | No backend; everything mock | Frontend only, mock services, no DB/auth/payments now | Mock-only for this repository and phase; service layer kept swappable |
 | 2 | Brand | Temporary name "GreenBasket" | — | Mithren Agro | Mithren Agro, configurable |
 | 3 | Catalogue | Fruits, vegetables, organic grocery | Placeholder grocery categories | Adds fertilizers and women's apparel | Follow owner; apparel needs size/colour variants rather than weight units — **to confirm before data modelling** |
-| 4 | Palette | Bright white/light background, forest green, emerald, sparing lime | Pending image | Earthy green, warm off-white | Follow owner and image |
+| 4 | Palette | Bright white/light background, forest green, emerald, sparing lime | Pending image | Modern Sage palette (owner decision) | **Resolved:** Modern Sage, primary `#2E7D32` / hover `#1B5E20`; see `docs/DESIGN_SYSTEM.md` |
 | 5 | Routes | `/products/[slug]`, `/account/orders`, `/checkout/success` | `/products/[productId]`, `/orders`, `/order-confirmation` | — | Scope routes (guide defers to scope) |
 | 6 | Forms/validation | Zod + React Hook Form recommended | No form libraries | — | **To decide** before checkout work |
 | 7 | Login | Required for checkout | Guest checkout assumed; mock Google sign-in proposed | — | Scope wins: login required for checkout (mocked) |

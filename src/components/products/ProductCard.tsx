@@ -38,7 +38,7 @@ export function ProductCard({
       <div
         className={cn(
           "relative overflow-hidden rounded-xl",
-          image?.studio ? "bg-white shadow-[inset_0_0_0_1px_rgb(46_64_34/0.05)]" : "bg-muted",
+          image?.studio ? "bg-white shadow-[inset_0_0_0_1px_var(--border)]" : "bg-muted",
           imageShape === "portrait" ? "aspect-[4/5]" : "aspect-square",
         )}
       >

@@ -24,7 +24,7 @@ export function LocationSelector({ areas, className }: { areas: DeliveryArea[]; 
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={cn(
-          "inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-left text-[0.8125rem] transition-colors outline-none hover:bg-white/60 focus-visible:ring-3 focus-visible:ring-ring/50",
+          "inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-left text-[0.8125rem] transition-colors outline-none hover:bg-soft focus-visible:ring-2 focus-visible:ring-ring",
           className,
         )}
       >
@@ -47,7 +47,7 @@ export function LocationSelector({ areas, className }: { areas: DeliveryArea[]; 
             {areas.map((area) => (
               <label
                 key={area.id}
-                className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 hover:bg-muted has-checked:bg-secondary has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
+                className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 hover:bg-muted has-checked:bg-secondary has-focus-visible:ring-2 has-focus-visible:ring-ring"
               >
                 <input
                   type="radio"

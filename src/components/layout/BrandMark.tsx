@@ -24,7 +24,7 @@ export function BrandMark({ className }: { className?: string }) {
     <Link
       href="/"
       className={cn(
-        "relative inline-block shrink-0 overflow-hidden rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        "relative inline-block shrink-0 overflow-hidden rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring",
         className,
       )}
       style={{ aspectRatio: `${ART.width} / ${ART.height}` }}
