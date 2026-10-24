@@ -1,0 +1,306 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-poppins);
+  --font-heading: var(--font-poppins);
+  --font-script: var(--font-caveat);
+  --color-primary-hover: var(--primary-hover);
+  --color-brand: var(--brand);
+  --color-band: var(--band);
+  --color-highlight: var(--highlight);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --shadow-card: var(--elevation-card);
+  --shadow-overlay: var(--elevation-overlay);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Values mirror src/config/design-tokens.ts. shadcn's "accent" is its hover-surface slot;
+   the brand gold from the tokens is exposed as "highlight" to avoid that name clash. */
+:root {
+  --background: #f5f6f1;
+  --foreground: #1a1f1a;
+  --card: #fcfcfa;
+  --card-foreground: #1a1f1a;
+  --popover: #fcfcfa;
+  --popover-foreground: #1a1f1a;
+  --primary: #536643;
+  --primary-hover: #45563a;
+  --primary-foreground: #ffffff;
+  --brand: #3e5830;
+  --secondary: #eef1e9;
+  --secondary-foreground: #2f3d27;
+  --band: #dde5d6;
+  --highlight: #d9a21b;
+  --muted: #eef1e9;
+  --muted-foreground: #5c615c;
+  --accent: #eef1e9;
+  --accent-foreground: #2f3d27;
+  --success: #3f7d3a;
+  --warning: #8a5a00;
+  --destructive: #b42318;
+  --border: #e2e5dd;
+  --input: #87907f;
+  --ring: #536643;
+  --elevation-card: 0 1px 2px rgb(26 31 26 / 0.04), 0 4px 16px rgb(26 31 26 / 0.06);
+  --elevation-overlay: 0 12px 40px rgb(26 31 26 / 0.14);
+  --glass-header: rgb(255 255 255 / 0.6);
+  --glass-header-blur: 18px;
+  --glass-panel: rgb(255 255 255 / 0.52);
+  --glass-panel-blur: 20px;
+  --glass-card: rgb(255 255 255 / 0.64);
+  --glass-card-blur: 14px;
+  --glass-chip: rgb(255 255 255 / 0.58);
+  --glass-chip-blur: 12px;
+  --glass-field: rgb(255 255 255 / 0.5);
+  --glass-field-blur: 12px;
+  --glass-overlay: rgb(252 252 250 / 0.86);
+  --glass-overlay-blur: 24px;
+  --glass-edge: rgb(255 255 255 / 0.78);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 1rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  /* Fallback focus ring for native elements; component utilities (ring-*) override it. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
+/* ---------------------------------------------------------------------------------------------
+   Liquid glass, reproduced from docs/reference/ui-theme.png.
+   Every surface = translucent white fill + diagonal reflection gradient + backdrop blur/saturation
+   + a fine bright rim (inset) + a soft green-tinted drop shadow. Fill and blur differ per surface,
+   as they do in the reference: header and banners are the most transparent, popovers the least.
+   The rim is drawn with inset shadows rather than `border`, so layout never shifts.
+   --------------------------------------------------------------------------------------------- */
+@utility glass-header {
+  background-color: var(--glass-header);
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0.12));
+  box-shadow: inset 0 -1px 0 rgb(255 255 255 / 0.65), 0 10px 30px -24px rgb(46 64 34 / 0.35);
+  -webkit-backdrop-filter: blur(var(--glass-header-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-header-blur)) saturate(160%);
+}
+
+@utility glass-panel {
+  background-color: var(--glass-panel);
+  background-image: linear-gradient(
+    145deg,
+    rgb(255 255 255 / 0.6) 0%,
+    rgb(255 255 255 / 0.14) 38%,
+    rgb(255 255 255 / 0) 62%,
+    rgb(255 255 255 / 0.22) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.95),
+    inset 0 0 0 1px var(--glass-edge),
+    0 0 0 1px rgb(46 64 34 / 0.035),
+    0 18px 40px -22px rgb(46 64 34 / 0.28),
+    0 2px 6px rgb(46 64 34 / 0.04);
+  -webkit-backdrop-filter: blur(var(--glass-panel-blur)) saturate(150%);
+  backdrop-filter: blur(var(--glass-panel-blur)) saturate(150%);
+}
+
+@utility glass-card {
+  background-color: var(--glass-card);
+  background-image: linear-gradient(160deg, rgb(255 255 255 / 0.7) 0%, rgb(255 255 255 / 0.1) 45%, rgb(255 255 255 / 0.25) 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.95),
+    inset 0 0 0 1px var(--glass-edge),
+    0 0 0 1px rgb(46 64 34 / 0.04),
+    0 12px 28px -18px rgb(46 64 34 / 0.3),
+    0 1px 3px rgb(46 64 34 / 0.05);
+  -webkit-backdrop-filter: blur(var(--glass-card-blur)) saturate(150%);
+  backdrop-filter: blur(var(--glass-card-blur)) saturate(150%);
+}
+
+/* Pills, icon circles and secondary buttons. */
+@utility glass-chip {
+  background-color: var(--glass-chip);
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.75), rgb(255 255 255 / 0.15));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 1),
+    inset 0 0 0 1px var(--glass-edge),
+    0 0 0 1px rgb(46 64 34 / 0.05),
+    0 6px 16px -10px rgb(46 64 34 / 0.35);
+  -webkit-backdrop-filter: blur(var(--glass-chip-blur)) saturate(150%);
+  backdrop-filter: blur(var(--glass-chip-blur)) saturate(150%);
+}
+
+/* Recessed field: darker inner top edge instead of a raised highlight. */
+@utility glass-field {
+  background-color: var(--glass-field);
+  box-shadow:
+    inset 0 1px 3px rgb(46 64 34 / 0.08),
+    inset 0 0 0 1px rgb(255 255 255 / 0.85),
+    0 1px 0 rgb(255 255 255 / 0.9),
+    0 8px 22px -16px rgb(46 64 34 / 0.3);
+  -webkit-backdrop-filter: blur(var(--glass-field-blur)) saturate(140%);
+  backdrop-filter: blur(var(--glass-field-blur)) saturate(140%);
+}
+
+/* Popovers and dialogs: dense enough for long text over any content. */
+@utility glass-overlay {
+  background-color: var(--glass-overlay);
+  background-image: linear-gradient(160deg, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0) 50%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 1),
+    inset 0 0 0 1px var(--glass-edge),
+    0 0 0 1px rgb(46 64 34 / 0.08),
+    var(--elevation-overlay);
+  -webkit-backdrop-filter: blur(var(--glass-overlay-blur)) saturate(170%);
+  backdrop-filter: blur(var(--glass-overlay-blur)) saturate(170%);
+}
+
+/* Opaque surface for content cards (products, categories, listings). Glass is reserved for the
+   header, search, floating controls, the feature strip and overlays, so the page stays clean:
+   a hairline edge and one soft shadow, no blur. */
+@utility surface-card {
+  background-color: var(--card);
+  box-shadow:
+    0 0 0 1px rgb(46 64 34 / 0.07),
+    0 10px 26px -20px rgb(46 64 34 / 0.35);
+}
+
+/* The glossy green pill used for every primary action in the reference. */
+@utility liquid-primary {
+  background-color: var(--primary);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--primary), white 16%) 0%,
+    var(--primary) 52%,
+    color-mix(in oklab, var(--primary), black 12%) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
+    inset 0 -1px 0 rgb(0 0 0 / 0.12),
+    0 8px 18px -8px color-mix(in oklab, var(--brand), transparent 35%);
+}
+
+/* Hero photograph melts into the page on its left edge (already bright haze in the image) and at the
+   very bottom, where the next section begins; a short top fade hides its edge where it starts below
+   the header (1024–1279px). The fades stay short so the produce itself is never washed out. */
+@utility hero-photo-fade {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, #000 18%),
+    linear-gradient(to bottom, transparent 0%, #000 8%, #000 90%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent 0%, #000 18%),
+    linear-gradient(to bottom, transparent 0%, #000 8%, #000 90%, transparent 100%);
+  mask-composite: intersect;
+}
+
+/* Banner photographs fade out towards the text side. */
+@utility banner-photo-fade {
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 45%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 45%);
+}
+
+/* Without backdrop-filter, translucent white looks washed out, so fall back to near-opaque fills. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass-header: rgb(252 252 250 / 0.94);
+    --glass-panel: rgb(252 252 250 / 0.9);
+    --glass-card: rgb(252 252 250 / 0.94);
+    --glass-chip: rgb(252 252 250 / 0.94);
+    --glass-field: rgb(252 252 250 / 0.94);
+    --glass-overlay: rgb(252 252 250 / 0.98);
+  }
+}
