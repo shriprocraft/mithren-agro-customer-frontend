@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { BrandMark } from "@/components/layout/BrandMark";
 import { Container } from "@/components/layout/Container";
 import { siteConfig } from "@/config/site";
-import { shopAnchor } from "@/lib/browse";
+import { shopHref } from "@/lib/browse";
 import type { Category } from "@/types/catalog";
 
 // Pages that do not exist yet are listed as plain text, not links (scope §8: no dead links).
@@ -34,15 +35,15 @@ export function SiteFooter({ categories }: { categories: Category[] }) {
           <ul className="space-y-0.5 text-[0.8125rem]">
             {categories.map((category) => (
               <li key={category.id}>
-                <a href={shopAnchor(category.slug)} className="inline-flex min-h-9 items-center font-medium text-foreground underline-offset-4 hover:text-brand hover:underline">
+                <Link href={shopHref(category.slug)} className="inline-flex min-h-9 items-center font-medium text-foreground underline-offset-4 hover:text-brand hover:underline">
                   {category.name}
-                </a>
+                </Link>
               </li>
             ))}
             <li>
-              <a href="#bundles" className="inline-flex min-h-9 items-center font-medium text-foreground underline-offset-4 hover:text-brand hover:underline">
+              <Link href="/#bundles" className="inline-flex min-h-9 items-center font-medium text-foreground underline-offset-4 hover:text-brand hover:underline">
                 Combo boxes
-              </a>
+              </Link>
             </li>
           </ul>
         </nav>

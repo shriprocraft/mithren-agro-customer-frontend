@@ -4,7 +4,7 @@ import { Container } from "@/components/layout/Container";
 import { LeafMark } from "@/components/layout/LeafMark";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/typography";
-import { shopAnchor } from "@/lib/browse";
+import { shopHref } from "@/lib/browse";
 
 // Closing banner in the reference's light style: the market photograph fills the panel and a
 // frosted wash from the left carries dark copy and one call to action.
@@ -34,7 +34,7 @@ export function MarketplaceBanner() {
               Browse all five categories and add items from different sellers to the same cart.
             </p>
             <Button asChild className="mt-6">
-              <a href={shopAnchor("all")}>
+              <a href={shopHref("all")}>
                 Browse the marketplace
                 <ArrowRight aria-hidden="true" />
               </a>

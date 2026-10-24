@@ -22,7 +22,7 @@ function renderWithHeader(product = tomatoes) {
 describe("ProductCard", () => {
   it("shows name, unit, seller, price and stock", () => {
     renderWithHeader();
-    expect(screen.getByRole("button", { name: "Tomatoes" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Tomatoes" })).toHaveAttribute("href", "/products/p-tomatoes");
     expect(screen.getByText("1 kg")).toBeInTheDocument();
     expect(screen.getByText("Sold by Green Acres Growers")).toBeInTheDocument();
     expect(screen.getByText("₹40")).toBeInTheDocument();
@@ -49,10 +49,11 @@ describe("ProductCard", () => {
     expect(screen.getByRole("button", { name: "Out of stock" })).toBeDisabled();
   });
 
-  it("opens a quick view from the product name", () => {
+  it("opens a quick view from its own button, which links on to the full details", () => {
     renderWithHeader();
-    act(() => fireEvent.click(screen.getByRole("button", { name: "Tomatoes" })));
+    act(() => fireEvent.click(screen.getByRole("button", { name: "Quick view: Tomatoes" })));
     expect(screen.getByRole("dialog", { name: "Tomatoes" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View full details" })).toHaveAttribute("href", "/products/p-tomatoes");
     expect(screen.getByText(/Sample listing for this preview/)).toBeInTheDocument();
   });
 });

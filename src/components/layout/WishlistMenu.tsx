@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Heart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CountBadge } from "@/components/layout/CountBadge";
 import { useWishlist } from "@/context/WishlistContext";
 import { effectivePrice, formatPrice } from "@/lib/formatters";
@@ -43,7 +44,10 @@ export function WishlistMenu({ catalog }: { catalog: Product[] }) {
             ))}
           </ul>
         )}
-        <p className="text-xs text-muted-foreground">Saved items are kept only on this page in the preview.</p>
+        <PopoverClose asChild>
+          <Button asChild variant="outline"><Link href="/wishlist">View wishlist</Link></Button>
+        </PopoverClose>
+        <p className="text-xs text-muted-foreground">Saved in this browser only.</p>
       </PopoverContent>
     </Popover>
   );

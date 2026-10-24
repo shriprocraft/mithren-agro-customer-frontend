@@ -5,7 +5,7 @@ import { LeafMark } from "@/components/layout/LeafMark";
 import { CompactProductCard } from "@/components/products/CompactProductCard";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/typography";
-import { shopAnchor } from "@/lib/browse";
+import { shopHref } from "@/lib/browse";
 import type { Product } from "@/types/catalog";
 
 interface FarmEssentialsSectionProps {
@@ -35,7 +35,7 @@ export function FarmEssentialsSection({ products, vendorNames }: FarmEssentialsS
                 Compost, potting mixes and soil inputs from agri-supply sellers, in the same cart as your groceries.
               </p>
               <Button asChild className="mt-5">
-                <a href={shopAnchor("fertilizers")}>
+                <a href={shopHref("fertilizers")}>
                   Explore fertilizers
                   <ArrowRight aria-hidden="true" />
                 </a>

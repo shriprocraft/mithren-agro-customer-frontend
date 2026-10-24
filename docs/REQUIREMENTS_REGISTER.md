@@ -18,12 +18,12 @@ Precedence: project owner's instructions → scope → development guide (the gu
 | Ratings and reviews | Confirmed | Scope §2.2, §4.4, §4.6 | Ratings on cards; reviews on details; never fabricated |
 | Currency and number format | Confirmed | Scope §4.5 (Razorpay, India), §9.2 (paise), image (₹) | INR, integer paise, `en-IN` locale |
 | Login required to browse | Confirmed: not required | Scope §3.1 | Guests browse, search, view and add to cart |
-| Login required for checkout | Confirmed: required | Scope §3.1 | Overrides the guide's guest-checkout assumption; mocked sign-in gates checkout |
+| Login required for checkout | Owner decision (phase 3): not required in this demo | Scope §3.1 vs owner brief | Checkout runs without sign-in; revisit when authentication is built |
 | Google Login | Open | Guide proposal; scope names no provider | Mock "demo sign-in" only; no auth library |
 | Payment methods | Confirmed (display), Future backend (processing) | Scope §4.5; image footer | Razorpay / UPI / cards / net banking / COD shown as simulated; no payment is taken |
-| Delivery charge / free-delivery rule | Open | Image shows "Free delivery above ₹599"; scope gives no rule | Placeholder rule in `lib/pricing.ts`, flagged as demo |
+| Delivery charge / free-delivery rule | Open | Image shows "Free delivery above ₹599"; scope gives no rule | No charge is applied or invented: `CONFIGURED_CHARGES` is empty and pages say "Delivery: not calculated in this preview" |
 | Per-vendor order splitting | Confirmed | Scope §4.5 | Cart grouped by seller; mock order creates vendor sub-orders |
-| Delivery tracking stages | Open | Neither document lists stages | Guide's assumed statuses until confirmed |
+| Delivery tracking stages | Confirmed (owner) | Phase 3 brief | Order Placed → Order Confirmed → Preparing Order → Ready for Dispatch → Out for Delivery → Delivered |
 | Real delivery tracking | Future backend | — | Simulated timeline with visible notice |
 | Order history | Confirmed | Scope §4.6, §8 | `/account/orders` (scope route, not the guide's `/orders`) |
 | Account / profile | Confirmed | Scope §4.6 | `/account` with profile and preferences (mock) |
@@ -32,9 +32,9 @@ Precedence: project owner's instructions → scope → development guide (the gu
 | Related products | Confirmed | Scope §4.4 | Included on product details (guide excluded it by default) |
 | Recently viewed | Confirmed | Scope §4.1, §4.4 | Only "where data is available": local browsing history |
 | Stock-based quantity limits | Open | Scope requires seller-specific stock; no limits given | Fixed max constant until confirmed |
-| Routes | Decided | Scope §8 wins over guide §B | `/products/[slug]`, `/categories/[slug]`, `/stores/[slug]`, `/search`, `/checkout/success`, `/account/*`, `/forgot-password` |
+| Routes | Decided (owner, phase 3) | Owner brief overrides scope §8 | `/products`, `/products/[productId]` (ids, not slugs), `/cart`, `/checkout/address`, `/checkout/review`, `/orders/[orderId]/confirmation`, `/orders/[orderId]/tracking`, `/wishlist` |
 | Homepage vs listing on `/` | Decided | Scope §4.1 + image | `/` is a sectioned homepage; filtering/sorting live on `/products` and `/search` (guide put the listing on `/`) |
-| Forms and validation library | Open | Scope recommends Zod + React Hook Form; guide says none | Decide before checkout work |
+| Forms and validation library | Decided (phase 3) | No library added | Address validation is hand-written in `lib/address.ts` (Indian mobile and PIN rules), unit-tested |
 | Unsupported claims in the image | Decided for the homepage | Scope §2.2, §4.1, §11 forbid them | Omitted: "Organic Certified", "100% honestly-labelled", "10,000+ happy families", "12-hour freshness guarantee", "Free delivery above ₹599", "Same-day", partner-farm profiles, testimonials, payment logos. The value strip states only how listings are presented |
 | Ratings on product cards | Deferred | Scope §2.2 requires them; §4.4 and §11 forbid fabricating them | Not shown until real review data exists |
 | Homepage sections | Implemented with mock data | Scope §2.2, §4.1; owner's homepage brief | Hero, category grid, fresh picks, seasonal, shop browser, groceries, farm essentials, apparel, combo boxes, banner. "Popular near you", recently viewed and recommendations need real data and are not shown |

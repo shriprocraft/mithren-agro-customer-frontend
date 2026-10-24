@@ -1,7 +1,7 @@
 import { AddToCartButton } from "@/components/products/AddToCartButton";
 import { CatalogImage } from "@/components/products/CatalogImage";
 import { PriceDisplay } from "@/components/products/PriceDisplay";
-import { ProductQuickView } from "@/components/products/ProductQuickView";
+import { ProductLink } from "@/components/products/ProductLink";
 import { StockBadge } from "@/components/products/StockBadge";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types/catalog";
@@ -23,11 +23,11 @@ export function CompactProductCard({ product, vendorName, className }: CompactPr
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
         <h3 className="text-sm font-medium leading-snug">
-          <ProductQuickView product={product} vendorName={vendorName}>
+          <ProductLink productId={product.id}>
             {product.name}
-          </ProductQuickView>
+          </ProductLink>
         </h3>
-        <p className="text-xs text-muted-foreground">{product.unit}</p>
+        <p className="text-xs text-muted-foreground">{product.unit} · {vendorName}</p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
           <PriceDisplay price={product.price} discountedPrice={product.discounted_price} />
           <StockBadge status={product.stock_status} />

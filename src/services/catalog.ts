@@ -36,3 +36,17 @@ export async function getBundles(): Promise<Product[]> {
 export async function getDeliveryAreas(): Promise<DeliveryArea[]> {
   return deliveryAreas;
 }
+
+/** Everything that can be bought: individual products and combo boxes. */
+export async function getCatalog(): Promise<Product[]> {
+  return [...products, ...bundles];
+}
+
+export async function getProduct(id: string): Promise<Product | undefined> {
+  return [...products, ...bundles].find((p) => p.id === id);
+}
+
+/** Other items from the same category, for "You may also like" on product details. */
+export async function getRelatedProducts(product: Product, limit = 4): Promise<Product[]> {
+  return [...products, ...bundles].filter((p) => p.category_id === product.category_id && p.id !== product.id).slice(0, limit);
+}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ describe("Button", () => {
   it("renders its child element when asChild is set", () => {
     render(
       <Button asChild>
-        <a href="/products">Browse</a>
+        <Link href="/products">Browse</Link>
       </Button>,
     );
     expect(screen.getByRole("link", { name: "Browse" })).toHaveAttribute("href", "/products");

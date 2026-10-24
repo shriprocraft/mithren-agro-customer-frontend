@@ -2,13 +2,13 @@ import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { LeafMark } from "@/components/layout/LeafMark";
-import { shopAnchor } from "@/lib/browse";
+import { shopHref } from "@/lib/browse";
 
 // The reference's twin banners: copy on a light panel, photograph fading in from the right.
 // Copy describes what is listed; it makes no quality, nutrition or yield claims.
 const banners = [
   {
-    href: "#bundles",
+    href: "/#bundles",
     lead: "Farm Fresh",
     accent: "Combo Boxes",
     text: "Mixed fruit and vegetable boxes.",
@@ -16,7 +16,7 @@ const banners = [
     image: { src: "/images/products/vegetable-basket.jpg", position: "object-[50%_40%]" },
   },
   {
-    href: shopAnchor("fertilizers"),
+    href: shopHref("fertilizers"),
     lead: "Fertilizers &",
     accent: "Farm Essentials",
     text: "Compost, potting mix and soil inputs.",

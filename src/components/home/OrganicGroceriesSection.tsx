@@ -4,7 +4,7 @@ import { LeafMark } from "@/components/layout/LeafMark";
 import { ProductCard } from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Heading, Text } from "@/components/ui/typography";
-import { shopAnchor } from "@/lib/browse";
+import { shopHref } from "@/lib/browse";
 import type { Product } from "@/types/catalog";
 
 interface OrganicGroceriesSectionProps {
@@ -33,7 +33,7 @@ export function OrganicGroceriesSection({ products, vendorNames }: OrganicGrocer
             items carries one.
           </p>
           <Button asChild variant="outline" className="mt-5">
-            <a href={shopAnchor("organic-groceries")}>
+            <a href={shopHref("organic-groceries")}>
               Browse all groceries
               <ArrowRight aria-hidden="true" />
             </a>

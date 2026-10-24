@@ -26,7 +26,7 @@ describe("homepage", () => {
   it("links to all five categories from the category grid", async () => {
     render(<AppProviders>{await Home()}</AppProviders>);
     for (const slug of ["fruits", "vegetables", "organic-groceries", "fertilizers", "womens-apparel"]) {
-      expect(document.querySelector(`#categories a[href="#shop-${slug}"]`)).not.toBeNull();
+      expect(document.querySelector(`#categories a[href="/products?category=${slug}"]`)).not.toBeNull();
     }
   });
 });

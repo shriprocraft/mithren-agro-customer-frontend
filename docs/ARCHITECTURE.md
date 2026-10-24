@@ -49,9 +49,9 @@ Further feature folders from the development guide (`components/filters`, `cart`
 
 | Decision | Reason |
 |---|---|
-| Category links and search target an on-page "Shop the marketplace" browser via `#shop-<slug>` anchors | Category, product and search pages are out of scope for this phase, and the scope forbids dead links (§8). Anchors work as plain links from server components; `BrowseContext` follows the URL hash |
-| Product names open a quick-view dialog instead of linking to `/products/[slug]` | Same reason; the dialog is labelled as a sample listing |
-| Cart, wishlist and location are in-memory React state, shown in header popovers | Frontend-only, nothing persisted; each popover says so. No checkout button exists |
+| ~~Category links and search target an on-page browser via `#shop-<slug>` anchors~~ **Superseded in phase 3:** they open `/products` with URL filters | `BrowseContext` was removed; the homepage keeps a small category preview |
+| ~~Product names open a quick-view dialog~~ **Superseded in phase 3:** product names link to `/products/[productId]`; quick view moved to an eye button on product cards | Product details pages now exist |
+| ~~Cart, wishlist and location are in-memory React state~~ **Superseded in phase 3:** cart and wishlist persist in localStorage (location is still per page) | See "State and persistence" below |
 | Account menu explains sign-in is coming, rather than linking to `/login` | Authentication is out of scope for this phase |
 | Footer support/policy items are plain text marked "coming soon" | No destination pages exist; no contact details, social profiles or policies are invented |
 | Server components by default; client components only for interactive pieces | `ProductCard` itself has no `"use client"`; only its cart, wishlist and quick-view controls do |
@@ -70,6 +70,41 @@ Further feature folders from the development guide (`components/filters`, `cart`
 | Catalogue images carry an optional `studio` flag; `CatalogImage` shows studio cut-outs contained on white and other photos with a cover crop | Lets isolated product shots (`public/images/studio/`) be added one at a time without the remaining lifestyle photos looking worse. `tests/catalog-images.test.ts` fails if any product, combo box, category or tile image file is missing |
 | Photography is licensed Unsplash stock stored in `public/images/` (see `docs/IMAGE_CREDITS.md`) | No real product photos supplied; local files avoid configuring an external image host |
 | No ratings on product cards | The scope lists ratings on cards but forbids fabricating them; there is no review data |
+
+## Customer journey (phase 3)
+
+Checklist and acceptance audit: `docs/IMPLEMENTATION_CHECKLIST.md`. End-to-end run: `npm run test:e2e` (with `npm run dev` running).
+
+### Routes
+
+| Route | Rendering | Notes |
+|---|---|---|
+| `/products` | Static shell; results render on the client in `<Suspense>` (they read `useSearchParams`) | Search, filters and sort live in the URL (`lib/marketplace.ts`) |
+| `/products/[productId]` | All catalogue items prerendered via `generateStaticParams`; params awaited inside `<Suspense>` | Cache Components has no `dynamicParams`; unknown ids call `notFound()` (soft 404 with `noindex`) |
+| `/cart`, `/checkout/address`, `/checkout/review`, `/wishlist` | Static shell + client components | Show a loading state until browser storage has been read |
+| `/orders/[orderId]/confirmation`, `/orders/[orderId]/tracking` | Static shell; the `params` promise is passed to a client component and read with `use()` in `<Suspense>` | Orders live in browser storage, so the server cannot know them |
+
+URLs use product **ids** (owner instruction), not the slugs proposed in the scope.
+
+### State and persistence
+
+| State | Owner | Storage | Key |
+|---|---|---|---|
+| Cart lines | `CartContext` | localStorage | `mithren.cart` |
+| Wishlist | `WishlistContext` | localStorage | `mithren.wishlist` |
+| Saved addresses | `AddressBookContext` | localStorage | `mithren.addresses` |
+| Checkout session (cart or "Buy now", chosen address) | `CheckoutContext` | sessionStorage | `mithren.checkout` |
+| Orders and tracking history | `OrdersContext` | localStorage | `mithren.orders` |
+| Marketplace search, filters, sort | URL query string | — | — |
+
+- `hooks/usePersistentState.ts` reads storage with `useSyncExternalStore`: server and hydration renders see the initial value (no mismatch), every reader of a key stays in sync (also across tabs), stored JSON is validated by a `parse*` function, and `set` reports whether the write was persisted. If storage is blocked, values live in memory for the session.
+- Prices and names are always looked up from the catalogue (`lib/cart.ts resolveLines`); orders store a **snapshot** of each line so later catalogue changes do not alter past orders.
+- `placeOrder` builds and validates the order (`lib/orders.ts buildOrder`), saves it, and throws if saving failed; purchased items leave the cart only after that.
+- **This is demo persistence, not an order database.** Data is per browser, unauthenticated, editable by the user and lost when site data is cleared. There is no payment, seller notification or delivery partner.
+
+### Demo tracking controls
+
+There is no delivery backend, so the tracking page has a "Demo tools" panel that moves an order to its next stage (stages only move forward, one at a time, with a timestamp). It renders only when `NODE_ENV !== "production"` or `NEXT_PUBLIC_DEMO_TOOLS=true`, so production builds hide it from customers (verified).
 
 ## Conflicts between the references (open)
 

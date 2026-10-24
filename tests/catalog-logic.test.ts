@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { categories } from "@/data/categories";
 import { products } from "@/data/products";
 import { vendors } from "@/data/vendors";
-import { categoryFromHash, shopAnchor } from "@/lib/browse";
+import { shopHref } from "@/lib/browse";
 import { addToCart, countItems, MAX_QUANTITY_PER_ITEM, removeFromCart } from "@/lib/cart";
 import { groupBy, roundRobin } from "@/lib/collections";
 import { filterProducts } from "@/lib/filters";
@@ -60,13 +60,11 @@ describe("cart rules", () => {
   });
 });
 
-describe("browse anchors", () => {
-  it("round-trips category anchors and ignores unrelated hashes", () => {
-    expect(shopAnchor("fertilizers")).toBe("#shop-fertilizers");
-    expect(categoryFromHash("#shop-fertilizers")).toBe("fertilizers");
-    expect(categoryFromHash("#shop-all")).toBe("all");
-    expect(categoryFromHash("#shop-results")).toBeNull();
-    expect(categoryFromHash("#bundles")).toBeNull();
+describe("marketplace links", () => {
+  it("opens the marketplace, filtered to a category when given", () => {
+    expect(shopHref()).toBe("/products");
+    expect(shopHref("all")).toBe("/products");
+    expect(shopHref("fertilizers")).toBe("/products?category=fertilizers");
   });
 });
 

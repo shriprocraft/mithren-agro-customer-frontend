@@ -30,7 +30,7 @@ export function CategoryGrid({ categories, productCounts }: CategoryGridProps) {
           id="categories-title"
           title="Shop by category"
           description="From the orchard and the field to the pantry and the wardrobe."
-          action={{ href: "#shop", label: "Browse all products" }}
+          action={{ href: "/products", label: "Browse all products" }}
           controls={<ScrollArrows targetId="category-row" label="categories" />}
         />
         <ul

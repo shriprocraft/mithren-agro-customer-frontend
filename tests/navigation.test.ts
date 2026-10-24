@@ -16,11 +16,11 @@ describe("shopLinks", () => {
     ]);
   });
 
-  it("links categories to the shop browser and collections to their sections", () => {
+  it("links categories to the marketplace and collections to their homepage sections", () => {
     const hrefs = shopLinks(categories).map((link) => link.href);
-    expect(hrefs).toContain("#shop-vegetables");
-    expect(hrefs).toContain("#seasonal");
-    expect(hrefs).toContain("#bundles");
+    expect(hrefs).toContain("/products?category=vegetables");
+    expect(hrefs).toContain("/#seasonal");
+    expect(hrefs).toContain("/#bundles");
   });
 
   it("still lists a category that the reference order does not mention", () => {

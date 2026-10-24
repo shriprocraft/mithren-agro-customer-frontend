@@ -1,6 +1,7 @@
 import { AddToCartButton } from "@/components/products/AddToCartButton";
 import { CatalogImage } from "@/components/products/CatalogImage";
 import { PriceDisplay } from "@/components/products/PriceDisplay";
+import { ProductLink } from "@/components/products/ProductLink";
 import { ProductQuickView } from "@/components/products/ProductQuickView";
 import { StockBadge } from "@/components/products/StockBadge";
 import { WishlistButton } from "@/components/products/WishlistButton";
@@ -55,12 +56,15 @@ export function ProductCard({
           </span>
         )}
       </div>
-      <WishlistButton productId={product.id} productName={product.name} className="absolute top-1 right-1 z-10" />
+      <div className="absolute top-1 right-1 z-10 flex flex-col">
+        <WishlistButton productId={product.id} productName={product.name} />
+        <ProductQuickView product={product} vendorName={vendorName} />
+      </div>
       <div className="flex flex-1 flex-col px-1.5 pt-2.5">
         <h3 className="text-[0.8125rem] leading-snug font-medium text-foreground">
-          <ProductQuickView product={product} vendorName={vendorName}>
+          <ProductLink productId={product.id}>
             {product.name}
-          </ProductQuickView>
+          </ProductLink>
         </h3>
         <p className="text-xs text-muted-foreground">{product.unit}</p>
         <p className="mt-0.5 truncate text-[0.6875rem] text-muted-foreground">Sold by {vendorName}</p>

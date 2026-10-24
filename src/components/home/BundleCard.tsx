@@ -1,7 +1,7 @@
 import { AddToCartButton } from "@/components/products/AddToCartButton";
 import { CatalogImage } from "@/components/products/CatalogImage";
 import { PriceDisplay } from "@/components/products/PriceDisplay";
-import { ProductQuickView } from "@/components/products/ProductQuickView";
+import { ProductLink } from "@/components/products/ProductLink";
 import { StockBadge } from "@/components/products/StockBadge";
 import type { Product } from "@/types/catalog";
 
@@ -16,9 +16,9 @@ export function BundleCard({ bundle, vendorName }: { bundle: Product; vendorName
       </div>
       <div className="flex flex-1 flex-col px-3 pt-4 pb-2">
         <h3 className="font-heading text-lg font-semibold">
-          <ProductQuickView product={bundle} vendorName={vendorName}>
+          <ProductLink productId={bundle.id}>
             {bundle.name}
-          </ProductQuickView>
+          </ProductLink>
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
           {bundle.unit} · {vendorName}

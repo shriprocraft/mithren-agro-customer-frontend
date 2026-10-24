@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CountBadge } from "@/components/layout/CountBadge";
 import { useCart } from "@/context/CartContext";
 import { effectivePrice, formatPrice } from "@/lib/formatters";
@@ -56,9 +57,17 @@ export function CartMenu({ catalog }: { catalog: Product[] }) {
             </p>
           </>
         )}
-        <p className="rounded-xl bg-secondary p-3 text-xs text-secondary-foreground">
-          Checkout isn’t available in this preview. The cart is kept only until you leave or refresh the page.
-        </p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <PopoverClose asChild>
+            <Button asChild variant="outline"><Link href="/cart">View cart</Link></Button>
+          </PopoverClose>
+          {lines.length > 0 && (
+            <PopoverClose asChild>
+              <Button asChild><Link href="/cart">Checkout</Link></Button>
+            </PopoverClose>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">Your cart is saved in this browser only. Prices are sample data.</p>
       </PopoverContent>
     </Popover>
   );

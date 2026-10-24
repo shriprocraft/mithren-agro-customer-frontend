@@ -1,4 +1,4 @@
-import { shopAnchor } from "@/lib/browse";
+import { shopHref } from "@/lib/browse";
 import type { Category, CategorySlug, ImageAsset } from "@/types/catalog";
 
 // Order of the reference's navigation row and category tiles: vegetables, fruits, pantry, the two
@@ -19,12 +19,12 @@ const shopOrder: ShopEntry[] = [
 
 const sectionLinks = {
   seasonal: {
-    href: "#seasonal",
+    href: "/#seasonal",
     name: "Seasonal produce",
     image: { src: "/images/studio/sections/seasonal-studio.jpg", alt: "Mangoes, pomegranates and carrots grouped together", studio: true },
   },
   bundles: {
-    href: "#bundles",
+    href: "/#bundles",
     name: "Combo boxes",
     image: { src: "/images/studio/sections/combo-boxes-studio.jpg", alt: "Two wooden crates, one of vegetables and one of fruit", studio: true },
   },
@@ -39,7 +39,7 @@ export interface ShopLink {
 }
 
 const categoryLink = (category: Category): ShopLink => ({
-  href: shopAnchor(category.slug),
+  href: shopHref(category.slug),
   name: category.name,
   image: category.image,
   category,

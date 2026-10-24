@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { Info } from "lucide-react";
+import Link from "next/link";
+import { Eye, Info } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { AddToCartButton } from "@/components/products/AddToCartButton";
 import { CatalogImage } from "@/components/products/CatalogImage";
 import { PriceDisplay } from "@/components/products/PriceDisplay";
@@ -19,18 +20,22 @@ import type { Product } from "@/types/catalog";
 interface ProductQuickViewProps {
   product: Product;
   vendorName: string;
-  /** The visible trigger content, usually the product name. */
-  children: ReactNode;
 }
 
-// Product pages are not part of this phase, so cards open a quick view instead of a dead link.
-export function ProductQuickView({ product, vendorName, children }: ProductQuickViewProps) {
+// A small eye button on product cards that previews the product in a dialog without leaving the
+// page. The card itself links to the full details page.
+export function ProductQuickView({ product, vendorName }: ProductQuickViewProps) {
   const image = product.images[0];
 
   return (
     <Dialog>
-      <DialogTrigger className="text-left outline-none after:absolute after:inset-0 after:z-0 after:rounded-2xl focus-visible:after:ring-2 focus-visible:after:ring-ring">
-        {children}
+      <DialogTrigger
+        aria-label={`Quick view: ${product.name}`}
+        className="grid size-11 place-items-center rounded-full text-foreground outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="glass-chip grid size-8 place-items-center rounded-full">
+          <Eye className="size-4" aria-hidden="true" />
+        </span>
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] gap-0 overflow-y-auto p-0 sm:max-w-3xl">
         <div className="grid md:grid-cols-2">
@@ -66,9 +71,12 @@ export function ProductQuickView({ product, vendorName, children }: ProductQuick
               />
               <WishlistButton productId={product.id} productName={product.name} appearance="labelled" className="shrink-0" />
             </div>
+            <Button asChild variant="link" className="self-start px-0">
+              <Link href={`/products/${product.id}`}>View full details</Link>
+            </Button>
             <p className="flex gap-2 rounded-xl bg-secondary p-3 text-xs text-secondary-foreground">
               <Info className="mt-px size-4 shrink-0" aria-hidden="true" />
-              Sample listing for this preview. Full product pages, delivery estimates and checkout are not available yet.
+              Sample listing for this preview. Delivery estimates and payment are not available yet.
             </p>
           </div>
         </div>

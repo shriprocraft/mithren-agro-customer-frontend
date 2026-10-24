@@ -53,7 +53,7 @@ export default async function Home() {
         description="Fruit and vegetables from produce sellers on the marketplace. Sample listings."
         products={roundRobin([fruits, vegetables]).slice(0, 8)}
         vendorNames={vendorNames}
-        action={{ href: "#shop-vegetables", label: "All fruit & vegetables" }}
+        action={{ href: "/products?category=fruits,vegetables", label: "All fruit & vegetables" }}
       />
       <SeasonalSection products={seasonal} vendorNames={vendorNames} />
       <ShopBrowser products={products} categories={categories} vendorNames={vendorNames} />

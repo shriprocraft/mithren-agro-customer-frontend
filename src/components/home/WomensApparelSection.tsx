@@ -4,7 +4,7 @@ import { Container } from "@/components/layout/Container";
 import { ProductCard } from "@/components/products/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Heading, Text } from "@/components/ui/typography";
-import { shopAnchor } from "@/lib/browse";
+import { shopHref } from "@/lib/browse";
 import type { Product } from "@/types/catalog";
 
 interface WomensApparelSectionProps {
@@ -38,7 +38,7 @@ export function WomensApparelSection({ products, vendorNames }: WomensApparelSec
               order.
             </Text>
             <Button asChild className="mt-6 self-start">
-              <a href={shopAnchor("womens-apparel")}>
+              <a href={shopHref("womens-apparel")}>
                 Explore apparel
                 <ArrowRight aria-hidden="true" />
               </a>

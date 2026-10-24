@@ -1,27 +1,22 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useBrowse } from "@/context/BrowseContext";
 import { cn } from "@/lib/utils";
 
-// Searches the homepage catalogue browser; a dedicated /search page comes in a later phase.
+// Opens the marketplace with the search term (a new search starts without other filters).
 // As in the reference, the magnifier at the start of the glass field is the submit button.
 export function HeaderSearch({ className }: { className?: string }) {
-  const { search } = useBrowse();
+  const router = useRouter();
   const [value, setValue] = useState("");
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    search(value);
-    // Wait for the browser section to render the results, then move the user there.
-    requestAnimationFrame(() => {
-      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      document.getElementById("shop")?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
-      document.getElementById("shop-results")?.focus({ preventScroll: true });
-    });
+    const query = value.trim();
+    router.push(query ? `/products?q=${encodeURIComponent(query)}` : "/products");
   };
 
   return (
