@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { LeafMark } from "@/components/layout/LeafMark";
@@ -9,7 +10,7 @@ import { shopHref } from "@/lib/browse";
 const banners = [
   {
     href: "/#bundles",
-    lead: "Farm Fresh",
+    lead: "Fruit & Veg",
     accent: "Combo Boxes",
     text: "Mixed fruit and vegetable boxes.",
     cta: "Shop combos",
@@ -27,10 +28,10 @@ const banners = [
 
 export function PromoBanners() {
   return (
-    <section aria-label="Featured collections" className="py-4">
-      <Container className="grid gap-4 md:grid-cols-2">
+    <section aria-label="Featured collections" className="py-3 sm:py-4">
+      <Container className="grid gap-3 sm:gap-4 md:grid-cols-2">
         {banners.map((banner) => (
-          <a
+          <Link
             key={banner.href}
             href={banner.href}
             className="group surface-card relative isolate flex min-h-36 overflow-hidden rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -58,7 +59,7 @@ export function PromoBanners() {
                 <ArrowRight className="size-4" aria-hidden="true" />
               </span>
             </span>
-          </a>
+          </Link>
         ))}
       </Container>
     </section>

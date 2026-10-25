@@ -9,3 +9,7 @@ Always follow docs/DESIGN_SYSTEM.md when creating or modifying Mithren Agro fron
 - Colours come from `src/config/design-tokens.ts`, mirrored in `src/app/globals.css`; use semantic Tailwind classes (`bg-primary`, `text-muted-foreground`, `border-border`…), never raw hex or Tailwind palette colours.
 - Use the shared `<Button>` variants for actions; primary actions use the `default` variant.
 - `tests/design-tokens.test.ts` enforces this; keep it passing.
+
+## Customer account (demo)
+
+The account area is a demo with no authentication (docs/DEMO_ACCOUNT.md). Never add password fields, store credentials or describe the demo session as secure; real sign-in needs a server-verified session.

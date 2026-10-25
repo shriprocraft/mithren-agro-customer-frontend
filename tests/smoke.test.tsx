@@ -12,7 +12,6 @@ describe("homepage", () => {
       "Shop by category",
       "Fresh picks",
       "Seasonal picks",
-      "Shop the marketplace",
       "Pantry staples, sold by the pack",
       "Supplies for gardens and fields",
       "Everyday ethnic wear and easy dresses",
@@ -21,6 +20,13 @@ describe("homepage", () => {
     ]) {
       expect(screen.getByRole("heading", { level: 2, name })).toBeInTheDocument();
     }
+  });
+
+  it("shows each product in one section only, every card linking to its details page", async () => {
+    render(<AppProviders>{await Home()}</AppProviders>);
+    const hrefs = [...document.querySelectorAll('main a[href^="/products/"]')].map((a) => a.getAttribute("href"));
+    expect(hrefs.length).toBeGreaterThan(20);
+    expect(new Set(hrefs).size).toBe(hrefs.length);
   });
 
   it("links to all five categories from the category grid", async () => {

@@ -17,6 +17,10 @@ interface OrdersValue {
   placeOrder: (lines: CartLine[], address: Address) => Order;
   /** Demo-only: moves an order to its next tracking stage. */
   advance: (id: string) => void;
+  /** Demo account: adds illustrative orders (flagged is_sample). */
+  addSamples: (samples: Order[]) => void;
+  /** Demo account: removes every sample order. Orders placed through checkout are kept. */
+  removeSamples: () => void;
 }
 
 const OrdersContext = createContext<OrdersValue | null>(null);
@@ -45,6 +49,9 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       },
       advance: (id) =>
         setOrders((current) => current.map((order) => (order.id === id ? advanceOrder(order, new Date()) : order))),
+      addSamples: (samples) =>
+        setOrders((current) => [...current, ...samples].sort((a, b) => b.created_at.localeCompare(a.created_at))),
+      removeSamples: () => setOrders((current) => current.filter((order) => !order.is_sample)),
     }),
     [orders, hydrated, setOrders],
   );

@@ -24,7 +24,7 @@ export function CategoryGrid({ categories, productCounts }: CategoryGridProps) {
   });
 
   return (
-    <section id="categories" aria-labelledby="categories-title" className="scroll-mt-4 pt-10 pb-4 lg:scroll-mt-32 lg:pt-12">
+    <section id="categories" aria-labelledby="categories-title" className="scroll-mt-4 pt-7 pb-3 sm:pt-10 sm:pb-4 lg:scroll-mt-32 lg:pt-12">
       <Container>
         <SectionHeading
           id="categories-title"
@@ -35,7 +35,7 @@ export function CategoryGrid({ categories, productCounts }: CategoryGridProps) {
         />
         <ul
           id="category-row"
-          className="relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 py-1 [scrollbar-width:none] sm:mx-0 sm:px-0 lg:grid lg:grid-cols-7 lg:overflow-visible [&::-webkit-scrollbar]:hidden"
+          className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 py-1 sm:scroll-px-0 [scrollbar-width:none] sm:mx-0 sm:px-0 lg:grid lg:grid-cols-7 lg:overflow-visible [&::-webkit-scrollbar]:hidden"
         >
           {tiles.map((tile) => (
             <li key={tile.href} className="w-[38%] shrink-0 snap-start sm:w-[24%] md:w-[19%] lg:w-auto">

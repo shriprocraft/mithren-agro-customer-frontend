@@ -14,7 +14,7 @@ interface SeasonalSectionProps {
 // centre that carries the copy. The seasonal listings follow as compact cards.
 export function SeasonalSection({ products, vendorNames }: SeasonalSectionProps) {
   return (
-    <section id="seasonal" aria-labelledby="seasonal-title" className="scroll-mt-4 py-8 lg:scroll-mt-32">
+    <section id="seasonal" aria-labelledby="seasonal-title" className="scroll-mt-4 py-6 sm:py-8 lg:scroll-mt-32">
       <Container>
         <div className="surface-card relative isolate overflow-hidden rounded-3xl">
           <div aria-hidden="true" className="absolute inset-y-0 left-0 -z-10 hidden w-[36%] [mask-image:linear-gradient(to_left,transparent,#000_45%)] sm:block">
@@ -24,7 +24,7 @@ export function SeasonalSection({ products, vendorNames }: SeasonalSectionProps)
             <Image src="/images/products/mangoes.jpg" alt="" fill sizes="36vw" className="object-cover" />
           </div>
           <LeafMark className="absolute top-6 left-[28.5%] hidden h-10 w-8 -rotate-[24deg] lg:block" />
-          <div className="max-w-xl px-6 py-7 sm:ml-[32%] sm:px-8">
+          <div className="max-w-xl px-5 py-5 sm:ml-[32%] sm:px-8 sm:py-7">
             <Heading id="seasonal-title" variant="h2">
               Seasonal picks
             </Heading>

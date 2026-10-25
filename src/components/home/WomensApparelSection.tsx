@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { ProductCard } from "@/components/products/ProductCard";
@@ -16,7 +17,7 @@ interface WomensApparelSectionProps {
 // quality or sourcing claims are made.
 export function WomensApparelSection({ products, vendorNames }: WomensApparelSectionProps) {
   return (
-    <section id="womens-apparel" aria-labelledby="apparel-title" className="scroll-mt-4 py-8 lg:scroll-mt-32">
+    <section id="womens-apparel" aria-labelledby="apparel-title" className="scroll-mt-4 py-6 sm:py-8 lg:scroll-mt-32">
       <Container>
         <div className="surface-card grid overflow-hidden rounded-3xl p-2 md:grid-cols-[1fr_1.15fr]">
           <div className="relative aspect-[4/3] overflow-hidden rounded-[1.25rem] md:aspect-auto md:min-h-[24rem]">
@@ -38,10 +39,10 @@ export function WomensApparelSection({ products, vendorNames }: WomensApparelSec
               order.
             </Text>
             <Button asChild className="mt-6 self-start">
-              <a href={shopHref("womens-apparel")}>
+              <Link href={shopHref("womens-apparel")}>
                 Explore apparel
                 <ArrowRight aria-hidden="true" />
-              </a>
+              </Link>
             </Button>
           </div>
         </div>

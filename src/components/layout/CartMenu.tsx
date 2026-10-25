@@ -7,12 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CountBadge } from "@/components/layout/CountBadge";
 import { useCart } from "@/context/CartContext";
+import { useCheckout } from "@/context/CheckoutContext";
+import { checkoutBlocker, resolveLines } from "@/lib/cart";
 import { effectivePrice, formatPrice } from "@/lib/formatters";
 import type { Product } from "@/types/catalog";
 
-// Mini cart: shows what was added on this page. Checkout is a later phase, so there is no checkout button.
+// Mini cart. "Checkout" starts the same cart checkout as the cart page; when something blocks it (such
+// as an out-of-stock line) it opens the cart instead, where the problem is explained.
 export function CartMenu({ catalog }: { catalog: Product[] }) {
   const { items, count, removeItem } = useCart();
+  const { start } = useCheckout();
+  const blocked = checkoutBlocker(resolveLines(items, catalog).lines) !== null;
   const lines = items.flatMap((item) => {
     const product = catalog.find((p) => p.id === item.product_id);
     return product ? [{ product, quantity: item.quantity }] : [];
@@ -63,7 +68,9 @@ export function CartMenu({ catalog }: { catalog: Product[] }) {
           </PopoverClose>
           {lines.length > 0 && (
             <PopoverClose asChild>
-              <Button asChild><Link href="/cart">Checkout</Link></Button>
+              <Button asChild>
+                <Link href={blocked ? "/cart" : "/checkout/address"} onClick={() => { if (!blocked) start({ kind: "cart" }); }}>Checkout</Link>
+              </Button>
             </PopoverClose>
           )}
         </div>

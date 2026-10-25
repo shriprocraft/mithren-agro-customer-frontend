@@ -31,24 +31,25 @@ interface HeroSectionProps {
 // At 1024–1279px it is 88% of the hero's height, which moves the crate right, clear of the copy.
 // The crate's bottom edge stays above the strip at 1024–1920px widths. Below lg the same image
 // element becomes a full-bleed band under the copy, centred on the crate (one element, so the LCP
-// image is never downloaded twice).
+// image is never downloaded twice). On phones the copy, band and strip are kept short so "Shop by
+// category" starts near the first screen.
 export function HeroSection({ growers }: HeroSectionProps) {
   return (
     <section
       aria-labelledby="hero-title"
       className="relative isolate overflow-hidden lg:-mt-23 lg:flex lg:h-[calc(100svh-1.75rem)] lg:max-h-[58rem] lg:min-h-[40rem] lg:flex-col lg:pt-23 xl:-mt-29 xl:h-[calc(100svh-1.875rem)] xl:pt-29"
     >
-      <Container className="relative pt-8 pb-6 sm:pt-10 lg:flex lg:flex-1 lg:items-center lg:py-6 xl:pl-[6.75rem]">
+      <Container className="relative pt-5 pb-4 sm:pt-10 sm:pb-6 lg:flex lg:flex-1 lg:items-center lg:py-6 xl:pl-[6.75rem]">
         <div className="max-w-xl animate-in duration-500 fade-in slide-in-from-bottom-3 motion-reduce:animate-none">
           <Heading as="h1" id="hero-title" variant="display">
             Good Food
             <span className="block">Grows a Better</span>
             <span className="block text-primary">Tomorrow</span>
           </Heading>
-          <p className="mt-4 max-w-[24rem] text-base leading-relaxed text-pretty text-foreground/80 lg:max-w-[21rem] xl:mt-5 xl:max-w-[30rem] xl:text-[1.0625rem]">
+          <p className="mt-3 max-w-[24rem] text-[0.9375rem] leading-relaxed text-pretty text-foreground/80 sm:mt-4 sm:text-base lg:max-w-[21rem] xl:mt-5 xl:max-w-[30rem] xl:text-[1.0625rem]">
             Shop fresh produce, pantry essentials and more from independent sellers, all in one place.
           </p>
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row xl:mt-8 xl:gap-4">
+          <div className="mt-5 flex flex-col gap-2.5 sm:mt-7 sm:flex-row sm:gap-3 xl:mt-8 xl:gap-4">
             <Button asChild className="px-6 xl:h-12 xl:px-8">
               <a href="#fresh-picks">
                 Shop Fresh Produce
@@ -73,7 +74,7 @@ export function HeroSection({ growers }: HeroSectionProps) {
         </p>
       </Container>
 
-      <div className="relative aspect-[5/4] w-full [mask-image:linear-gradient(to_bottom,transparent,#000_12%,#000_92%,transparent)] sm:aspect-[16/9] lg:absolute lg:right-0 lg:bottom-0 lg:-z-10 lg:aspect-[3/2] lg:h-[88%] lg:w-auto xl:h-full lg:max-w-full lg:hero-photo-fade">
+      <div className="relative aspect-[2/1] w-full [mask-image:linear-gradient(to_bottom,transparent,#000_12%,#000_92%,transparent)] sm:aspect-[16/9] lg:absolute lg:right-0 lg:bottom-0 lg:-z-10 lg:aspect-[3/2] lg:h-[88%] lg:w-auto xl:h-full lg:max-w-full lg:hero-photo-fade">
         <Image
           src={heroPhoto.src}
           alt={heroPhoto.alt}
@@ -81,7 +82,7 @@ export function HeroSection({ growers }: HeroSectionProps) {
           loading="eager"
           fetchPriority="high"
           sizes="(min-width: 1024px) 90vw, 100vw"
-          className="object-cover object-[100%_60%] sm:object-[72%_58%] lg:object-right"
+          className="object-cover object-[78%_62%] sm:object-[72%_58%] lg:object-right"
         />
       </div>
       {/* A light veil over the photo's left third keeps the headline crisp where it overlaps the haze;

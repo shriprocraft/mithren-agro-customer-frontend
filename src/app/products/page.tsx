@@ -14,15 +14,16 @@ export default async function ProductsPage() {
 
   return (
     <main id="main-content" className="flex-1">
-      <Container className="py-8">
+      <Container className="pt-4 pb-8 sm:py-8">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Shop" }]} />
-        <Heading as="h1" variant="h1" className="mt-3">Shop the marketplace</Heading>
-        <Text variant="muted" className="mt-1 text-base">
+        <Heading as="h1" variant="h1" className="mt-2 text-[1.625rem] sm:mt-3 sm:text-4xl">Shop the marketplace</Heading>
+        <Text variant="muted" className="mt-1 sm:text-base">
           Search, filter and sort every listing. All products, prices and sellers are sample data.
         </Text>
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-6">
           {/* The results read the URL, so they render on the client inside this boundary. */}
-          <Suspense fallback={<p className="text-sm text-muted-foreground">Loading products…</p>}>
+          {/* At least a screen tall, so navigations here start at the top (see ProductDetailSkeleton). */}
+          <Suspense fallback={<p role="status" className="min-h-svh text-sm text-muted-foreground">Loading products…</p>}>
             <Marketplace products={products} categories={categories} vendorNames={vendorNames} />
           </Suspense>
         </div>

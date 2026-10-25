@@ -17,8 +17,10 @@ interface ProductCardProps {
   className?: string;
 }
 
-// Compact card from the reference. The product name opens the quick view and stretches over
-// the whole card; the wishlist and cart buttons sit above that layer so each keeps its own target.
+// Compact card from the reference. The product name links to the details page and stretches over
+// the whole card; the wishlist, quick-view and cart buttons sit above that layer so each keeps its
+// own target. Names are clamped to two lines, and the price row is pushed to the bottom, so prices
+// and buttons line up across a row of equal-height cards. Quick view is a desktop convenience; on touch screens the card opens the page.
 export function ProductCard({
   product,
   vendorName,
@@ -31,7 +33,7 @@ export function ProductCard({
   return (
     <article
       className={cn(
-        "group surface-card relative flex h-full flex-col rounded-2xl p-2 transition duration-300 hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+        "group surface-card relative flex h-full flex-col rounded-2xl p-1.5 transition sm:p-2 duration-300 hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0",
         className,
       )}
     >
@@ -56,19 +58,21 @@ export function ProductCard({
           </span>
         )}
       </div>
-      <div className="absolute top-1 right-1 z-10 flex flex-col">
+      <div className="absolute top-0.5 right-0.5 z-10 flex flex-col sm:top-1 sm:right-1">
         <WishlistButton productId={product.id} productName={product.name} />
-        <ProductQuickView product={product} vendorName={vendorName} />
+        <div className="hidden md:block">
+          <ProductQuickView product={product} vendorName={vendorName} />
+        </div>
       </div>
-      <div className="flex flex-1 flex-col px-1.5 pt-2.5">
-        <h3 className="text-[0.8125rem] leading-snug font-medium text-foreground">
+      <div className="flex flex-1 flex-col px-1.5 pt-2.5 pb-0.5">
+        <h3 className="line-clamp-2 text-sm leading-snug font-medium text-foreground">
           <ProductLink productId={product.id}>
             {product.name}
           </ProductLink>
         </h3>
-        <p className="text-xs text-muted-foreground">{product.unit}</p>
-        <p className="mt-0.5 truncate text-[0.6875rem] text-muted-foreground">Sold by {vendorName}</p>
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-x-2 pt-1.5">
+        <p className="mt-0.5 text-xs text-muted-foreground">{product.unit}</p>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">Sold by {vendorName}</p>
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 pt-2">
           <PriceDisplay price={product.price} discountedPrice={product.discounted_price} />
           <StockBadge status={product.stock_status} />
         </div>
@@ -76,7 +80,7 @@ export function ProductCard({
           productId={product.id}
           productName={product.name}
           stockStatus={product.stock_status}
-          className="relative z-10 mt-2.5 mb-0.5"
+          className="relative z-10 mt-2.5 px-3"
         />
       </div>
     </article>

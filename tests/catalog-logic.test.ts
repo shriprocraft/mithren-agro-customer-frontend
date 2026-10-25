@@ -4,7 +4,7 @@ import { products } from "@/data/products";
 import { vendors } from "@/data/vendors";
 import { shopHref } from "@/lib/browse";
 import { addToCart, countItems, MAX_QUANTITY_PER_ITEM, removeFromCart } from "@/lib/cart";
-import { groupBy, roundRobin } from "@/lib/collections";
+import { freshPicks, roundRobin } from "@/lib/collections";
 import { filterProducts } from "@/lib/filters";
 import { effectivePrice, formatPrice } from "@/lib/formatters";
 
@@ -71,7 +71,8 @@ describe("marketplace links", () => {
 describe("collections", () => {
   it("round-robins across groups", () => {
     expect(roundRobin([["a1", "a2"], ["b1"], ["c1", "c2"]])).toEqual(["a1", "b1", "c1", "a2", "c2"]);
-    expect(groupBy([1, 2, 3, 4], (n) => (n % 2 ? "odd" : "even"))).toEqual([[1, 3], [2, 4]]);
+    const f = (id: string, is_seasonal?: boolean) => ({ id, is_seasonal });
+    expect(freshPicks([f("f1"), f("f2", true), f("f3")], [f("v1", true), f("v2")], 3).map((p) => p.id)).toEqual(["f1", "v2", "f3"]);
   });
 });
 

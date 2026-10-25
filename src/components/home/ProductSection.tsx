@@ -17,7 +17,7 @@ interface ProductSectionProps {
 // visible from xl, fewer on smaller screens.
 export function ProductSection({ id, title, description, products, vendorNames, action }: ProductSectionProps) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-4 py-8 lg:scroll-mt-32">
+    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-4 py-6 sm:py-8 lg:scroll-mt-32">
       <Container>
         <SectionHeading
           id={`${id}-title`}
@@ -28,7 +28,7 @@ export function ProductSection({ id, title, description, products, vendorNames, 
         />
         <ul
           id={`${id}-row`}
-          className="relative -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 py-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+          className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 py-1 sm:scroll-px-0 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
         >
           {products.map((product) => (
             <li

@@ -39,7 +39,8 @@ function Tracking({ order }: { order: Order }) {
           <Button asChild variant="outline"><Link href={`/orders/${order.id}/confirmation`}>Order confirmation</Link></Button>
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
-          Estimated delivery: not available. No delivery partner is connected in this preview.
+          {order.is_sample && <span className="mr-2 rounded-full border border-border px-2 py-0.5 text-xs font-medium">Sample order</span>}
+          Simulated tracking. Estimated delivery: not available. No delivery partner is connected in this preview.
         </p>
         <div className="mt-8">
           <TrackingTimeline order={order} />

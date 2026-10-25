@@ -7,7 +7,8 @@ import { useAnnounce } from "@/context/AnnouncerContext";
 import { cn } from "@/lib/utils";
 import type { DeliveryArea } from "@/types/catalog";
 
-// Sample areas only: no geolocation is requested and serviceability is not checked.
+// Sample areas only: no geolocation is requested and serviceability is not checked. Below lg the
+// trigger shrinks to one line ("Choose area") beside the logo, and to just the pin under 430px.
 export function LocationSelector({ areas, className }: { areas: DeliveryArea[]; className?: string }) {
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -24,18 +25,19 @@ export function LocationSelector({ areas, className }: { areas: DeliveryArea[]; 
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={cn(
-          "inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-left text-[0.8125rem] transition-colors outline-none hover:bg-soft focus-visible:ring-2 focus-visible:ring-ring",
+          "inline-flex min-h-11 min-w-11 shrink items-center justify-center gap-1.5 rounded-full px-1 text-left text-xs transition-colors lg:gap-2 lg:px-2 lg:text-[0.8125rem] outline-none hover:bg-soft focus-visible:ring-2 focus-visible:ring-ring",
           className,
         )}
       >
-        <span className="glass-chip grid size-9 shrink-0 place-items-center rounded-full">
+        <span className="grid shrink-0 place-items-center rounded-full lg:glass-chip lg:size-9">
           <MapPin className="size-[1.125rem] text-foreground" aria-hidden="true" />
         </span>
-        <span className="flex flex-col leading-tight">
-          <span className="text-[0.6875rem] text-muted-foreground">Deliver to</span>
-          <span className="font-medium">{selected ? `${selected.label} ${selected.postal_code}` : "Choose area"}</span>
+        <span className="flex min-w-0 flex-col leading-tight max-[429px]:sr-only">
+          <span className="hidden text-[0.6875rem] text-muted-foreground lg:block">Deliver to</span>
+          <span className="sr-only lg:hidden">Deliver to </span>
+          <span className="truncate font-medium">{selected ? `${selected.label} ${selected.postal_code}` : "Choose area"}</span>
         </span>
-        <ChevronDown className="size-4 text-muted-foreground" aria-hidden="true" />
+        <ChevronDown className="size-4 shrink-0 text-muted-foreground max-[429px]:hidden" aria-hidden="true" />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 gap-3 p-4">
         <fieldset>

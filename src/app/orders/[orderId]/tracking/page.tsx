@@ -13,7 +13,7 @@ export default function TrackingPage({ params }: PageProps<"/orders/[orderId]/tr
       <Container className="py-8">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Order tracking" }]} />
         <div className="mt-4">
-          <Suspense fallback={<LoadingState label="Loading your order…" />}>
+          <Suspense fallback={<LoadingState label="Loading your order…" fullHeight />}>
             <TrackingView params={params} />
           </Suspense>
         </div>

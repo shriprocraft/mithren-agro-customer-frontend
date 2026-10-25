@@ -16,9 +16,11 @@ export interface Address {
   pincode: string;
   landmark?: string;
   type: AddressType;
+  /** Fictional sample address added by the demo account; removed when the demo ends. */
+  is_sample?: boolean;
 }
 
-export type AddressInput = Omit<Address, "id">;
+export type AddressInput = Omit<Address, "id" | "is_sample">;
 
 /** What is being bought: the whole cart, or one product via "Buy now" (the cart is left untouched). */
 export type CheckoutSource = { kind: "cart" } | { kind: "buy_now"; product_id: string; quantity: number };
@@ -80,4 +82,6 @@ export interface Order {
   status: OrderStatus;
   /** One event per status reached, oldest first; the last one matches `status`. */
   history: TrackingEvent[];
+  /** Illustrative order added by the demo account (never a real purchase); removed when the demo ends. */
+  is_sample?: boolean;
 }

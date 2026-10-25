@@ -191,7 +191,7 @@ await step(22, "Refresh keeps tracking state", async () => {
 await step(23, "Same order, consistent elsewhere", async () => {
   await go(`/orders/${orderId}/confirmation`); await waitFor("__t.text().includes('Order Placed Successfully')");
   const t = await js("__t.text()"); expect(t.includes("Preparing Order") && t.includes("Total ₹120"), "status/total on confirmation");
-  await js(`__t.click('header button[aria-label=Account]')`); await waitFor(`__t.byText('[data-slot=popover-content] a', '${orderId}')`);
+  await js(`__t.click('header button[aria-label^=Account]')`); await waitFor(`__t.byText('[data-slot=popover-content] a', '${orderId}')`);
   return "confirmation shows Preparing Order and ₹120; order listed in account menu";
 });
 await step(24, "Invalid product and order IDs", async () => {
@@ -268,7 +268,7 @@ await step(33, "Wishlist and cart still work from the marketplace", async () => 
 await step(34, "Responsive layouts", async () => {
   const routes = ["/", "/products", `/products/p-tomatoes`, "/cart", "/checkout/address", "/wishlist", `/orders/${orderId}/tracking`, `/orders/${orderId}/confirmation`];
   const problems = [];
-  for (const [w, h] of [[375, 812], [768, 1024], [1024, 768], [1440, 900]]) {
+  for (const [w, h] of [[320, 568], [375, 812], [390, 844], [430, 932], [768, 1024], [1024, 768], [1280, 720], [1440, 900]]) {
     await viewport(w, h);
     for (const r of routes) {
       await go(r);
@@ -280,7 +280,186 @@ await step(34, "Responsive layouts", async () => {
   await go("/products"); await js(`__t.click('main button', 'Filter')`); await sleep(700); await shot("34-filter-375");
   await go("/products/p-tomatoes"); await shot("34-product-375");
   await viewport(1440, 900);
-  expect(problems.length === 0, problems.join("; ")); return `${routes.length} routes × 4 widths, no horizontal overflow`;
+  expect(problems.length === 0, problems.join("; ")); return `${routes.length} routes × 8 widths, no horizontal overflow`;
+});
+
+// Product pages must open at the top after a client navigation (they used to land at the bottom at
+// some viewport heights, e.g. 1024 × 768; see components/products/ProductDetailSkeleton.tsx).
+const landing = "[location.pathname, Math.round(scrollY), Math.round(document.querySelector('main h1')?.getBoundingClientRect().top ?? -1), innerHeight]";
+async function openFromDeep(selector, fromPath) {
+  await js(`(() => { const ls = [...document.querySelectorAll(${JSON.stringify(selector)})]; const l = ls[ls.length - 1]; l.scrollIntoView({ block: "center" }); window.__l = l; return true; })()`);
+  await sleep(400); const from = await js("Math.round(scrollY)"); const target = await js("window.__l.getAttribute('href')");
+  await js("window.__l.click(); true");
+  await waitFor(`location.pathname === ${JSON.stringify(target)} && document.querySelector('main h1')`); await sleep(1200);
+  const [path, y, h1, vh] = await js(landing);
+  expect(path !== fromPath && y === 0 && h1 > 0 && h1 < vh, `from scrollY ${from}: landed at ${y}, h1 at ${h1} of ${vh}`);
+  return `${target} from scrollY ${from} → scrollY 0, h1 at ${h1}px`;
+}
+await step(35, "Homepage product opens at the top (1024×768 and 390×844)", async () => {
+  const out = [];
+  for (const [w, h] of [[1024, 768], [390, 844]]) { await viewport(w, h); await go("/"); out.push(`${w}: ` + await openFromDeep('main a[href^="/products/"]', "/")); }
+  await viewport(1440, 900); return out.join("; ");
+});
+await step(36, "Product → related product, then back and forward", async () => {
+  await viewport(1024, 768); await go("/products/p-tomatoes");
+  const detail = await openFromDeep('#related-title ~ ul a[href^="/products/"]', "/products/p-tomatoes");
+  const related = await js("location.pathname");
+  await js("history.back(); true"); await waitFor("location.pathname === '/products/p-tomatoes'");
+  await js("history.forward(); true"); await waitFor(`location.pathname === ${JSON.stringify(related)}`);
+  await viewport(1440, 900); return detail + "; back → tomatoes, forward → " + related;
+});
+await step(37, "Quantity changes keep the scroll position", async () => {
+  await viewport(390, 844); await go("/products/p-tomatoes"); await js("scrollTo(0, 250); true"); await sleep(300);
+  const before = await js("Math.round(scrollY)");
+  await js(`__t.click('button[aria-label="Increase quantity"]')`); await waitFor("document.querySelector('input[aria-label=Quantity]').value === '2'");
+  await sleep(300); const after = await js("Math.round(scrollY)");
+  await viewport(1440, 900); expect(before === after && before > 0, `${before} → ${after}`); return `scrollY ${before} → ${after}`;
+});
+await step(38, "Quick view closes when opening the full details", async () => {
+  await go("/"); await js(`__t.click('main button[aria-label="Quick view: Tomatoes"]')`);
+  await waitFor("document.querySelector('[role=dialog]')");
+  await js(`__t.click('[role=dialog] a', 'View full details')`); await waitFor("location.pathname === '/products/p-tomatoes'");
+  await sleep(600); expect(!(await js("!!document.querySelector('[role=dialog]')")), "dialog still mounted after navigating");
+  await js("history.back(); true"); await waitFor("location.pathname === '/'"); await sleep(600);
+  expect(!(await js("!!document.querySelector('[role=dialog]')")), "dialog reopened on back");
+  return "dialog closed on navigation and stays closed after Back";
+});
+await step(39, "Buy now orders only that product and leaves the cart unchanged", async () => {
+  const cartBefore = await js("localStorage.getItem('mithren.cart')");
+  await go("/products/p-tomatoes"); await js(`__t.click('button[aria-label="Increase quantity"]')`);
+  await waitFor("document.querySelector('input[aria-label=Quantity]').value === '2'");
+  await js(`__t.click('main button', 'Buy now')`); await waitFor("location.pathname === '/checkout/address'");
+  await waitFor("document.querySelector('input[name=delivery-address]')"); await js("document.querySelector('input[name=delivery-address]').click(); true");
+  await js(`__t.click('main button', 'Continue to review')`); await waitFor("location.pathname === '/checkout/review' && __t.text().includes('Place order')");
+  const t = await js("__t.text()");
+  expect(t.includes("Buy now: only this item") && t.includes("Tomatoes") && t.includes("Qty 2") && !t.includes("Carrots") && t.includes("Total ₹80"), "review: " + t.slice(0, 300));
+  await js(`__t.click('main button', 'Place order')`); await waitFor("/confirmation$/.test(location.pathname)");
+  await waitFor("__t.text().includes('Order Placed Successfully')");
+  const cartAfter = await js("localStorage.getItem('mithren.cart')");
+  expect(cartAfter === cartBefore && (await js("__t.cartLabel()")) === "Cart, 1 item", `cart ${cartBefore} → ${cartAfter}`);
+  return "review shows 2 × Tomatoes only (₹80); order placed; cart still holds Carrots (Cart, 1 item)";
+});
+
+
+// ---- Demo customer account (docs/DEMO_ACCOUNT.md) ----
+await step(40, "Account pages are gated without a demo session", async () => {
+  await viewport(1440, 900); await go("/account/orders");
+  await waitFor("__t.text().includes('Sign in to see your account')");
+  expect(!(await js("__t.text()")).includes("Sample order"), "account content leaked");
+  const href = await js("[...document.querySelectorAll('main a')].find(a => a.textContent.includes('Go to sign in')).getAttribute('href')");
+  expect(href === "/login?next=%2Faccount%2Forders", href); return "entry screen; sign-in link keeps the destination";
+});
+await step(41, "Sign in page: Explore Demo Account opens the intended page", async () => {
+  await go("/login?next=%2Faccount%2Forders"); await waitFor("__t.text().includes('Welcome to Mithren Agro')");
+  const t = await js("__t.text()");
+  expect(t.includes("Demo mode") && t.includes("Continue as guest") && !(await js("!!document.querySelector('input[type=password]')")), "demo notice, guest link, no password field");
+  await shot("41-login");
+  await js("__t.click('main button', 'Explore Demo Account')"); await waitFor("location.pathname === '/account/orders' && __t.text().includes('My Orders')");
+  await waitFor("__t.text().includes('Sample order')");
+  const label = await js("document.querySelector('header button[aria-label^=Account]').getAttribute('aria-label')");
+  expect(label === "Account: Demo Customer (demo)", label); return "→ /account/orders with sample orders; header shows the demo account";
+});
+await step(42, "Demo session survives a refresh; account navigation works", async () => {
+  await go("/account"); await waitFor("__t.text().includes('Hello, Demo')");
+  for (const [label, path, text] of [["My Profile", "/account/profile", "Demo Customer"], ["Track Orders", "/account/track", "On the way"], ["My Addresses", "/account/addresses", "Sample Street"], ["My Wishlist", "/account/wishlist", "Carrots"], ["Account Settings", "/account/settings", "Notification preferences"], ["Overview", "/account", "Recent orders"]]) {
+    await js(`__t.click('nav[aria-label=Account] a', ${JSON.stringify(label)})`); await waitFor(`location.pathname === ${JSON.stringify(path)} && __t.text().includes(${JSON.stringify(text)})`);
+  }
+  await shot("42-account-overview"); return "reload keeps the session; 6 sections open with their content";
+});
+await step(43, "Edit the demo profile (invalid, then valid)", async () => {
+  await go("/account/profile"); await js("__t.click('main button', 'Edit profile')"); await waitFor("document.querySelector('#field-email')");
+  await js("__t.type('#field-email', 'not-an-email')"); await js("__t.click('main form button[type=submit]')");
+  await waitFor("__t.text().includes('Enter an email address like')");
+  await js("__t.type('#field-full_name', 'Meera Demo')"); await js("__t.type('#field-email', 'meera.demo@example.com')"); await js("__t.click('main form button[type=submit]')");
+  await waitFor("__t.text().includes('Saved to the demo profile') && __t.text().includes('meera.demo@example.com')");
+  await go("/account/profile"); await waitFor("__t.text().includes('Meera Demo')"); return "inline email error; saved; kept after reload";
+});
+await step(44, "Open a sample order and its simulated tracking", async () => {
+  await go("/account/orders"); await waitFor("document.querySelectorAll('main article').length >= 3");
+  await js("[...document.querySelectorAll('main article')].find(a => a.textContent.includes('Out for Delivery')).querySelector('a').click()");
+  await waitFor("/^\\/account\\/orders\\/MA-/.test(location.pathname) && __t.text().includes('Simulated tracking')");
+  const t = await js("__t.text()"); expect(t.includes("Sample order") && t.includes("never placed or paid for"), "sample labelling");
+  const current = await js("document.querySelector('[aria-label=\"Order progress\"] [aria-current=step]')?.textContent");
+  expect(current.includes("Out for Delivery"), current);
+  await js("__t.click('main a', 'Open tracking page')"); await waitFor("/\\/tracking$/.test(location.pathname) && __t.text().includes('Simulated tracking')");
+  await go("/account/orders/MA-00000000-NOPE"); await waitFor("__t.text().includes('couldn’t find that order')");
+  await shot("44-account-order"); return "details + timeline at Out for Delivery; tracking page; unknown ID handled";
+});
+await step(45, "Add, edit, set default and delete an address (with confirmation)", async () => {
+  await go("/account/addresses"); await js("__t.click('main button', 'Add address')"); await waitFor("document.querySelector('#address-full_name')");
+  const v = { full_name: "Kiran Test", mobile: "9123456780", house: "Plot 9", street: "Park Road", city: "Mysuru", pincode: "570001" };
+  for (const [k, val] of Object.entries(v)) await js(`__t.type('#address-${k}', ${JSON.stringify(val)})`);
+  await js("__t.type('#address-state', 'Karnataka')"); await js("__t.click('main form button[type=submit]')");
+  await waitFor("__t.text().includes('Kiran Test')");
+  await js(`__t.click('main button[aria-label="Edit address for Kiran Test, Mysuru"]')`); await waitFor("document.querySelector('#address-landmark')");
+  await js("__t.type('#address-landmark', 'Opposite the lake')"); await js("__t.click('main form button', 'Save changes')"); await waitFor("__t.text().includes('Opposite the lake')");
+  await js("(() => { const li = [...document.querySelectorAll('main li')].find(l => l.textContent.includes('Kiran Test')); [...li.querySelectorAll('button')].find(b => b.textContent.includes('Set as default')).click(); return true; })()");
+  await waitFor("[...document.querySelectorAll('main li')].find(l => l.textContent.includes('Kiran Test'))?.textContent.includes('Default')");
+  await js(`__t.click('main button[aria-label="Delete address for Kiran Test, Mysuru"]')`); await waitFor("document.querySelector('[role=alertdialog]')");
+  await js("__t.click('[role=alertdialog] button', 'Cancel')"); await sleep(400); expect((await js("__t.text()")).includes("Kiran Test"), "cancel kept it");
+  await js(`__t.click('main button[aria-label="Delete address for Kiran Test, Mysuru"]')`); await waitFor("document.querySelector('[role=alertdialog]')");
+  await js("__t.click('[role=alertdialog] button', 'Delete address')"); await waitFor("!__t.text().includes('Kiran Test')");
+  return "added, edited (landmark), made default, cancel keeps, confirm deletes";
+});
+await step(46, "Checkout as the demo account uses the default address", async () => {
+  await js("(() => { const li = [...document.querySelectorAll('main li')].find(l => l.textContent.includes('Sample Street')); const b = li && [...li.querySelectorAll('button')].find(b => b.textContent.includes('Set as default')); if (b) b.click(); return true; })()");
+  await go("/products/p-papaya"); await js("__t.click('main button', 'Add to cart')"); await waitFor("__t.cartLabel() === 'Cart, 2 items'");
+  await go("/cart"); await js("__t.click('main button', 'Proceed to checkout')"); await waitFor("location.pathname === '/checkout/address' && document.querySelector('input[name=delivery-address]')");
+  const checked = await js("document.querySelector('input[name=delivery-address]:checked').closest('li').textContent");
+  expect(checked.includes("Sample Street") && checked.includes("Default"), checked.slice(0, 120));
+  await js("__t.click('main button', 'Continue to review')"); await waitFor("location.pathname === '/checkout/review' && __t.text().includes('Place order')");
+  await js("__t.click('main button', 'Place order')"); await waitFor("/confirmation$/.test(location.pathname) && __t.text().includes('Order Placed Successfully')");
+  const id = await js("location.pathname.split('/')[2]");
+  await go("/account/orders"); await waitFor(`__t.text().includes(${JSON.stringify(id)})`);
+  const card = await js(`[...document.querySelectorAll('main article')].find(a => a.textContent.includes(${JSON.stringify(id)})).textContent`);
+  expect(!card.includes("Sample order"), "a real checkout order is not labelled sample"); return `${id} placed to the default sample address; listed in My Orders without the sample label`;
+});
+await step(47, "Settings: local preferences persist; reset asks first", async () => {
+  await go("/account/settings"); await waitFor("document.querySelector('[role=switch]')");
+  const before = await js("document.querySelectorAll('[role=switch]')[1].getAttribute('aria-checked')");
+  await js("document.querySelectorAll('[role=switch]')[1].click(); true"); await sleep(300);
+  await go("/account/settings"); await waitFor("document.querySelector('[role=switch]')");
+  const after = await js("document.querySelectorAll('[role=switch]')[1].getAttribute('aria-checked')");
+  expect(before !== after, before + " → " + after);
+  expect((await js("__t.text()")).includes("no messages are sent"), "honest notice");
+  await js("__t.click('main button', 'Reset demo data')"); await waitFor("document.querySelector('[role=alertdialog]')");
+  await js("__t.click('[role=alertdialog] button', 'Cancel')"); return `offers ${before} → ${after} after reload; reset confirm opens and cancels`;
+});
+await step(48, "Mobile account navigation and header menu", async () => {
+  await viewport(390, 844); await go("/account");
+  await waitFor("document.querySelector('nav[aria-label=Account]')");
+  const sw = await js("document.documentElement.scrollWidth"); expect(sw <= 390, "scrollWidth " + sw);
+  await js("__t.click('header button[aria-label^=Account]')"); await waitFor("__t.byText('[data-slot=popover-content] a', 'My Orders')");
+  await shot("48-account-menu-390");
+  await js("__t.click('[data-slot=popover-content] a', 'My Orders')"); await waitFor("location.pathname === '/account/orders'");
+  await sleep(400); expect(!(await js("!!document.querySelector('[data-slot=popover-content]')")), "menu closed after navigating");
+  await shot("48-account-orders-390"); await viewport(1440, 900); return "no overflow at 390; header menu → My Orders and closes";
+});
+await step(49, "Logout ends the demo and keeps guest shopping working", async () => {
+  await go("/account"); await js("__t.click('nav[aria-label=Account] button', 'Logout')");
+  await waitFor("location.pathname === '/login' && __t.text().includes('You have left the demo account')");
+  await go("/account"); await waitFor("__t.text().includes('Sign in to see your account')");
+  const orders = await js("JSON.parse(localStorage.getItem('mithren.orders'))");
+  expect(orders.every((o) => !o.is_sample) && orders.length >= 1, "samples removed, own orders kept: " + orders.length);
+  expect((await js("JSON.parse(localStorage.getItem('mithren.addresses'))")).every((a) => !a.is_sample), "sample address removed");
+  await js("__t.click('header button[aria-label^=Account]')"); await waitFor("__t.byText('[data-slot=popover-content] a', 'Sign in')");
+  await go("/products"); await js("__t.click('main article button', 'Add to cart')"); await waitFor("__t.cartLabel() === 'Cart, 1 item'");
+  return "signed-out notice; account gated again; samples gone; own orders kept; guest add-to-cart works";
+});
+await step(50, "Registration preview: validation, then no account created", async () => {
+  await go("/register"); await js("__t.click('main form button[type=submit]')");
+  await waitFor("__t.text().includes('Please fix the 3 highlighted fields')");
+  await js("__t.type('#field-full_name', 'Asha Rao')"); await js("__t.type('#field-email', 'asha@example.com')");
+  await js("document.querySelector('input[name=acknowledged]').click(); true"); await js("__t.click('main form button[type=submit]')");
+  await waitFor("__t.text().includes('no account was created')");
+  const stored = await js("JSON.stringify({ ...localStorage })"); expect(!stored.includes("asha@example.com"), "details stored");
+  await shot("50-register-done"); return "3 errors; preview success says no account was created; nothing stored";
+});
+await step(51, "Help & support is honest and reachable", async () => {
+  await go("/support"); await waitFor("__t.text().includes('Help & support')");
+  const t = await js("__t.text()");
+  expect(t.includes("will be added here before launch") && !/\+91|@mithren/i.test(t), "no invented contact details");
+  return "FAQs; contact placeholder; no phone or email invented";
 });
 
 writeFileSync(`${OUT}/results.json`, JSON.stringify({ results, consoleErrors: [...new Set(consoleErrors)], orderId }, null, 1));

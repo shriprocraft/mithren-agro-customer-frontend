@@ -12,7 +12,8 @@ interface CompactProductCardProps {
   className?: string;
 }
 
-// Horizontal card for editorial sections (seasonal list, farm essentials).
+// Horizontal card for editorial sections (seasonal list, farm essentials). The cart button keeps its
+// natural width, so a stack of these cards reads as a list rather than a wall of green buttons.
 export function CompactProductCard({ product, vendorName, className }: CompactProductCardProps) {
   const image = product.images[0];
 
@@ -22,12 +23,12 @@ export function CompactProductCard({ product, vendorName, className }: CompactPr
         {image && <CatalogImage image={image} sizes="112px" />}
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
-        <h3 className="text-sm font-medium leading-snug">
+        <h3 className="line-clamp-2 text-sm font-medium leading-snug">
           <ProductLink productId={product.id}>
             {product.name}
           </ProductLink>
         </h3>
-        <p className="text-xs text-muted-foreground">{product.unit} · {vendorName}</p>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">{product.unit} · {vendorName}</p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
           <PriceDisplay price={product.price} discountedPrice={product.discounted_price} />
           <StockBadge status={product.stock_status} />
@@ -37,7 +38,7 @@ export function CompactProductCard({ product, vendorName, className }: CompactPr
             productId={product.id}
             productName={product.name}
             stockStatus={product.stock_status}
-            className="sm:w-fit"
+            className="w-fit px-4"
           />
         </div>
       </div>

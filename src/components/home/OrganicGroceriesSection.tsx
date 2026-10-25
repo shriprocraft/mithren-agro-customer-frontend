@@ -1,4 +1,5 @@
 import { ArrowRight, BadgeCheck } from "lucide-react";
+import Link from "next/link";
 import { Container } from "@/components/layout/Container";
 import { LeafMark } from "@/components/layout/LeafMark";
 import { ProductCard } from "@/components/products/ProductCard";
@@ -15,9 +16,9 @@ interface OrganicGroceriesSectionProps {
 // Intro panel beside a compact pantry grid.
 export function OrganicGroceriesSection({ products, vendorNames }: OrganicGroceriesSectionProps) {
   return (
-    <section id="organic-groceries" aria-labelledby="groceries-title" className="scroll-mt-4 py-8 lg:scroll-mt-32">
+    <section id="organic-groceries" aria-labelledby="groceries-title" className="scroll-mt-4 py-6 sm:py-8 lg:scroll-mt-32">
       <Container className="grid gap-4 lg:grid-cols-[minmax(0,19rem)_1fr]">
-        <div className="surface-card relative rounded-3xl p-6 lg:sticky lg:top-32 lg:self-start">
+        <div className="surface-card relative rounded-3xl p-5 sm:p-6 lg:sticky lg:top-32 lg:self-start">
           <LeafMark className="absolute top-5 right-5 h-9 w-7 rotate-[20deg]" />
           <p className="text-xs font-semibold tracking-wide text-brand uppercase">Organic Groceries</p>
           <Heading id="groceries-title" variant="h2" className="mt-1.5 pr-8">
@@ -33,10 +34,10 @@ export function OrganicGroceriesSection({ products, vendorNames }: OrganicGrocer
             items carries one.
           </p>
           <Button asChild variant="outline" className="mt-5">
-            <a href={shopHref("organic-groceries")}>
+            <Link href={shopHref("organic-groceries")}>
               Browse all groceries
               <ArrowRight aria-hidden="true" />
-            </a>
+            </Link>
           </Button>
         </div>
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">

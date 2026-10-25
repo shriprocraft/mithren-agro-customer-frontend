@@ -7,7 +7,6 @@ import { OrganicGroceriesSection } from "@/components/home/OrganicGroceriesSecti
 import { ProductSection } from "@/components/home/ProductSection";
 import { PromoBanners } from "@/components/home/PromoBanners";
 import { SeasonalSection } from "@/components/home/SeasonalSection";
-import { ShopBrowser } from "@/components/home/ShopBrowser";
 import { WomensApparelSection } from "@/components/home/WomensApparelSection";
 import {
   getBundles,
@@ -17,8 +16,12 @@ import {
   getSeasonalProducts,
   getVendors,
 } from "@/services/catalog";
-import { roundRobin } from "@/lib/collections";
+import { freshPicks } from "@/lib/collections";
 
+// Discovery order: categories first, then produce (fresh picks, then the seasonal items they leave
+// out), the two collection banners, one section per remaining category, combo boxes and a closing
+// link to the full marketplace. Each product appears in one section only; search, filters and
+// sorting live on /products, which every "view all" link opens.
 export default async function Home() {
   const [categories, vendors, products, seasonal, bundles, fruits, vegetables, groceries, fertilizers, apparel] =
     await Promise.all([
@@ -46,17 +49,16 @@ export default async function Home() {
     <main id="main-content" className="flex-1">
       <HeroSection growers={growers} />
       <CategoryGrid categories={categories} productCounts={productCounts} />
-      <PromoBanners />
       <ProductSection
         id="fresh-picks"
         title="Fresh picks"
         description="Fruit and vegetables from produce sellers on the marketplace. Sample listings."
-        products={roundRobin([fruits, vegetables]).slice(0, 8)}
+        products={freshPicks(fruits, vegetables, 8)}
         vendorNames={vendorNames}
         action={{ href: "/products?category=fruits,vegetables", label: "All fruit & vegetables" }}
       />
       <SeasonalSection products={seasonal} vendorNames={vendorNames} />
-      <ShopBrowser products={products} categories={categories} vendorNames={vendorNames} />
+      <PromoBanners />
       <OrganicGroceriesSection products={groceries} vendorNames={vendorNames} />
       <FarmEssentialsSection products={fertilizers} vendorNames={vendorNames} />
       <WomensApparelSection products={apparel} vendorNames={vendorNames} />

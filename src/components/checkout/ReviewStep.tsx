@@ -72,7 +72,7 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
       <div className="space-y-6">
         <section aria-labelledby="review-address-title" className="surface-card rounded-3xl p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -92,6 +92,7 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
             <h2 id="review-items-title" className="font-heading text-lg font-semibold">Items</h2>
             {!isBuyNow && <Button asChild variant="outline"><Link href="/cart">Return to cart</Link></Button>}
           </div>
+          {isBuyNow && <p className="mt-1 text-sm text-muted-foreground">Buy now: only this item is ordered. Your cart stays as it is.</p>}
           <ItemList
             label="Items in this order"
             items={lines.map(({ product, quantity, unit_price, line_total }) => ({

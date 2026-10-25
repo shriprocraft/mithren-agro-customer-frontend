@@ -7,8 +7,8 @@ import { cn } from "cn"
 const headingVariants = cva("font-heading text-foreground text-balance", {
   variants: {
     variant: {
-      // Hero 44px at 1024px and 56px from 1280px, sized for the spacious landing hero; 22px section titles.
-      display: "text-[2.5rem] leading-[1.04] font-medium tracking-tight sm:text-5xl lg:text-[2.75rem] lg:leading-[1.04] xl:text-[3.5rem] xl:leading-[1.02]",
+      // Hero 34–38px on phones, 44px at 1024px and 56px from 1280px, sized for the spacious landing hero; 22px section titles.
+      display: "text-[2.125rem] leading-[1.06] min-[375px]:text-[2.375rem] font-medium tracking-tight sm:text-5xl lg:text-[2.75rem] lg:leading-[1.04] xl:text-[3.5rem] xl:leading-[1.02]",
       h1: "text-3xl leading-tight font-medium tracking-tight sm:text-4xl",
       h2: "text-xl leading-tight font-semibold tracking-tight sm:text-[1.375rem]",
       h3: "text-xl leading-snug font-medium",

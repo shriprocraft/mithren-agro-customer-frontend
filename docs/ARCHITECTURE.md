@@ -56,7 +56,7 @@ Further feature folders from the development guide (`components/filters`, `cart`
 | Footer support/policy items are plain text marked "coming soon" | No destination pages exist; no contact details, social profiles or policies are invented |
 | Server components by default; client components only for interactive pieces | `ProductCard` itself has no `"use client"`; only its cart, wishlist and quick-view controls do |
 | Helpers shared by server and client code live in `lib/` and `components/products/category-icons.ts`, not in `"use client"` modules | Exports of a client module become client references and cannot be called during server rendering |
-| Framer Motion only for the cart/wishlist badge pop and the browser grid transition; hero entrance uses a CSS animation | Keeps JavaScript off the static hero; `MotionConfig reducedMotion="user"` and `motion-reduce:` variants honour reduced motion |
+| Framer Motion only for the cart/wishlist badge pop (the homepage browser grid that also used it was removed in phase 4); hero entrance uses a CSS animation | Keeps JavaScript off the static hero; `MotionConfig reducedMotion="user"` and `motion-reduce:` variants honour reduced motion |
 | Hero image uses `loading="eager"` + `fetchPriority="high"` instead of `preload` | Same priority without a separate preload hint |
 | Liquid glass as Tailwind `@utility` classes in `globals.css` (`glass-header`, `glass-panel`, `glass-card`, `glass-chip`, `glass-field`, `glass-overlay`, `liquid-primary`); fills and blur radii are tokens in `design-tokens.ts` | Reproduces the reference's translucent surfaces with one consistent system; each surface has its own transparency, as in the image. Rims use inset shadows so `border` never shifts layout. An `@supports` fallback makes fills near-opaque where `backdrop-filter` is missing |
 | Glass is used selectively: header, search field, wishlist/cart capsule, hero badge and floating chip, feature strip, carousel arrows, card wishlist hearts, popovers and dialogs. Content cards and section panels use the opaque `surface-card` utility (hairline edge, one soft shadow, no blur) | Glass on every card made the page look crowded and plastic; the reference keeps glass for floating and overlaid surfaces. Note: `backdrop-filter` makes an element the containing block for absolutely positioned children, so a card that loses glass must be `relative` to keep its `sr-only` text clipped (this caused horizontal overflow once) |
@@ -96,6 +96,8 @@ URLs use product **ids** (owner instruction), not the slugs proposed in the scop
 | Checkout session (cart or "Buy now", chosen address) | `CheckoutContext` | sessionStorage | `mithren.checkout` |
 | Orders and tracking history | `OrdersContext` | localStorage | `mithren.orders` |
 | Marketplace search, filters, sort | URL query string | — | — |
+| Default address | `AddressBookContext` | localStorage | `mithren.addresses.default` |
+| Demo account marker, profile, preferences | `DemoAccountContext` | localStorage | `mithren.demo-session`, `mithren.demo-profile`, `mithren.demo-preferences` |
 
 - `hooks/usePersistentState.ts` reads storage with `useSyncExternalStore`: server and hydration renders see the initial value (no mismatch), every reader of a key stays in sync (also across tabs), stored JSON is validated by a `parse*` function, and `set` reports whether the write was persisted. If storage is blocked, values live in memory for the session.
 - Prices and names are always looked up from the catalogue (`lib/cart.ts resolveLines`); orders store a **snapshot** of each line so later catalogue changes do not alter past orders.
@@ -105,6 +107,30 @@ URLs use product **ids** (owner instruction), not the slugs proposed in the scop
 ### Demo tracking controls
 
 There is no delivery backend, so the tracking page has a "Demo tools" panel that moves an order to its next stage (stages only move forward, one at a time, with a timestamp). It renders only when `NODE_ENV !== "production"` or `NEXT_PUBLIC_DEMO_TOOLS=true`, so production builds hide it from customers (verified).
+
+## Experience upgrade (phase 4)
+
+| Decision | Reason |
+|---|---|
+| Page-level Suspense fallbacks are at least one screen tall (`ProductDetailSkeleton`, `LoadingState fullHeight`, the marketplace fallback) | **Root cause of "product page opens at the bottom".** With Partial Prefetching a product page first renders its short loading shell. The browser clamped the old scroll position to that short page, Next.js saw the new page's top edge on screen and (by design) kept the position, and Chrome's scroll anchoring then held the footer in place while the product streamed in. It depended on viewport height (reproduced at 1024×768 and 1366×657, not at 1440×900). A full-height placeholder puts the page top off screen, so Next.js scrolls to the top. No custom scroll code was added |
+| "View full details" in the quick view closes the dialog | Next.js keeps up to three previous pages alive (hidden); a dialog left open reappeared, still open, after Back |
+| Internal links use `next/link` everywhere (category tiles, banners, section "view all" links) | Plain `<a>` caused full page reloads into the marketplace |
+| Homepage order: hero, categories, fresh picks, seasonal, collection banners, groceries, farm essentials, apparel, combo boxes, closing banner. Each product appears once (`freshPicks` leaves out seasonal items; the 23-product "Shop the marketplace" grid was removed) | The grid repeated every other section and duplicated `/products`, which has the full search, filters and sorting. `tests/smoke.test.tsx` checks that no product link repeats |
+| Mobile header: logo, location (pin only under 430px), wishlist/cart, account in one row; search below; category row last | Shopping content starts higher on the first screen; no action was removed |
+| Product page: image, name, price per pack, availability, seller, quantity, Add to cart + Buy now in one row, then "Product details". Image 4:3 on phones; two columns from md (768px) | Purchase controls start on the first screen on common phones; the wishlist heart moved onto the image |
+| Mini cart "Checkout" starts the cart checkout (or opens the cart when something blocks it) | It used to link to `/cart` under a Checkout label |
+
+## Demo customer account (phase 5)
+
+Full description, storage keys and the production checklist: `docs/DEMO_ACCOUNT.md`. **Demo only: no authentication, no security.**
+
+| Decision | Reason |
+|---|---|
+| Routes: `/login`, `/register`, `/account` (+ `profile`, `orders`, `orders/[orderId]`, `track`, `addresses`, `wishlist`, `settings`), public `/support` | Scope §8 names `/account` and `/account/orders`; order tracking stays at `/orders/[orderId]/tracking` and is linked, not duplicated |
+| `DemoAccountContext` (inside the order and address providers) owns only the demo marker, profile and preferences; samples go into the existing stores flagged `is_sample` | No second address book or order model; logout removes exactly the samples |
+| `app/account/layout.tsx` renders `AccountShell` (sidebar from lg, swipeable section pills below) and always renders its page; each page wraps its content in `RequireDemoSession` | A layout that withholds its page makes Next.js report "Could not validate … instant navigation" (dropped segment); a per-page gate also avoids redirect loops |
+| `CheckoutContext.start` clears the previous checkout's address choice | So the default address (My Addresses) is preselected in each new checkout |
+| `CustomerAccountService` is a type only | Documents the future backend contract without fake calls |
 
 ## Conflicts between the references (open)
 

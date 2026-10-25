@@ -6,6 +6,7 @@ import { AddressBookProvider } from "@/context/AddressBookContext";
 import { AnnouncerProvider } from "@/context/AnnouncerContext";
 import { CartProvider } from "@/context/CartContext";
 import { CheckoutProvider } from "@/context/CheckoutContext";
+import { DemoAccountProvider } from "@/context/DemoAccountContext";
 import { OrdersProvider } from "@/context/OrdersContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 
@@ -19,7 +20,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <WishlistProvider>
             <AddressBookProvider>
               <CheckoutProvider>
-                <OrdersProvider>{children}</OrdersProvider>
+                <OrdersProvider>
+                  {/* Inside the order and address stores: the demo account adds its samples to them. */}
+                  <DemoAccountProvider>{children}</DemoAccountProvider>
+                </OrdersProvider>
               </CheckoutProvider>
             </AddressBookProvider>
           </WishlistProvider>

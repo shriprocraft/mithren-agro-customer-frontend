@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Eye, Info } from "lucide-react";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogTitle,
@@ -23,7 +24,9 @@ interface ProductQuickViewProps {
 }
 
 // A small eye button on product cards that previews the product in a dialog without leaving the
-// page. The card itself links to the full details page.
+// page. The card itself links to the full details page. "View full details" also closes the dialog:
+// Next.js keeps the previous page alive (hidden) after a navigation, so a dialog left open would
+// reappear, still open, when the visitor comes back.
 export function ProductQuickView({ product, vendorName }: ProductQuickViewProps) {
   const image = product.images[0];
 
@@ -71,9 +74,11 @@ export function ProductQuickView({ product, vendorName }: ProductQuickViewProps)
               />
               <WishlistButton productId={product.id} productName={product.name} appearance="labelled" className="shrink-0" />
             </div>
-            <Button asChild variant="link" className="self-start px-0">
-              <Link href={`/products/${product.id}`}>View full details</Link>
-            </Button>
+            <DialogClose asChild>
+              <Button asChild variant="link" className="self-start px-0">
+                <Link href={`/products/${product.id}`}>View full details</Link>
+              </Button>
+            </DialogClose>
             <p className="flex gap-2 rounded-xl bg-secondary p-3 text-xs text-secondary-foreground">
               <Info className="mt-px size-4 shrink-0" aria-hidden="true" />
               Sample listing for this preview. Delivery estimates and payment are not available yet.

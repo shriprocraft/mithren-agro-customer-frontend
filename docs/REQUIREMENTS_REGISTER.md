@@ -19,15 +19,15 @@ Precedence: project owner's instructions → scope → development guide (the gu
 | Currency and number format | Confirmed | Scope §4.5 (Razorpay, India), §9.2 (paise), image (₹) | INR, integer paise, `en-IN` locale |
 | Login required to browse | Confirmed: not required | Scope §3.1 | Guests browse, search, view and add to cart |
 | Login required for checkout | Owner decision (phase 3): not required in this demo | Scope §3.1 vs owner brief | Checkout runs without sign-in; revisit when authentication is built |
-| Google Login | Open | Guide proposal; scope names no provider | Mock "demo sign-in" only; no auth library |
+| Google Login | Open | Guide proposal; scope names no provider | Demo account only ("Explore Demo Account", no credentials; `docs/DEMO_ACCOUNT.md`); no auth library. Provider to be chosen after checking the seller/delivery portals' backend |
 | Payment methods | Confirmed (display), Future backend (processing) | Scope §4.5; image footer | Razorpay / UPI / cards / net banking / COD shown as simulated; no payment is taken |
 | Delivery charge / free-delivery rule | Open | Image shows "Free delivery above ₹599"; scope gives no rule | No charge is applied or invented: `CONFIGURED_CHARGES` is empty and pages say "Delivery: not calculated in this preview" |
 | Per-vendor order splitting | Confirmed | Scope §4.5 | Cart grouped by seller; mock order creates vendor sub-orders |
 | Delivery tracking stages | Confirmed (owner) | Phase 3 brief | Order Placed → Order Confirmed → Preparing Order → Ready for Dispatch → Out for Delivery → Delivered |
 | Real delivery tracking | Future backend | — | Simulated timeline with visible notice |
-| Order history | Confirmed | Scope §4.6, §8 | `/account/orders` (scope route, not the guide's `/orders`) |
-| Account / profile | Confirmed | Scope §4.6 | `/account` with profile and preferences (mock) |
-| Saved addresses | Confirmed | Scope §4.6 | Multiple addresses with a default (mock) |
+| Order history | Confirmed (demo implemented, phase 5) · Future backend | Scope §4.6, §8 | `/account/orders` and `/account/orders/[orderId]`: orders saved in this browser plus labelled sample orders |
+| Account / profile | Confirmed (demo implemented, phase 5) · Future backend | Scope §4.6 | `/account`, `/account/profile`, `/account/settings` with sample data in this browser; real accounts need authentication |
+| Saved addresses | Confirmed (demo implemented, phase 5) | Scope §4.6 | `/account/addresses`: same address book as checkout, with a default that checkout preselects |
 | Delivery area / postcode | Confirmed | Scope §2.2, §4.1 | Postcode selector in header; serviceability is mocked |
 | Related products | Confirmed | Scope §4.4 | Included on product details (guide excluded it by default) |
 | Recently viewed | Confirmed | Scope §4.1, §4.4 | Only "where data is available": local browsing history |

@@ -29,7 +29,7 @@ export function FilterDrawer({ criteria, facets, categories, onApply }: FilterDr
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline" className="relative">
+        <Button variant="outline" className="relative w-full sm:w-auto">
           <SlidersHorizontal aria-hidden="true" />
           Filter
           {count > 0 && (

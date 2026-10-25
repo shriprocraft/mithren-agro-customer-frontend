@@ -42,8 +42,8 @@ export function AddressStep({ catalog }: { catalog: Product[] }) {
   }
 
   const { addresses } = book;
-  // With no explicit choice, the first saved address is preselected.
-  const selected = addresses.find((a) => a.id === session.address_id) ?? addresses[0];
+  // With no explicit choice, the default address (set in My addresses) or else the first is preselected.
+  const selected = addresses.find((a) => a.id === session.address_id) ?? addresses.find((a) => a.id === book.defaultId) ?? addresses[0];
   const current: Mode = mode ?? (addresses.length === 0 ? { kind: "add" } : { kind: "list" });
 
   const continueToReview = () => {
@@ -104,6 +104,8 @@ export function AddressStep({ catalog }: { catalog: Product[] }) {
                     <span className="flex flex-wrap items-center gap-2 font-medium">
                       {address.full_name}
                       <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">{addressTypeLabels[address.type]}</span>
+                      {address.id === book.defaultId && <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">Default</span>}
+                      {address.is_sample && <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">Sample</span>}
                     </span>
                     <span className="mt-1 block text-sm text-muted-foreground">{formatAddressLine(address)}</span>
                     <span className="block text-sm text-muted-foreground">Mobile {address.mobile}</span>

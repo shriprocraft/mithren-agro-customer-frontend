@@ -10,7 +10,7 @@ export const formatOrderTime = (iso: string) =>
 export function OrderDetails({ order }: { order: Order }) {
   const itemCount = order.items.reduce((n, item) => n + item.quantity, 0);
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
       <div className="space-y-6">
         <section aria-labelledby="order-address-title" className="surface-card rounded-3xl p-5">
           <h2 id="order-address-title" className="font-heading text-lg font-semibold">Delivery address</h2>

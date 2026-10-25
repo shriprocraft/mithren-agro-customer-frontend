@@ -44,28 +44,29 @@ export function Marketplace({ products, categories, vendorNames }: MarketplacePr
     <>
       <SearchBox key={criteria.query} initial={criteria.query} onSearch={(query) => update({ ...criteria, query })} />
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      {/* Phones: Filter and Sort share one row as two equal controls, the count sits below them. */}
+      <div className="mt-3 grid grid-cols-2 items-center gap-2 sm:mt-4 sm:flex sm:flex-wrap sm:gap-3">
         <FilterDrawer
           criteria={criteria}
           facets={facets}
           categories={categories.map((category) => ({ category, count: products.filter((p) => p.category_id === category.id).length }))}
           onApply={update}
         />
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          Sort by
+        <label className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+          <span className="sr-only sm:not-sr-only">Sort by</span>
           <select
             value={criteria.sort}
             onChange={(e) => update({ ...criteria, sort: e.target.value as SortOption })}
-            className="h-11 rounded-full border border-input bg-background px-4 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-11 w-full min-w-0 rounded-full border border-input bg-background px-4 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-auto"
           >
             {sortOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
         </label>
-        <p aria-live="polite" className="ml-auto text-sm font-medium text-muted-foreground">
+        <p aria-live="polite" className="col-span-2 min-w-0 text-sm font-medium break-words text-muted-foreground sm:ml-auto">
           Showing {results.length} of {products.length} products
-          {criteria.query ? <> for “{criteria.query}”</> : null}
+          {criteria.query ? <> for “<span className="text-foreground">{criteria.query}</span>”</> : null}
         </p>
       </div>
 
@@ -74,7 +75,7 @@ export function Marketplace({ products, categories, vendorNames }: MarketplacePr
       {results.length === 0 ? (
         <div className="surface-card mt-6 flex flex-col items-center gap-3 rounded-3xl px-6 py-12 text-center">
           <SearchX className="size-8 text-muted-foreground" aria-hidden="true" />
-          <h2 className="font-heading text-lg font-medium">No products match these filters</h2>
+          <h2 className="font-heading text-lg font-medium">{filterCount > 0 ? "No products match these filters" : "No products match your search"}</h2>
           <p className="max-w-sm text-sm text-muted-foreground">Try removing a filter or searching for something else, such as “dal” or “compost”.</p>
           <div className="flex flex-wrap justify-center gap-2">
             {filterCount > 0 && <Button onClick={() => update(clearFilters(criteria))}>Clear filters</Button>}
@@ -82,7 +83,7 @@ export function Marketplace({ products, categories, vendorNames }: MarketplacePr
           </div>
         </div>
       ) : (
-        <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <ul className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:grid-cols-5">
           {results.map((product) => (
             <li key={product.id}>
               <ProductCard
@@ -108,8 +109,24 @@ function SearchBox({ initial, onSearch }: { initial: string; onSearch: (query: s
   return (
     <form role="search" onSubmit={submit} className="flex max-w-xl gap-2">
       <label htmlFor="marketplace-search" className="sr-only">Search the marketplace</label>
-      <Input id="marketplace-search" type="search" value={value} onChange={(e) => setValue(e.target.value)} placeholder="Search products, sellers or categories" />
-      <Button type="submit"><Search aria-hidden="true" />Search</Button>
+      <div className="relative min-w-0 flex-1">
+        {/* type="text": the native search clear button differs per browser, so there is one of our own. */}
+        <Input id="marketplace-search" type="text" enterKeyHint="search" value={value} onChange={(e) => setValue(e.target.value)} placeholder="Search products, sellers or categories" className="pr-11" />
+        {value && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={() => {
+              setValue("");
+              if (initial) onSearch("");
+            }}
+            className="absolute top-1/2 right-0.5 grid size-10 -translate-y-1/2 place-items-center rounded-full text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="size-4" aria-hidden="true" />
+          </button>
+        )}
+      </div>
+      <Button type="submit" className="px-4 sm:px-5"><Search aria-hidden="true" /><span className="max-[359px]:sr-only">Search</span></Button>
     </form>
   );
 }

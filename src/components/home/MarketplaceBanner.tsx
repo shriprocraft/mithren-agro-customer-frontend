@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { LeafMark } from "@/components/layout/LeafMark";
@@ -34,10 +35,10 @@ export function MarketplaceBanner() {
               Browse all five categories and add items from different sellers to the same cart.
             </p>
             <Button asChild className="mt-6">
-              <a href={shopHref("all")}>
+              <Link href={shopHref("all")}>
                 Browse the marketplace
                 <ArrowRight aria-hidden="true" />
-              </a>
+              </Link>
             </Button>
           </div>
         </div>

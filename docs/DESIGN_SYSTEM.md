@@ -100,6 +100,26 @@ Use `<Button>` from `src/components/ui/button.tsx`. Do not restyle buttons per p
 | Empty / loading | White card with `#E8F1EA` border, `#667085` text, an outline button to recover |
 | Success / warning / error / info | Semantic tokens above, always with an icon and text |
 
+## Layout, spacing and mobile conventions
+
+Phones are designed first; the same components scale up. Reuse these values instead of inventing new ones.
+
+| Use | Phones | From sm / md / lg |
+|---|---|---|
+| Page gutter | `Container`: 16px | 24px (sm), 32px (lg) |
+| Space between homepage sections | `py-6` (24px) | `sm:py-8` |
+| Grid gap between product cards | 10–12px (`gap-2.5`/`gap-3`) | `sm:gap-3`, 16px on product pages |
+| Card padding | `p-1.5` product card, `p-3` list rows, `p-5` panels | `sm:p-2`, `sm:p-4`, `sm:p-6` |
+| Page title (`h1`) | 26px (`text-[1.625rem]`) | `sm:text-3xl`/`text-4xl` |
+| Product name on cards | 14px medium, clamped to 2 lines | same |
+| Price on cards / product page | 15px semibold / 28px | same |
+| Secondary text (pack size, seller) | 12px, `text-muted-foreground` | same; nothing smaller than 11px |
+
+- **Touch targets:** buttons, steppers, filter rows and icon buttons are at least 44 × 44px (`Button` sizes already are). Text links in breadcrumbs and the footer are at least 36px tall.
+- **Swipe rows** (category tiles, fresh picks, combo boxes on phones) scroll inside themselves with `snap-x` and `scroll-px-4`; their arrow buttons are shown from md only. Never hide page overflow to mask a wide element: find it and add `min-w-0` (grid and flex items default to their content width).
+- **No hover-only behaviour:** quick view is a desktop extra (md+); on touch screens the card itself opens the product page.
+- **Route loading states** (Suspense fallbacks for a whole page) must be at least one screen tall (`min-h-svh`, `LoadingState fullHeight`, `ProductDetailSkeleton`). A shorter placeholder lets Next.js keep the previous scroll position, so the new page opens at its bottom.
+
 ## Building new components and pages
 
 1. Start from the shared primitives (`Button`, `Input`, `Popover`, `Dialog`, `Heading`, `Text`) and the existing cards.

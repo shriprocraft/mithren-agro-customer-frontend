@@ -10,6 +10,7 @@ import type { CheckoutSession, CheckoutSource } from "@/types/order";
 interface CheckoutValue {
   session: CheckoutSession;
   hydrated: boolean;
+  /** Begins a checkout (cart or Buy now); clears the previous checkout's address choice. */
   start: (source: CheckoutSource) => void;
   selectAddress: (addressId: string | null) => void;
   /** Called once an order has been placed. */
@@ -37,7 +38,9 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
     () => ({
       session,
       hydrated,
-      start: (source) => setSession((current) => ({ ...current, source })),
+      // A new checkout starts without a chosen address, so the default address (or the first saved
+      // one) is preselected; the choice then holds for this checkout, across refreshes and Back.
+      start: (source) => setSession({ source, address_id: null }),
       selectAddress: (addressId) => setSession((current) => ({ ...current, address_id: addressId })),
       finish: () => setSession((current) => ({ source: { kind: "cart" }, address_id: current.address_id })),
     }),

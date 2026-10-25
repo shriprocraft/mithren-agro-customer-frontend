@@ -1,22 +1,27 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Info } from "lucide-react";
+import { Info, Store } from "lucide-react";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Container } from "@/components/layout/Container";
 import { CatalogImage } from "@/components/products/CatalogImage";
 import { PriceDisplay } from "@/components/products/PriceDisplay";
 import { ProductCard } from "@/components/products/ProductCard";
+import { ProductDetailSkeleton } from "@/components/products/ProductDetailSkeleton";
 import { PurchasePanel } from "@/components/products/PurchasePanel";
 import { StockBadge } from "@/components/products/StockBadge";
+import { WishlistButton } from "@/components/products/WishlistButton";
 import { Heading } from "@/components/ui/typography";
 import { shopHref } from "@/lib/browse";
+import { formatPrice } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { getCatalog, getCategories, getProduct, getRelatedProducts, getVendors } from "@/services/catalog";
 
 // Every catalogue item is prerendered. Other ids render at request time (Cache Components has no
 // dynamicParams), so params are awaited inside Suspense for an instant shell, and unknown ids call
-// notFound(), which renders not-found.tsx beside this file.
+// notFound(), which renders not-found.tsx beside this file. The fallback must stay at least a screen
+// tall (see ProductDetailSkeleton) or client navigations can land at the bottom of the page.
 export async function generateStaticParams() {
   return (await getCatalog()).map((p) => ({ productId: p.id }));
 }
@@ -29,8 +34,8 @@ export async function generateMetadata({ params }: PageProps<"/products/[product
 export default function ProductPage({ params }: PageProps<"/products/[productId]">) {
   return (
     <main id="main-content" className="flex-1">
-      <Container className="py-8">
-        <Suspense fallback={<p role="status" className="py-20 text-center text-sm text-muted-foreground">Loading product…</p>}>
+      <Container className="pt-4 pb-10 sm:pt-6 lg:pt-8">
+        <Suspense fallback={<ProductDetailSkeleton />}>
           <ProductContent params={params} />
         </Suspense>
       </Container>
@@ -49,41 +54,74 @@ async function ProductContent({ params }: Pick<PageProps<"/products/[productId]"
   const seller = vendorNames[product.vendor_id];
   const image = product.images[0];
   const portrait = product.category_id === "cat-womens-apparel";
+  const saving = product.discounted_price !== undefined && product.discounted_price < product.price ? product.price - product.discounted_price : 0;
 
+  // Mobile reads top to bottom in buying order: image, name, price and pack, availability, seller,
+  // quantity and the two purchase buttons, then the longer details. The image is 4:3 on phones so the
+  // purchase controls start on the first screen; from md it sits beside the details and stays in view.
   return (
     <>
-        <Breadcrumbs
-          items={[
-            { label: "Home", href: "/" },
-            { label: "Shop", href: "/products" },
-            ...(category ? [{ label: category.name, href: shopHref(category.slug) }] : []),
-            { label: product.name },
-          ]}
-        />
+      <Breadcrumbs
+        items={[
+          { label: "Home", href: "/" },
+          { label: "Shop", href: "/products" },
+          ...(category ? [{ label: category.name, href: shopHref(category.slug) }] : []),
+          { label: product.name },
+        ]}
+      />
 
-        <div className="mt-6 grid gap-8 lg:grid-cols-2 lg:gap-12">
-          <div className={cn("surface-card relative overflow-hidden rounded-3xl", portrait ? "aspect-[4/5]" : "aspect-square", image?.studio ? "bg-white" : "bg-muted")}>
+      <div className="mt-3 grid gap-5 sm:mt-5 md:grid-cols-2 md:gap-8 lg:gap-12">
+        <div className="md:sticky md:top-4 md:self-start lg:top-32">
+          <div
+            className={cn(
+              "surface-card relative overflow-hidden rounded-3xl",
+              portrait ? "aspect-[4/3] md:aspect-[4/5]" : "aspect-[4/3] md:aspect-square",
+              image?.studio ? "bg-white" : "bg-muted",
+            )}
+          >
             {image && <CatalogImage image={image} sizes="(min-width: 1024px) 600px, 100vw" />}
             {product.is_seasonal && (
-              <span className="absolute top-4 left-4 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-brand">Seasonal</span>
+              <span className="absolute top-3 left-3 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-brand">Seasonal</span>
+            )}
+            <WishlistButton productId={product.id} productName={product.name} className="absolute top-1.5 right-1.5" />
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          {category && (
+            <Link href={shopHref(category.slug)} className="inline-flex min-h-9 items-center text-xs font-semibold tracking-wide text-brand uppercase underline-offset-4 hover:underline">
+              {category.name}
+            </Link>
+          )}
+          <Heading as="h1" variant="h1" className="text-[1.625rem] sm:text-3xl lg:text-4xl">{product.name}</Heading>
+
+          <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <PriceDisplay price={product.price} discountedPrice={product.discounted_price} className="text-[1.75rem]" />
+            <span className="text-sm text-muted-foreground">per {product.unit}</span>
+            {saving > 0 && (
+              <span className="rounded-full bg-highlight/60 px-2.5 py-0.5 text-xs font-semibold text-foreground">You save {formatPrice(saving)}</span>
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <StockBadge status={product.stock_status} className="text-sm" />
+            {seller && (
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                <Store className="size-4" aria-hidden="true" />
+                Sold by <span className="font-medium text-foreground">{seller}</span>
+              </span>
             )}
           </div>
 
-          <div>
-            {category && <p className="text-xs font-semibold tracking-wide text-brand uppercase">{category.name}</p>}
-            <Heading as="h1" variant="h1" className="mt-2">{product.name}</Heading>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Pack size: <span className="font-medium text-foreground">{product.unit}</span>
-              {seller && <> · Sold by <span className="font-medium text-foreground">{seller}</span></>}
-            </p>
-            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-              <PriceDisplay price={product.price} discountedPrice={product.discounted_price} className="text-2xl" />
-              <StockBadge status={product.stock_status} className="text-sm" />
-            </div>
-            <p className="mt-4 text-base leading-relaxed text-muted-foreground">{product.description}</p>
+          <div className="mt-5 border-t border-border pt-5">
+            <PurchasePanel product={product} />
+          </div>
+
+          <section aria-labelledby="details-title" className="mt-8">
+            <h2 id="details-title" className="font-heading text-base font-semibold">Product details</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">{product.description}</p>
             {product.bundle_contents && (
               <div className="mt-4">
-                <h2 className="text-sm font-semibold">Box contents</h2>
+                <h3 className="text-sm font-semibold">Box contents</h3>
                 <ul aria-label="Box contents" className="mt-2 flex flex-wrap gap-1.5">
                   {product.bundle_contents.map((item) => (
                     <li key={item} className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">{item}</li>
@@ -91,28 +129,38 @@ async function ProductContent({ params }: Pick<PageProps<"/products/[productId]"
                 </ul>
               </div>
             )}
-            <div className="mt-6">
-              <PurchasePanel product={product} />
-            </div>
-            <p className="mt-6 flex gap-2 rounded-2xl bg-secondary p-3 text-xs text-secondary-foreground">
+            <dl className="mt-4 divide-y divide-border rounded-2xl border border-border text-sm">
+              {[
+                ["Pack size", product.unit],
+                ...(category ? [["Category", category.name]] : []),
+                ...(seller ? [["Seller", seller]] : []),
+              ].map(([term, value]) => (
+                <div key={term} className="flex justify-between gap-4 px-4 py-2.5">
+                  <dt className="text-muted-foreground">{term}</dt>
+                  <dd className="text-right font-medium">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="mt-4 flex gap-2 rounded-2xl bg-secondary p-3 text-xs leading-relaxed text-secondary-foreground">
               <Info className="mt-px size-4 shrink-0" aria-hidden="true" />
               Sample listing for this preview. Delivery estimates, reviews and payment are not available yet.
             </p>
-          </div>
-        </div>
-
-        {related.length > 0 && (
-          <section aria-labelledby="related-title" className="mt-14">
-            <Heading id="related-title" variant="h2">More from {category?.name ?? "this category"}</Heading>
-            <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {related.map((p) => (
-                <li key={p.id}>
-                  <ProductCard product={p} vendorName={vendorNames[p.vendor_id] ?? "Independent seller"} imageShape={portrait ? "portrait" : "square"} />
-                </li>
-              ))}
-            </ul>
           </section>
-        )}
+        </div>
+      </div>
+
+      {related.length > 0 && (
+        <section aria-labelledby="related-title" className="mt-12 border-t border-border pt-8 sm:mt-14">
+          <Heading id="related-title" variant="h2">More from {category?.name ?? "this category"}</Heading>
+          <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+            {related.map((p) => (
+              <li key={p.id}>
+                <ProductCard product={p} vendorName={vendorNames[p.vendor_id] ?? "Independent seller"} imageShape={portrait ? "portrait" : "square"} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
 }

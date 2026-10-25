@@ -14,7 +14,7 @@ export default function ConfirmationPage({ params }: PageProps<"/orders/[orderId
         <CheckoutSteps current="Confirmation" />
         <div className="mt-6">
           {/* The order lives in browser storage, so the page shell is static and the order loads on the client. */}
-          <Suspense fallback={<LoadingState label="Loading your order…" />}>
+          <Suspense fallback={<LoadingState label="Loading your order…" fullHeight />}>
             <ConfirmationView params={params} />
           </Suspense>
         </div>

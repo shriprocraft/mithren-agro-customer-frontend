@@ -47,8 +47,9 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
-      <section aria-labelledby="cart-items-title">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+      {/* min-w-0: grid items default to their content width, and the one-line seller text would overflow. */}
+      <section aria-labelledby="cart-items-title" className="min-w-0">
         <h2 id="cart-items-title" className="sr-only">Items in your cart</h2>
         {missing.length > 0 && (
           <p role="status" className="mb-3 rounded-2xl bg-secondary p-3 text-sm text-secondary-foreground">
@@ -58,42 +59,38 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
         <ul className="surface-card divide-y rounded-3xl">
           {lines.map(({ product, quantity, unit_price, line_total, issue }) => {
             const image = product.images[0];
-            const controls = (
-                <>
-                  <QuantityStepper value={quantity} label={`Quantity of ${product.name}`} disabled={issue === "out_of_stock"}
-                    onChange={(q) => { setQuantity(product.id, q); announce(`${product.name}: quantity ${q}.`); }} />
-                  <span className="font-heading text-sm font-semibold sm:hidden">{formatPrice(line_total)}</span>
-                  <Button variant="ghost" size="icon" aria-label={`Remove ${product.name} from cart`}
-                    onClick={() => { removeItem(product.id); announce(`${product.name} removed from cart.`); }}>
-                    <Trash2 aria-hidden="true" />
-                  </Button>
-                </>
-            );
+            // One layout at every width: thumbnail, then name/pack/seller/unit price with Remove at the
+            // top right, then the quantity stepper with the line total opposite it.
             return (
-              <li key={product.id} className="grid grid-cols-[5rem_minmax(0,1fr)] gap-4 p-4 sm:grid-cols-[6rem_minmax(0,1fr)_auto]">
-                <Link href={`/products/${product.id}`} className={cn("relative aspect-square overflow-hidden rounded-xl", image?.studio ? "bg-white ring-1 ring-border" : "bg-muted")} tabIndex={-1} aria-hidden="true">
+              <li key={product.id} className="flex gap-3 p-3 sm:gap-4 sm:p-4">
+                <Link href={`/products/${product.id}`} className={cn("relative size-18 shrink-0 overflow-hidden rounded-xl sm:size-24", image?.studio ? "bg-white ring-1 ring-border" : "bg-muted")} tabIndex={-1} aria-hidden="true">
                   {image && <CatalogImage image={image} alt="" sizes="96px" />}
                 </Link>
-                <div className="min-w-0">
-                  <Link href={`/products/${product.id}`} className="font-medium hover:text-primary hover:underline">{product.name}</Link>
-                  <p className="text-sm text-muted-foreground">{product.unit} · {vendorNames[product.vendor_id] ?? "Independent seller"}</p>
-                  <p className="mt-1 text-sm">{formatPrice(unit_price)} each</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <Link href={`/products/${product.id}`} className="line-clamp-2 font-medium leading-snug hover:text-primary hover:underline">{product.name}</Link>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">{product.unit} · {vendorNames[product.vendor_id] ?? "Independent seller"}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">{formatPrice(unit_price)} each</p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="-mt-1.5 -mr-1.5 shrink-0 text-muted-foreground hover:text-destructive" aria-label={`Remove ${product.name} from cart`}
+                      onClick={() => { removeItem(product.id); announce(`${product.name} removed from cart.`); }}>
+                      <Trash2 aria-hidden="true" />
+                    </Button>
+                  </div>
                   {issue === "out_of_stock" && (
                     <p className="mt-1 flex items-center gap-1 text-sm text-destructive">
                       <AlertTriangle className="size-4" aria-hidden="true" /> Out of stock: remove to continue
                     </p>
                   )}
-                  <div className="mt-3 flex flex-wrap items-center gap-2 sm:hidden">
-                    {controls}
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                    <QuantityStepper value={quantity} label={`Quantity of ${product.name}`} disabled={issue === "out_of_stock"}
+                      onChange={(q) => { setQuantity(product.id, q); announce(`${product.name}: quantity ${q}.`); }} />
+                    <p className="font-heading font-semibold"><span className="sr-only">Line total </span>{formatPrice(line_total)}</p>
                   </div>
-                </div>
-                <div className="hidden flex-col items-end justify-between gap-3 sm:flex">
-                  <p className="font-heading font-semibold">{formatPrice(line_total)}</p>
-                  <div className="flex items-center gap-2">{controls}</div>
                 </div>
               </li>
             );
-
           })}
         </ul>
         <Button asChild variant="outline" className="mt-4">

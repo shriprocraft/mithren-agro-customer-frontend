@@ -11,11 +11,10 @@ export function roundRobin<T>(groups: T[][]): T[] {
   return result;
 }
 
-export function groupBy<T>(items: T[], key: (item: T) => string): T[][] {
-  const groups = new Map<string, T[]>();
-  for (const item of items) {
-    const k = key(item);
-    groups.set(k, [...(groups.get(k) ?? []), item]);
-  }
-  return [...groups.values()];
+/**
+ * The homepage "Fresh picks" row: fruit and vegetables taken in turn, leaving out seasonal items,
+ * which have their own section right below it, so no product is shown twice.
+ */
+export function freshPicks<T extends { is_seasonal?: boolean }>(fruits: T[], vegetables: T[], limit: number): T[] {
+  return roundRobin([fruits, vegetables].map((group) => group.filter((p) => !p.is_seasonal))).slice(0, limit);
 }

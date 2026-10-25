@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { LeafMark } from "@/components/layout/LeafMark";
@@ -18,7 +19,7 @@ interface FarmEssentialsSectionProps {
 // and usage instructions.
 export function FarmEssentialsSection({ products, vendorNames }: FarmEssentialsSectionProps) {
   return (
-    <section id="farm-essentials" aria-labelledby="farm-title" className="scroll-mt-4 py-8 lg:scroll-mt-32">
+    <section id="farm-essentials" aria-labelledby="farm-title" className="scroll-mt-4 py-6 sm:py-8 lg:scroll-mt-32">
       <Container>
         <div className="surface-card relative isolate overflow-hidden rounded-3xl">
           <div aria-hidden="true" className="absolute inset-x-0 top-0 -z-10 h-56 [mask-image:linear-gradient(to_bottom,#000_40%,transparent)] lg:inset-y-0 lg:right-0 lg:left-auto lg:h-auto lg:w-[52%] lg:banner-photo-fade">
@@ -35,10 +36,10 @@ export function FarmEssentialsSection({ products, vendorNames }: FarmEssentialsS
                 Compost, potting mixes and soil inputs from agri-supply sellers, in the same cart as your groceries.
               </p>
               <Button asChild className="mt-5">
-                <a href={shopHref("fertilizers")}>
+                <Link href={shopHref("fertilizers")}>
                   Explore fertilizers
                   <ArrowRight aria-hidden="true" />
-                </a>
+                </Link>
               </Button>
             </div>
             <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">

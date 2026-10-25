@@ -13,20 +13,21 @@ const points = [
 ];
 
 // The target's layered strip across the bottom of the hero: a faint outer glass plate holding a
-// brighter glass panel, white glass icon circles, two regular-weight lines and soft dividers.
+// brighter glass panel, white glass icon circles, two regular-weight lines and soft dividers. Phones
+// show the titles only, in a tight 2 × 2 grid.
 export function ValueStrip() {
   return (
     <Container>
       <div className="rounded-[1.6rem] lg:bg-white/20 lg:p-1 lg:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.55),0_16px_40px_-28px_rgb(var(--shadow-tint)/0.4)] lg:backdrop-blur-sm xl:px-6">
-        <ul className="glass-panel grid grid-cols-2 gap-x-3 gap-y-4 rounded-[1.25rem] p-4 lg:grid-cols-4 lg:gap-0 lg:px-3 lg:py-2.5 xl:py-3">
+        <ul className="glass-panel grid grid-cols-2 gap-x-2 gap-y-3 rounded-[1.25rem] p-3 sm:gap-x-3 sm:gap-y-4 sm:p-4 lg:grid-cols-4 lg:gap-0 lg:px-3 lg:py-2.5 xl:py-3">
           {points.map(({ Icon, title, text }) => (
-            <li key={title} className="flex items-center gap-3 lg:gap-2 lg:px-2.5 xl:gap-3.5 xl:px-4 lg:[&+li]:border-l lg:[&+li]:border-foreground/7">
-              <span className="glass-chip grid size-10 shrink-0 place-items-center rounded-full text-primary lg:size-9 xl:size-12">
-                <Icon className="size-5" strokeWidth={1.5} aria-hidden="true" />
+            <li key={title} className="flex items-center gap-2 sm:gap-3 lg:gap-2 lg:px-2.5 xl:gap-3.5 xl:px-4 lg:[&+li]:border-l lg:[&+li]:border-foreground/7">
+              <span className="glass-chip grid size-8 shrink-0 place-items-center rounded-full text-primary sm:size-10 lg:size-9 xl:size-12">
+                <Icon className="size-4 sm:size-5" strokeWidth={1.5} aria-hidden="true" />
               </span>
               <span className="min-w-0 text-xs leading-snug text-foreground/85 xl:text-[0.8125rem]">
                 <span className="block">{title}</span>
-                <span className="block text-foreground/65 lg:text-[0.6875rem] xl:text-[0.8125rem]">{text}</span>
+                <span className="hidden text-foreground/65 sm:block lg:text-[0.6875rem] xl:text-[0.8125rem]">{text}</span>
               </span>
             </li>
           ))}
