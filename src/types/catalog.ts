@@ -36,6 +36,27 @@ export interface Vendor {
 
 export type StockStatus = "in_stock" | "low_stock" | "out_of_stock";
 
+/** What a product's options differ by: weight (g/kg), pack (pieces, bunches), volume (ml/L) or apparel size. */
+export type VariantType = "weight" | "pack" | "volume" | "size";
+
+/**
+ * One purchasable option of a product (e.g. 500 g, 2 kg, size M). Each has its own price and
+ * availability; in production these come from the seller portal / catalogue API, not this file.
+ */
+export interface ProductVariant {
+  /** Stable within the product, e.g. "500g", "m". */
+  id: string;
+  /** Shown on the option chip: "500 g", "M". */
+  label: string;
+  /** Pack size as sold when it differs from the product's own `unit` (weight, pack and volume options). */
+  unit?: string;
+  /** Paise. */
+  price: number;
+  /** Paise. */
+  discounted_price?: number;
+  stock_status: StockStatus;
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -54,6 +75,13 @@ export interface Product {
   is_seasonal?: boolean;
   /** Present on combo boxes and bundles. */
   bundle_contents?: string[];
+  /**
+   * Purchasable options. When present, `unit`, `price`, `discounted_price` and `stock_status` above
+   * describe the default option (`default_variant_id`), so listings, sorting and filters use it.
+   */
+  variants?: ProductVariant[];
+  variant_type?: VariantType;
+  default_variant_id?: string;
 }
 
 export interface DeliveryArea {

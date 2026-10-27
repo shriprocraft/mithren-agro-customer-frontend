@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useAnnounce } from "@/context/AnnouncerContext";
 import { useCart } from "@/context/CartContext";
 import { useCheckout } from "@/context/CheckoutContext";
+import { useRemovedFromCartToast } from "@/hooks/useRemovedFromCartToast";
 import { checkoutBlocker, resolveLines, summarize } from "@/lib/cart";
 import { formatPrice } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
   const announce = useAnnounce();
   const { items, hydrated, setQuantity, removeItem } = useCart();
   const { start } = useCheckout();
+  const removed = useRemovedFromCartToast();
 
   if (!hydrated) return <LoadingState label="Loading your cart…" />;
 
@@ -57,12 +59,12 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
           </p>
         )}
         <ul className="surface-card divide-y rounded-3xl">
-          {lines.map(({ product, quantity, unit_price, line_total, issue }) => {
+          {lines.map(({ key, product, selection, quantity, unit_price, line_total, issue }) => {
             const image = product.images[0];
             // One layout at every width: thumbnail, then name/pack/seller/unit price with Remove at the
             // top right, then the quantity stepper with the line total opposite it.
             return (
-              <li key={product.id} className="flex gap-3 p-3 sm:gap-4 sm:p-4">
+              <li key={key} className="flex gap-3 p-3 sm:gap-4 sm:p-4">
                 <Link href={`/products/${product.id}`} className={cn("relative size-18 shrink-0 overflow-hidden rounded-xl sm:size-24", image?.studio ? "bg-white ring-1 ring-border" : "bg-muted")} tabIndex={-1} aria-hidden="true">
                   {image && <CatalogImage image={image} alt="" sizes="96px" />}
                 </Link>
@@ -70,11 +72,11 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <Link href={`/products/${product.id}`} className="line-clamp-2 font-medium leading-snug hover:text-primary hover:underline">{product.name}</Link>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">{product.unit} · {vendorNames[product.vendor_id] ?? "Independent seller"}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">{selection.description} · {vendorNames[product.vendor_id] ?? "Independent seller"}</p>
                       <p className="mt-0.5 text-sm text-muted-foreground">{formatPrice(unit_price)} each</p>
                     </div>
-                    <Button variant="ghost" size="icon" className="-mt-1.5 -mr-1.5 shrink-0 text-muted-foreground hover:text-destructive" aria-label={`Remove ${product.name} from cart`}
-                      onClick={() => { removeItem(product.id); announce(`${product.name} removed from cart.`); }}>
+                    <Button variant="ghost" size="icon" className="-mt-1.5 -mr-1.5 shrink-0 text-muted-foreground hover:text-destructive" aria-label={`Remove ${product.name}, ${selection.description}, from cart`}
+                      onClick={() => removed(product.name, removeItem(key))}>
                       <Trash2 aria-hidden="true" />
                     </Button>
                   </div>
@@ -84,8 +86,8 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
                     </p>
                   )}
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-                    <QuantityStepper value={quantity} label={`Quantity of ${product.name}`} disabled={issue === "out_of_stock"}
-                      onChange={(q) => { setQuantity(product.id, q); announce(`${product.name}: quantity ${q}.`); }} />
+                    <QuantityStepper value={quantity} label={`Quantity of ${product.name}, ${selection.description}`} disabled={issue === "out_of_stock"}
+                      onChange={(q) => { setQuantity(key, q); announce(`${product.name}: quantity ${q}.`); }} />
                     <p className="font-heading font-semibold"><span className="sr-only">Line total </span>{formatPrice(line_total)}</p>
                   </div>
                 </div>

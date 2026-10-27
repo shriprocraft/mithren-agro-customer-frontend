@@ -2,20 +2,18 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Info, Store } from "lucide-react";
+import { Info } from "lucide-react";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Container } from "@/components/layout/Container";
 import { CatalogImage } from "@/components/products/CatalogImage";
-import { PriceDisplay } from "@/components/products/PriceDisplay";
 import { ProductCard } from "@/components/products/ProductCard";
 import { ProductDetailSkeleton } from "@/components/products/ProductDetailSkeleton";
 import { PurchasePanel } from "@/components/products/PurchasePanel";
-import { StockBadge } from "@/components/products/StockBadge";
 import { WishlistButton } from "@/components/products/WishlistButton";
 import { Heading } from "@/components/ui/typography";
 import { shopHref } from "@/lib/browse";
-import { formatPrice } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import { hasVariants } from "@/lib/variants";
 import { getCatalog, getCategories, getProduct, getRelatedProducts, getVendors } from "@/services/catalog";
 
 // Every catalogue item is prerendered. Other ids render at request time (Cache Components has no
@@ -54,7 +52,6 @@ async function ProductContent({ params }: Pick<PageProps<"/products/[productId]"
   const seller = vendorNames[product.vendor_id];
   const image = product.images[0];
   const portrait = product.category_id === "cat-womens-apparel";
-  const saving = product.discounted_price !== undefined && product.discounted_price < product.price ? product.price - product.discounted_price : 0;
 
   // Mobile reads top to bottom in buying order: image, name, price and pack, availability, seller,
   // quantity and the two purchase buttons, then the longer details. The image is 4:3 on phones so the
@@ -95,26 +92,8 @@ async function ProductContent({ params }: Pick<PageProps<"/products/[productId]"
           )}
           <Heading as="h1" variant="h1" className="text-[1.625rem] sm:text-3xl lg:text-4xl">{product.name}</Heading>
 
-          <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <PriceDisplay price={product.price} discountedPrice={product.discounted_price} className="text-[1.75rem]" />
-            <span className="text-sm text-muted-foreground">per {product.unit}</span>
-            {saving > 0 && (
-              <span className="rounded-full bg-highlight/60 px-2.5 py-0.5 text-xs font-semibold text-foreground">You save {formatPrice(saving)}</span>
-            )}
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            <StockBadge status={product.stock_status} className="text-sm" />
-            {seller && (
-              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                <Store className="size-4" aria-hidden="true" />
-                Sold by <span className="font-medium text-foreground">{seller}</span>
-              </span>
-            )}
-          </div>
-
-          <div className="mt-5 border-t border-border pt-5">
-            <PurchasePanel product={product} />
-          </div>
+          {/* Price, availability and seller follow the chosen option, so they live in the panel. */}
+          <PurchasePanel product={product} seller={seller} />
 
           <section aria-labelledby="details-title" className="mt-8">
             <h2 id="details-title" className="font-heading text-base font-semibold">Product details</h2>
@@ -131,7 +110,10 @@ async function ProductContent({ params }: Pick<PageProps<"/products/[productId]"
             )}
             <dl className="mt-4 divide-y divide-border rounded-2xl border border-border text-sm">
               {[
-                ["Pack size", product.unit],
+                hasVariants(product) && product.variants.length > 1
+                  ? [product.variant_type === "size" ? "Sizes" : "Options", product.variants.map((v) => v.label).join(", ")]
+                  : ["Pack size", product.unit],
+                ...(product.variant_type === "size" ? [["Set", product.unit]] : []),
                 ...(category ? [["Category", category.name]] : []),
                 ...(seller ? [["Seller", seller]] : []),
               ].map(([term, value]) => (

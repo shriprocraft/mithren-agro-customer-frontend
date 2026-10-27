@@ -8,6 +8,7 @@ import { formatOrderTime } from "@/components/orders/OrderDetails";
 import { Button } from "@/components/ui/button";
 import { useAnnounce } from "@/context/AnnouncerContext";
 import { useDemoAccount } from "@/context/DemoAccountContext";
+import { useToast } from "@/context/ToastContext";
 import { useEndDemoSession } from "@/hooks/useEndDemoSession";
 import type { AccountPreferences } from "@/types/account";
 
@@ -21,6 +22,7 @@ const toggles: { key: keyof AccountPreferences; label: string; detail: string }[
 export function SettingsView() {
   const { session, preferences, updatePreferences, resetDemoData } = useDemoAccount();
   const announce = useAnnounce();
+  const toast = useToast();
   const endSession = useEndDemoSession();
 
   return (
@@ -62,7 +64,7 @@ export function SettingsView() {
             title="Reset the demo account?"
             description="The profile and preferences go back to their defaults and the sample orders and address are recreated. Orders and addresses you added yourself are kept."
             confirmLabel="Reset demo data"
-            onConfirm={() => { resetDemoData(); announce("Demo data reset."); }}
+            onConfirm={() => { resetDemoData(); toast.success("Demo data reset", { description: "Sample orders, the sample address and your demo settings are back to their defaults." }); }}
             trigger={<Button variant="outline"><RotateCcw aria-hidden="true" />Reset demo data</Button>}
           />
           <Button variant="secondary" onClick={endSession}><LogOut aria-hidden="true" />Logout</Button>

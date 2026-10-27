@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, CircleHelp, Heart, LayoutDashboard, LogIn, LogOut, MapPin, Package, UserRound, type LucideIcon } from "lucide-react";
+import { ChevronDown, ChevronRight, CircleHelp, Heart, LayoutDashboard, LogIn, LogOut, MapPin, Package, UserRound, type LucideIcon } from "lucide-react";
 import { DemoBadge } from "@/components/account/DemoBadge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -22,8 +22,8 @@ const accountLinks: { href: string; label: string; Icon: LucideIcon }[] = [
 const rowClass = "flex min-h-11 items-center gap-2.5 rounded-lg px-2 text-sm font-medium outline-none hover:bg-soft focus-visible:ring-2 focus-visible:ring-ring";
 
 // The header's single account control. Signed out (the default): sign in, the demo account, a
-// registration preview, and orders saved in this browser, so guests can still get back to them.
-// In a demo session: account links and Logout. Real authentication does not exist yet
+// registration preview, My Orders and the latest orders saved in this browser, so guests can still
+// get back to them. In a demo session: account links and Logout. Real authentication does not exist yet
 // (docs/DEMO_ACCOUNT.md). The trigger follows the reference: tinted avatar circle, label, chevron.
 export function AccountMenu() {
   const { hydrated, isActive, profile, startDemoSession } = useDemoAccount();
@@ -92,7 +92,14 @@ export function AccountMenu() {
               <Link href="/register" className="inline-flex min-h-9 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">New here? Create an account (preview)</Link>
             </PopoverClose>
             <div className="border-t border-border pt-3">
-              <p className="flex items-center gap-2 text-sm font-semibold"><Package className="size-4" aria-hidden="true" />Orders in this browser</p>
+              {/* The order-history page. Its demo-account gate stays as it is; the latest orders saved
+                  in this browser are listed below so guests can still open their tracking pages. */}
+              <PopoverClose asChild>
+                <Link href="/account/orders" className="-mx-1 flex min-h-11 items-center justify-between gap-2 rounded-lg px-1 text-sm font-semibold outline-none hover:bg-soft focus-visible:ring-2 focus-visible:ring-ring">
+                  <span className="flex items-center gap-2"><Package className="size-4" aria-hidden="true" />My Orders</span>
+                  <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+                </Link>
+              </PopoverClose>
               {ordersReady && recent.length > 0 ? (
                 <ul className="mt-1 divide-y">
                   {recent.map((order) => (

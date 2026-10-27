@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Caveat, Poppins } from "next/font/google";
+import { Suspense } from "react";
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
+import { NavigationProgress } from "@/components/layout/NavigationProgress";
 import { PageBackdrop } from "@/components/layout/PageBackdrop";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
@@ -51,6 +53,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
+        {/* Reads the URL, so it renders on the client inside its own boundary. */}
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         <AppProviders>
           <AnnouncementBar />
           <SiteHeader categories={categories} catalog={[...products, ...bundles]} deliveryAreas={deliveryAreas} />

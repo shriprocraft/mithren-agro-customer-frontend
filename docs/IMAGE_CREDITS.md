@@ -1,11 +1,13 @@
 # Image Credits
 
-All photographs in `public/images/` are from [Unsplash](https://unsplash.com) and used under the [Unsplash License](https://unsplash.com/license), which allows free commercial use without attribution. Unsplash+ images were excluded. The exceptions are the two owner-supplied assets below.
+All photographs in `public/images/` are from [Unsplash](https://unsplash.com) and used under the [Unsplash License](https://unsplash.com/license), which allows free commercial use without attribution. Unsplash+ images were excluded. The exceptions are the owner-supplied assets below.
 
 | File | Size | Source |
 |---|---|---|
 | `public/images/mithren-agro-logo.png` | 1254×1254 | Mithren Agro logo, supplied by the project owner |
-| `public/images/mithren-hero-produce.png` | 1536×1024 | AI-generated image supplied by the project owner (original file name "Sunlit Farm Fresh Vegetable Crate.png"); the homepage hero. The crate is unbranded. It is an illustration, not a photograph of real produce or a real farm |
+| `public/images/mithren-hero-produce.png` | 1536×1024 | AI-generated image supplied by the project owner (original file name "Sunlit Farm Fresh Vegetable Crate.png"); the homepage hero (restored 27 Oct 2026). The crate is unbranded. It is an illustration, not a photograph of real produce or a real farm |
+| `public/images/home/hero-slide-farm-crate.jpg` | 1600×900 | Supplied by the project owner on 27 Oct 2026 (original file name "WhatsApp Image 2026-10-27 at 2.52.08 PM.jpeg"): Mithren Agro crate with the logo, produce, sunrise over fields. Used on the About Us page. Used as supplied, not edited |
+| `public/images/home/hero-slide-kitchen-bag.jpg` | 1600×900 | Supplied by the project owner on 27 Oct 2026 (original file name "WhatsApp Image 2026-10-27 at 2.53.22 PM.jpeg"): Mithren Agro jute bag with the logo, produce in a kitchen. Not used at present (it was hero slide 2); kept for later use. Not edited |
 
 `public/images/home/hero-produce.jpg` (Unsplash, below) is no longer used by the homepage.
 

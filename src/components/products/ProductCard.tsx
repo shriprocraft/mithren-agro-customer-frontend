@@ -1,11 +1,12 @@
-import { AddToCartButton } from "@/components/products/AddToCartButton";
 import { CatalogImage } from "@/components/products/CatalogImage";
 import { PriceDisplay } from "@/components/products/PriceDisplay";
 import { ProductLink } from "@/components/products/ProductLink";
 import { ProductQuickView } from "@/components/products/ProductQuickView";
+import { QuickAddButton } from "@/components/products/QuickAddButton";
 import { StockBadge } from "@/components/products/StockBadge";
 import { WishlistButton } from "@/components/products/WishlistButton";
 import { cn } from "@/lib/utils";
+import { optionsSummary } from "@/lib/variants";
 import type { Product } from "@/types/catalog";
 
 interface ProductCardProps {
@@ -70,18 +71,16 @@ export function ProductCard({
             {product.name}
           </ProductLink>
         </h3>
-        <p className="mt-0.5 text-xs text-muted-foreground">{product.unit}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {product.unit}
+          {optionsSummary(product) && <span className="text-brand"> · {optionsSummary(product)}</span>}
+        </p>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">Sold by {vendorName}</p>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 pt-2">
           <PriceDisplay price={product.price} discountedPrice={product.discounted_price} />
           <StockBadge status={product.stock_status} />
         </div>
-        <AddToCartButton
-          productId={product.id}
-          productName={product.name}
-          stockStatus={product.stock_status}
-          className="relative z-10 mt-2.5 px-3"
-        />
+        <QuickAddButton product={product} className="relative z-10 mt-2.5 px-3" />
       </div>
     </article>
   );

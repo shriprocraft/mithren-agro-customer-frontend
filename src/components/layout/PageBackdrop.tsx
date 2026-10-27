@@ -6,6 +6,12 @@ import { cn } from "@/lib/utils";
 // Positions are fractions of the page height so they spread out however long the page is; the
 // wrapper clips them, so they never cause horizontal scrolling. All start below the first screen,
 // so they load lazily.
+//
+// Performance: the blur and the soft oval fade are baked into the image
+// (scripts/make-backdrop-image.mjs). Applying them live (CSS filter: blur() plus mask-image on these
+// large elements) made the browser redraw blurred, masked layers while scrolling, which showed up
+// as long frames in the scroll traces (docs/PERFORMANCE.md). Only opacity and a mirror transform
+// remain, which cost nothing extra.
 const clusters = [
   { top: "30%", side: "left", flip: true },
   { top: "55%", side: "right", flip: false },
@@ -18,18 +24,14 @@ export function PageBackdrop() {
       {clusters.map((cluster) => (
         <div
           key={cluster.top}
-          style={{
-            top: cluster.top,
-            maskImage: "radial-gradient(closest-side, #000 35%, transparent)",
-            WebkitMaskImage: "radial-gradient(closest-side, #000 35%, transparent)",
-          }}
+          style={{ top: cluster.top }}
           className={cn(
-            "absolute h-80 w-64 opacity-45 blur-[10px] sm:opacity-60",
+            "absolute h-80 w-64 opacity-45 sm:opacity-60",
             cluster.side === "left" ? "-left-48 lg:-left-36" : "-right-48 lg:-right-36",
             cluster.flip && "-scale-x-100",
           )}
         >
-          <Image src="/images/home/farm-essentials.jpg" alt="" fill sizes="320px" className="object-cover object-[50%_35%]" />
+          <Image src="/images/home/backdrop-foliage.webp" alt="" fill sizes="256px" className="object-cover" />
         </div>
       ))}
     </div>

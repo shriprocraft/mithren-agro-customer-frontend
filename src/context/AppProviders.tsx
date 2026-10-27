@@ -8,6 +8,7 @@ import { CartProvider } from "@/context/CartContext";
 import { CheckoutProvider } from "@/context/CheckoutContext";
 import { DemoAccountProvider } from "@/context/DemoAccountContext";
 import { OrdersProvider } from "@/context/OrdersContext";
+import { ToastProvider } from "@/context/ToastContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 
 // Mounted once in the root layout (guide, Section J). MotionConfig honours the OS reduced-motion setting.
@@ -16,18 +17,20 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <MotionConfig reducedMotion="user">
       <AnnouncerProvider>
-        <CartProvider>
-          <WishlistProvider>
-            <AddressBookProvider>
-              <CheckoutProvider>
-                <OrdersProvider>
-                  {/* Inside the order and address stores: the demo account adds its samples to them. */}
-                  <DemoAccountProvider>{children}</DemoAccountProvider>
-                </OrdersProvider>
-              </CheckoutProvider>
-            </AddressBookProvider>
-          </WishlistProvider>
-        </CartProvider>
+        <ToastProvider>
+          <CartProvider>
+            <WishlistProvider>
+              <AddressBookProvider>
+                <CheckoutProvider>
+                  <OrdersProvider>
+                    {/* Inside the order and address stores: the demo account adds its samples to them. */}
+                    <DemoAccountProvider>{children}</DemoAccountProvider>
+                  </OrdersProvider>
+                </CheckoutProvider>
+              </AddressBookProvider>
+            </WishlistProvider>
+          </CartProvider>
+        </ToastProvider>
       </AnnouncerProvider>
     </MotionConfig>
   );

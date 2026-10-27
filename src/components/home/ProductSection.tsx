@@ -28,7 +28,7 @@ export function ProductSection({ id, title, description, products, vendorNames, 
         />
         <ul
           id={`${id}-row`}
-          className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 py-1 sm:scroll-px-0 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+          className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 py-1 sm:scroll-px-0 scrollbar-none sm:mx-0 sm:px-0"
         >
           {products.map((product) => (
             <li

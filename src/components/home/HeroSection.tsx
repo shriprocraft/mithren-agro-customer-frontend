@@ -1,7 +1,7 @@
 import Image from "next/image";
-import { ArrowRight, Truck } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Handshake, Truck } from "lucide-react";
 import { Container } from "@/components/layout/Container";
-import { MeetFarmersButton } from "@/components/home/MeetFarmersButton";
 import { ValueStrip } from "@/components/home/ValueStrip";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/typography";
@@ -15,14 +15,10 @@ const heroPhoto = {
   height: 1024,
 };
 
-interface HeroSectionProps {
-  /** Names of the sample sellers who list fruit and vegetables. */
-  growers: string[];
-}
-
 // Landing hero: copy on the photograph's open left side, the crate as the focal point on the right,
-// one floating glass card, and the benefits strip along the bottom. "Shop by category" is the next
-// section, never part of the hero.
+// one floating glass card, and the benefits strip along the bottom. The two actions open the
+// Investor Opportunities and Agent Benefits pages (shopping lives in the header, the category tiles
+// and /products). About Mithren Agro, the video cards and then "Shop by category" follow the hero.
 //
 // From lg the hero fills the first screen (minus the announcement bar, capped 40–58rem) and runs up
 // under the glass header (-mt/pt match SiteHeader's lg:h-23 xl:h-29). The photo is anchored right
@@ -33,7 +29,7 @@ interface HeroSectionProps {
 // element becomes a full-bleed band under the copy, centred on the crate (one element, so the LCP
 // image is never downloaded twice). On phones the copy, band and strip are kept short so "Shop by
 // category" starts near the first screen.
-export function HeroSection({ growers }: HeroSectionProps) {
+export function HeroSection() {
   return (
     <section
       aria-labelledby="hero-title"
@@ -51,12 +47,19 @@ export function HeroSection({ growers }: HeroSectionProps) {
           </p>
           <div className="mt-5 flex flex-col gap-2.5 sm:mt-7 sm:flex-row sm:gap-3 xl:mt-8 xl:gap-4">
             <Button asChild className="px-6 xl:h-12 xl:px-8">
-              <a href="#fresh-picks">
-                Shop Fresh Produce
+              <Link href="/investors">
+                Investor Opportunities
                 <ArrowRight aria-hidden="true" />
-              </a>
+              </Link>
             </Button>
-            <MeetFarmersButton growers={growers} />
+            <Button asChild variant="outline" className="pr-6 pl-2 xl:h-12 xl:pr-8 xl:pl-2.5">
+              <Link href="/agent-benefits">
+                <span className="grid size-7 place-items-center rounded-full ring-1 ring-foreground/20">
+                  <Handshake className="size-3.5 text-brand" aria-hidden="true" />
+                </span>
+                Agent Benefits
+              </Link>
+            </Button>
           </div>
         </div>
 

@@ -61,7 +61,7 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
     setError(null);
     try {
       const order = placeOrder(lines, address);
-      if (!isBuyNow) removeItems(order.items.map((item) => item.product_id));
+      if (!isBuyNow) removeItems(lines.map((line) => line.key));
       finish();
       router.push(`/orders/${order.id}/confirmation`);
     } catch (e) {
@@ -95,8 +95,8 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
           {isBuyNow && <p className="mt-1 text-sm text-muted-foreground">Buy now: only this item is ordered. Your cart stays as it is.</p>}
           <ItemList
             label="Items in this order"
-            items={lines.map(({ product, quantity, unit_price, line_total }) => ({
-              product_id: product.id, name: product.name, unit: product.unit,
+            items={lines.map(({ key, product, selection, quantity, unit_price, line_total }) => ({
+              key, product_id: product.id, name: product.name, unit: selection.description,
               image: product.images[0] ?? { src: "", alt: "" }, unit_price, quantity, line_total,
             }))}
           />

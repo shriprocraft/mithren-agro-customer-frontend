@@ -11,6 +11,11 @@ export const designTokens = {
     brand: "#2E7D32", // green text accents (headline word, eyebrows, icons); same as primary by design
     accentGreen: "#A7D96C", // Accent Green: decorative only (leaf marks, small fills), 1.64:1, never text
     highlight: "#FFD88A", // Highlight / Warm Accent: decorative fills and badges with dark text; never primary buttons
+    // Logo Gold: sampled from the warm band of public/images/mithren-agro-logo.png (#C07800–#F8A818).
+    // Only for the Buy now action, always with Deep Heading Green text (7.06:1; hover 6.05:1; pressed 5.04:1).
+    gold: "#F5A51C",
+    goldHover: "#E8960C",
+    goldActive: "#D6870A",
     // Surfaces
     background: "#FFFFFF", // Canvas / Main Background
     surface: "#FFFFFF", // product and content cards: clean white with a #E8F1EA border

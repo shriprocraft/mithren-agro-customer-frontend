@@ -1,5 +1,6 @@
 import { ItemList } from "@/components/checkout/ItemList";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
+import { OrderPolicyNote } from "@/components/orders/OrderPolicyNote";
 import { addressTypeLabels, formatAddressLine } from "@/lib/address";
 import type { Order } from "@/types/order";
 
@@ -27,12 +28,17 @@ export function OrderDetails({ order }: { order: Order }) {
             label="Items in this order"
             items={order.items.map((item) => ({
               ...item,
+              key: `${item.product_id}::${item.variant_id ?? ""}`,
+              unit: item.variant_label ? `${item.unit} · ${item.variant_label}` : item.unit,
               image: { src: item.image_src, alt: item.image_alt, studio: item.image_studio },
             }))}
           />
         </section>
       </div>
-      <OrderSummary subtotal={order.subtotal} itemCount={itemCount} charges={order.charges} total={order.total} />
+      <div className="space-y-6">
+        <OrderSummary subtotal={order.subtotal} itemCount={itemCount} charges={order.charges} total={order.total} />
+        <OrderPolicyNote order={order} />
+      </div>
     </div>
   );
 }

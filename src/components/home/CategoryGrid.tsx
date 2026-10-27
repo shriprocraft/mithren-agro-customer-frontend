@@ -35,7 +35,7 @@ export function CategoryGrid({ categories, productCounts }: CategoryGridProps) {
         />
         <ul
           id="category-row"
-          className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 py-1 sm:scroll-px-0 [scrollbar-width:none] sm:mx-0 sm:px-0 lg:grid lg:grid-cols-7 lg:overflow-visible [&::-webkit-scrollbar]:hidden"
+          className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 py-1 sm:scroll-px-0 scrollbar-none sm:mx-0 sm:px-0 lg:grid lg:grid-cols-7 lg:overflow-visible"
         >
           {tiles.map((tile) => (
             <li key={tile.href} className="w-[38%] shrink-0 snap-start sm:w-[24%] md:w-[19%] lg:w-auto">

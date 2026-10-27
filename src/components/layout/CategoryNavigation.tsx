@@ -44,7 +44,7 @@ function NavRow({ categories, active }: { categories: Category[]; active: Browse
     <nav aria-label="Product categories">
       {/* From xl the row sits in the target's faint translucent pill, a little wider than the links. */}
       <Container className="lg:px-10 xl:px-[4.5rem]">
-        <ul className="relative -mx-4 flex snap-x gap-1 overflow-x-auto pr-10 pl-4 [mask-image:linear-gradient(to_right,#000_88%,transparent)] [scrollbar-width:none] sm:mx-0 sm:px-0 lg:h-9 lg:items-center lg:justify-between lg:overflow-visible lg:[mask-image:none] xl:h-10 xl:rounded-full xl:bg-white/35 xl:px-8 xl:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.7),0_6px_18px_-14px_rgb(var(--shadow-tint)/0.35)] [&::-webkit-scrollbar]:hidden">
+        <ul className="relative -mx-4 flex snap-x gap-1 overflow-x-auto pr-10 pl-4 [mask-image:linear-gradient(to_right,#000_88%,transparent)] scrollbar-none sm:mx-0 sm:px-0 lg:h-9 lg:items-center lg:justify-between lg:overflow-visible lg:[mask-image:none] xl:h-10 xl:rounded-full xl:bg-white/35 xl:px-8 xl:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.7),0_6px_18px_-14px_rgb(var(--shadow-tint)/0.35)]">
           {links.map(({ href, name, slug }) => {
             const isActive = slug !== undefined && slug === active;
             return (

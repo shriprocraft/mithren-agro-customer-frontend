@@ -25,6 +25,9 @@ const buttonVariants = cva(
           "hover:bg-soft hover:text-primary aria-expanded:bg-soft aria-expanded:text-primary dark:hover:bg-muted/50",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+        // Buy now only: logo gold (#F5A51C), hover #E8960C, pressed #D6870A, Deep Heading Green text (7.06:1).
+        buy:
+          "bg-gold font-semibold text-foreground shadow-[0_6px_16px_-8px_rgb(214_135_10/0.6)] hover:bg-gold-hover active:bg-gold-active disabled:bg-border disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none",
         link: "text-primary underline-offset-4 hover:text-primary-hover hover:underline",
       },
       size: {

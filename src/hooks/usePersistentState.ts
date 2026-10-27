@@ -97,3 +97,29 @@ export function usePersistentState<T>(
 
   return [value, set, hydrated] as const;
 }
+
+let storageProbe: boolean | undefined;
+
+/**
+ * Whether this browser lets the site keep data in localStorage (false in some private modes or when
+ * site data is blocked). Checked once per page load; true on the server and during hydration.
+ */
+export function useStorageAvailable(): boolean {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => {
+      if (storageProbe === undefined) {
+        try {
+          const storage = storageFor("local");
+          storage?.setItem("mithren.storage-probe", "1");
+          storage?.removeItem("mithren.storage-probe");
+          storageProbe = storage !== null;
+        } catch {
+          storageProbe = false;
+        }
+      }
+      return storageProbe;
+    },
+    () => true,
+  );
+}

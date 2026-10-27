@@ -8,6 +8,7 @@ Always follow docs/DESIGN_SYSTEM.md when creating or modifying Mithren Agro fron
 
 - Colours come from `src/config/design-tokens.ts`, mirrored in `src/app/globals.css`; use semantic Tailwind classes (`bg-primary`, `text-muted-foreground`, `border-border`…), never raw hex or Tailwind palette colours.
 - Use the shared `<Button>` variants for actions; primary actions use the `default` variant.
+- Approved exception (27 Oct 2026): **Buy now** uses the logo gold, `<Button variant="buy">` (`bg-gold`, dark text). Use it for Buy now only.
 - `tests/design-tokens.test.ts` enforces this; keep it passing.
 
 ## Customer account (demo)

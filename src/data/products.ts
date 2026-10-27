@@ -1,4 +1,4 @@
-import type { ImageAsset, Product } from "@/types/catalog";
+import type { ImageAsset, Product, ProductVariant, StockStatus, VariantType } from "@/types/catalog";
 
 // Mock data for the preview storefront: names, prices (paise), stock and sellers are samples.
 // Images illustrate the product type, not the actual listing (see docs/IMAGE_CREDITS.md): isolated
@@ -7,7 +7,7 @@ const studio = (slug: string, alt: string): ImageAsset[] => [
   { src: `/images/studio/products/${slug}-studio.jpg`, alt, studio: true },
 ];
 
-export const products: Product[] = [
+const listings: Product[] = [
   // Fruits
   {
     id: "p-banganapalli-mangoes", slug: "banganapalli-mangoes", name: "Banganapalli Mangoes",
@@ -175,3 +175,51 @@ export const products: Product[] = [
     images: studio("tiered-midi-dress", "Mustard-yellow tiered midi dress"),
   },
 ];
+
+// Purchasable options per product (sample data, like everything in this file). Each option has its
+// own price and availability; the option marked as default is the one each listing above describes
+// (same unit, price and stock), so cards, sorting and filters are unchanged. Options suit the
+// product: weights for loose produce and staples, packs for items sold by count, sizes for apparel.
+// Single-form items (papaya, jowar, garden compost, combo boxes) have none.
+type Option = [label: string, price: number, discounted?: number, stock?: StockStatus, unit?: string];
+const optionId = (label: string) => label.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+function options(variant_type: VariantType, defaultLabel: string, list: Option[]): Pick<Product, "variants" | "variant_type" | "default_variant_id"> {
+  const variants: ProductVariant[] = list.map(([label, price, discounted_price, stock_status = "in_stock", unit]) => ({
+    id: optionId(label),
+    label,
+    ...(unit && { unit }),
+    price,
+    ...(discounted_price !== undefined && { discounted_price }),
+    stock_status,
+  }));
+  return { variant_type, variants, default_variant_id: optionId(defaultLabel) };
+}
+
+const sizes = (labels: string[], price: number, stock: Partial<Record<string, StockStatus>> = {}): Option[] =>
+  labels.map((label) => [label, price, undefined, stock[label] ?? "in_stock"]);
+
+const productOptions: Record<string, Pick<Product, "variants" | "variant_type" | "default_variant_id">> = {
+  "p-banganapalli-mangoes": options("weight", "1 kg", [["500 g", 7500], ["1 kg", 14000], ["2 kg", 27500]]),
+  "p-robusta-bananas": options("pack", "1 dozen", [["Half dozen", 3200, undefined, "in_stock", "6 pieces"], ["1 dozen", 6000]]),
+  "p-pomegranates": options("weight", "500 g", [["500 g", 11000, 9500], ["1 kg", 21000, 18500]]),
+  "p-tomatoes": options("weight", "1 kg", [["500 g", 2200], ["1 kg", 4000], ["2 kg", 7800], ["5 kg", 18500, undefined, "low_stock"]]),
+  "p-spinach": options("pack", "1 bunch", [["1 bunch", 3000, undefined, "low_stock"], ["2 bunches", 5800, undefined, "low_stock"]]),
+  "p-carrots": options("weight", "500 g", [["250 g", 2500], ["500 g", 4500], ["1 kg", 8500]]),
+  "p-okra": options("weight", "500 g", [["250 g", 2200], ["500 g", 4000], ["1 kg", 7600]]),
+  "p-green-chillies": options("weight", "250 g", [["100 g", 1000], ["250 g", 2000], ["500 g", 3800]]),
+  "p-red-onions": options("weight", "1 kg", [["500 g", 2300, 2000], ["1 kg", 4500, 3900], ["2 kg", 8800, 7600], ["5 kg", 21500, 18500]]),
+  "p-sona-masoori-rice": options("weight", "5 kg", [["1 kg", 9000], ["5 kg", 42000], ["10 kg", 82000, undefined, "out_of_stock"]]),
+  "p-masoor-dal": options("weight", "1 kg", [["500 g", 6800], ["1 kg", 13000], ["2 kg", 25500]]),
+  "p-chana-dal": options("weight", "1 kg", [["500 g", 5800], ["1 kg", 11000]]),
+  "p-wheat-atta": options("weight", "5 kg", [["1 kg", 5800], ["5 kg", 26000], ["10 kg", 50000]]),
+  "p-jaggery": options("weight", "1 kg", [["500 g", 4800], ["1 kg", 9000]]),
+  "p-vermicompost": options("weight", "5 kg bag", [["5 kg bag", 25000], ["10 kg bag", 48000], ["25 kg bag", 110000, undefined, "low_stock"]]),
+  "p-potting-mix": options("weight", "10 kg bag", [["5 kg bag", 17000], ["10 kg bag", 32000]]),
+  "p-floral-kurta-set": options("size", "M", sizes(["S", "M", "L", "XL", "XXL"], 129900, { XXL: "out_of_stock" })),
+  "p-pink-kurta-set": options("size", "M", sizes(["S", "M", "L", "XL"], 119900, { M: "low_stock", XL: "out_of_stock" })),
+  "p-printed-co-ord-set": options("size", "M", sizes(["XS", "S", "M", "L", "XL"], 149900)),
+  "p-tiered-midi-dress": options("size", "M", sizes(["S", "M", "L"], 99900, { L: "low_stock" })),
+};
+
+export const products: Product[] = listings.map((product) => ({ ...product, ...productOptions[product.id] }));

@@ -4,8 +4,11 @@ import { formatPrice } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 export interface ItemRow {
+  /** Unique per line (product + option). */
+  key: string;
   product_id: string;
   name: string;
+  /** Pack size and option, e.g. "500 g" or "2-piece set · Size M". */
   unit: string;
   image: { src: string; alt: string; studio?: boolean };
   /** Paise. */
@@ -20,7 +23,7 @@ export function ItemList({ items, label }: { items: ItemRow[]; label: string }) 
   return (
     <ul aria-label={label} className="divide-y">
       {items.map((item) => (
-        <li key={item.product_id} className="flex items-center gap-4 py-3">
+        <li key={item.key} className="flex items-center gap-4 py-3">
           <div className={cn("relative size-16 shrink-0 overflow-hidden rounded-xl", item.image.studio ? "bg-white ring-1 ring-border" : "bg-muted")}>
             {item.image.src && <CatalogImage image={item.image} alt="" sizes="64px" />}
           </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,18 +22,20 @@ export function ExploreDemoButton({ next, label = "Explore Demo Account", classN
   const router = useRouter();
   const announce = useAnnounce();
   const { startDemoSession } = useDemoAccount();
+  const [opening, startOpening] = useTransition();
 
   return (
     <Button
       size="lg"
       className={cn("w-full sm:w-auto", className)}
+      loading={opening}
       onClick={() => {
         startDemoSession();
         announce("Demo account opened. This is sample data.");
-        if (next !== undefined) router.push(safeNextPath(next));
+        if (next !== undefined) startOpening(() => router.push(safeNextPath(next)));
       }}
     >
-      <FlaskConical aria-hidden="true" />
+      {!opening && <FlaskConical aria-hidden="true" />}
       {label}
       <ArrowRight aria-hidden="true" />
     </Button>

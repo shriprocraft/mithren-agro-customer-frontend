@@ -19,7 +19,7 @@ export function BundleSection({ bundles, vendorNames }: BundleSectionProps) {
           title="Combo boxes"
           description="Illustrative fruit and vegetable combinations. Contents, weights and prices are sample data."
         />
-        <ul className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 py-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6 md:scroll-px-0 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
+        <ul className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 py-1 scrollbar-none sm:-mx-6 sm:scroll-px-6 sm:px-6 md:scroll-px-0 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
           {bundles.map((bundle) => (
             <li key={bundle.id} className="w-[85%] shrink-0 snap-start sm:w-[60%] md:w-auto">
               <BundleCard bundle={bundle} vendorName={vendorNames[bundle.vendor_id] ?? "Independent seller"} />

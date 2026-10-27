@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { usePersistentState } from "@/hooks/usePersistentState";
-import { addToCart, countItems, parseCart, removeFromCart, setCartQuantity, type AddResult } from "@/lib/cart";
+import { addToCart, countItems, itemKey, parseCart, removeFromCart, setCartQuantity, type AddResult } from "@/lib/cart";
 import type { CartItem } from "@/types/cart";
 
 // The single source of truth for the cart. Saved in this browser's localStorage so it survives a
@@ -13,11 +13,15 @@ interface CartContextValue {
   count: number;
   /** False until the saved cart has been read; pages that depend on it wait for this. */
   hydrated: boolean;
-  addItem: (productId: string, quantity?: number) => AddResult;
-  setQuantity: (productId: string, quantity: number) => void;
-  removeItem: (productId: string) => void;
-  /** Removes several products, e.g. the ones just ordered. */
-  removeItems: (productIds: string[]) => void;
+  /** "unsaved": added for this visit, but the browser would not store it (private mode, quota). */
+  /** `defaultVariantId`: the product's default option, so a line saved before options existed is reused. */
+  addItem: (productId: string, quantity?: number, variantId?: string, defaultVariantId?: string) => AddResult | "unsaved";
+  /** `key` is the line key (CartLine.key): product plus chosen option. */
+  setQuantity: (key: string, quantity: number) => void;
+  /** Returns false when the change could not be saved in this browser. */
+  removeItem: (key: string) => boolean;
+  /** Removes several lines by key, e.g. the ones just ordered. */
+  removeItems: (keys: string[]) => void;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -31,18 +35,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       items,
       count: countItems(items),
       hydrated,
-      addItem: (productId, quantity = 1) => {
+      addItem: (productId, quantity = 1, variantId, defaultVariantId) => {
         let result: AddResult = "added";
-        setItems((current) => {
-          const next = addToCart(current, productId, quantity);
+        const persisted = setItems((current) => {
+          const next = addToCart(current, productId, quantity, variantId, defaultVariantId);
           result = next.result;
           return next.items;
         });
-        return result;
+        return result === "added" && !persisted ? "unsaved" : result;
       },
-      setQuantity: (productId, quantity) => setItems((current) => setCartQuantity(current, productId, quantity)),
-      removeItem: (productId) => setItems((current) => removeFromCart(current, productId)),
-      removeItems: (productIds) => setItems((current) => current.filter((item) => !productIds.includes(item.product_id))),
+      setQuantity: (key, quantity) => setItems((current) => setCartQuantity(current, key, quantity)),
+      removeItem: (key) => setItems((current) => removeFromCart(current, key)),
+      removeItems: (keys) => setItems((current) => current.filter((item) => !keys.includes(itemKey(item)))),
     }),
     [items, hydrated, setItems],
   );

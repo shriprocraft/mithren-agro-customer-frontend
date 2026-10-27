@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useOptimistic, useState, useTransition, type FormEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, SearchX, X } from "lucide-react";
+import { ArrowDownUp, LayoutGrid, LoaderCircle, Search, SearchX, X } from "lucide-react";
 import { FilterDrawer } from "@/components/marketplace/FilterDrawer";
 import { ProductCard } from "@/components/products/ProductCard";
+import { ProductGridSkeleton } from "@/components/products/ProductGridSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useDelayedFlag } from "@/hooks/useDelayedFlag";
 import { formatPrice } from "@/lib/formatters";
 import {
   activeFilterCount,
@@ -19,7 +22,7 @@ import {
   type MarketplaceCriteria,
   type SortOption,
 } from "@/lib/marketplace";
-import type { Category, Product } from "@/types/catalog";
+import type { Category, CategorySlug, Product } from "@/types/catalog";
 
 interface MarketplaceProps {
   products: Product[];
@@ -29,50 +32,74 @@ interface MarketplaceProps {
 
 // Search, filter and sort the whole catalogue. Reads and writes the URL, so the header search,
 // category links and the back button all drive the same results.
+//
+// Loading: the results follow the URL, so they change when the router has committed the new URL.
+// While that navigation is pending the controls already show the new choice (useOptimistic) and,
+// if it takes longer than a moment, the grid becomes a skeleton of the same shape. Fast updates
+// never flash a skeleton, and nothing is delayed on purpose.
 export function Marketplace({ products, categories, vendorNames }: MarketplaceProps) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const criteria = parseCriteria(new URLSearchParams(params.toString()));
-  const results = applyCriteria(products, criteria, { categories, vendorNames });
+  const [pending, startTransition] = useTransition();
+  const [search, setOptimisticSearch] = useOptimistic(params.toString());
+  const committed = parseCriteria(new URLSearchParams(params.toString()));
+  const criteria = parseCriteria(new URLSearchParams(search));
+  const results = applyCriteria(products, committed, { categories, vendorNames });
   const facets = facetsFor(products, vendorNames);
-  const filterCount = activeFilterCount(criteria);
+  const filterCount = activeFilterCount(committed);
+  const showSkeleton = useDelayedFlag(pending);
+  const categoryCounts = categories.map((category) => ({ category, count: products.filter((p) => p.category_id === category.id).length }));
 
-  const update = (next: MarketplaceCriteria) => router.push(`${pathname}${criteriaToSearch(next)}`, { scroll: false });
+  const update = (next: MarketplaceCriteria) => {
+    const query = criteriaToSearch(next);
+    startTransition(() => {
+      setOptimisticSearch(query.replace(/^\?/, ""));
+      router.push(`${pathname}${query}`, { scroll: false });
+    });
+  };
 
   return (
     <>
-      <SearchBox key={criteria.query} initial={criteria.query} onSearch={(query) => update({ ...criteria, query })} />
+      {/* One toolbar: search across the width, then category, sort and filters. Phones: search on
+          its own row, category full width, then Sort and Filter side by side. */}
+      <div className="surface-card grid gap-2.5 rounded-3xl p-2.5 sm:p-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-3">
+        <SearchBox key={criteria.query} initial={criteria.query} onSearch={(query) => update({ ...criteria, query })} />
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center lg:flex-nowrap">
+          <CategorySelect criteria={criteria} categories={categoryCounts} total={products.length} onChange={update} />
+          <Select value={criteria.sort} onValueChange={(sort) => update({ ...criteria, sort: sort as SortOption })}>
+            <SelectTrigger aria-label="Sort products" className="sm:w-64">
+              <ArrowDownUp className="size-4 text-muted-foreground" aria-hidden="true" />
+              <span className="shrink-0 text-muted-foreground max-sm:sr-only">Sort:</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {sortOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <FilterDrawer criteria={criteria} facets={facets} categories={categoryCounts} onApply={update} />
+        </div>
+      </div>
 
-      {/* Phones: Filter and Sort share one row as two equal controls, the count sits below them. */}
-      <div className="mt-3 grid grid-cols-2 items-center gap-2 sm:mt-4 sm:flex sm:flex-wrap sm:gap-3">
-        <FilterDrawer
-          criteria={criteria}
-          facets={facets}
-          categories={categories.map((category) => ({ category, count: products.filter((p) => p.category_id === category.id).length }))}
-          onApply={update}
-        />
-        <label className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-          <span className="sr-only sm:not-sr-only">Sort by</span>
-          <select
-            value={criteria.sort}
-            onChange={(e) => update({ ...criteria, sort: e.target.value as SortOption })}
-            className="h-11 w-full min-w-0 rounded-full border border-input bg-background px-4 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-auto"
-          >
-            {sortOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </label>
-        <p aria-live="polite" className="col-span-2 min-w-0 text-sm font-medium break-words text-muted-foreground sm:ml-auto">
-          Showing {results.length} of {products.length} products
-          {criteria.query ? <> for “<span className="text-foreground">{criteria.query}</span>”</> : null}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p aria-live="polite" className="min-w-0 text-sm break-words text-muted-foreground">
+          {pending ? (
+            <span className="inline-flex items-center gap-2"><LoaderCircle className="size-4 animate-spin text-primary motion-reduce:animate-none" aria-hidden="true" />Updating results…</span>
+          ) : (
+            <>
+              Showing <span className="font-semibold text-foreground">{results.length}</span> of {products.length} products
+              {committed.query ? <> for “<span className="font-medium text-foreground">{committed.query}</span>”</> : null}
+            </>
+          )}
         </p>
+        <p className="text-xs text-muted-foreground">Priced per pack or unit · seller named on every listing</p>
       </div>
 
       <ActiveChips criteria={criteria} categories={categories} vendorNames={vendorNames} onChange={update} />
 
-      {results.length === 0 ? (
+      {showSkeleton ? (
+        <ProductGridSkeleton className="mt-4 sm:mt-5" count={Math.min(10, Math.max(4, results.length))} label="Updating products" />
+      ) : results.length === 0 ? (
         <div className="surface-card mt-6 flex flex-col items-center gap-3 rounded-3xl px-6 py-12 text-center">
           <SearchX className="size-8 text-muted-foreground" aria-hidden="true" />
           <h2 className="font-heading text-lg font-medium">{filterCount > 0 ? "No products match these filters" : "No products match your search"}</h2>
@@ -107,7 +134,7 @@ function SearchBox({ initial, onSearch }: { initial: string; onSearch: (query: s
     onSearch(value.trim());
   };
   return (
-    <form role="search" onSubmit={submit} className="flex max-w-xl gap-2">
+    <form role="search" onSubmit={submit} className="flex min-w-0 gap-2">
       <label htmlFor="marketplace-search" className="sr-only">Search the marketplace</label>
       <div className="relative min-w-0 flex-1">
         {/* type="text": the native search clear button differs per browser, so there is one of our own. */}
@@ -128,6 +155,29 @@ function SearchBox({ initial, onSearch }: { initial: string; onSearch: (query: s
       </div>
       <Button type="submit" className="px-4 sm:px-5"><Search aria-hidden="true" /><span className="max-[359px]:sr-only">Search</span></Button>
     </form>
+  );
+}
+
+// Quick single-category switch. Choosing several categories stays in the Filter drawer; when more
+// than one is active this shows how many, and picking one here narrows to that category.
+function CategorySelect({ criteria, categories, total, onChange }: { criteria: MarketplaceCriteria; categories: { category: Category; count: number }[]; total: number; onChange: (c: MarketplaceCriteria) => void }) {
+  const selected = criteria.categories;
+  const value = selected.length === 0 ? "all" : selected.length === 1 ? selected[0] : "several";
+  return (
+    <Select value={value} onValueChange={(slug) => onChange({ ...criteria, categories: slug === "all" ? [] : [slug as CategorySlug] })}>
+      <SelectTrigger aria-label="Category" className="col-span-2 sm:w-56">
+        <LayoutGrid className="size-4 text-muted-foreground" aria-hidden="true" />
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent align="start">
+        <SelectItem value="all" hint={total}>All products</SelectItem>
+        <SelectSeparator />
+        {categories.map(({ category, count }) => (
+          <SelectItem key={category.slug} value={category.slug} hint={count}>{category.name}</SelectItem>
+        ))}
+        {value === "several" && <SelectItem value="several" disabled>{selected.length} categories (set in Filter)</SelectItem>}
+      </SelectContent>
+    </Select>
   );
 }
 

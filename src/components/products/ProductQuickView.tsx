@@ -11,11 +11,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AddToCartButton } from "@/components/products/AddToCartButton";
 import { CatalogImage } from "@/components/products/CatalogImage";
 import { PriceDisplay } from "@/components/products/PriceDisplay";
+import { QuickAddButton } from "@/components/products/QuickAddButton";
 import { StockBadge } from "@/components/products/StockBadge";
 import { WishlistButton } from "@/components/products/WishlistButton";
+import { optionsSummary } from "@/lib/variants";
 import type { Product } from "@/types/catalog";
 
 interface ProductQuickViewProps {
@@ -36,7 +37,7 @@ export function ProductQuickView({ product, vendorName }: ProductQuickViewProps)
         aria-label={`Quick view: ${product.name}`}
         className="grid size-11 place-items-center rounded-full text-foreground outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <span className="glass-chip grid size-8 place-items-center rounded-full">
+        <span className="glass-chip-solid grid size-8 place-items-center rounded-full">
           <Eye className="size-4" aria-hidden="true" />
         </span>
       </DialogTrigger>
@@ -51,7 +52,8 @@ export function ProductQuickView({ product, vendorName }: ProductQuickViewProps)
             <div className="space-y-2 pr-8">
               <DialogTitle className="text-2xl leading-tight">{product.name}</DialogTitle>
               <DialogDescription>
-                {product.unit} · Sold by {vendorName}
+                {product.unit}
+                {optionsSummary(product) && ` (${optionsSummary(product)})`} · Sold by {vendorName}
               </DialogDescription>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -66,12 +68,11 @@ export function ProductQuickView({ product, vendorName }: ProductQuickViewProps)
               </div>
             )}
             <div className="mt-auto flex flex-col gap-2 sm:flex-row">
-              <AddToCartButton
-                productId={product.id}
-                productName={product.name}
-                stockStatus={product.stock_status}
-                className="sm:w-auto sm:flex-1"
-              />
+              {product.variant_type === "size" ? (
+                <p className="text-sm text-muted-foreground sm:flex-1">Choose a size on the full details page.</p>
+              ) : (
+                <QuickAddButton product={product} className="sm:w-auto sm:flex-1" />
+              )}
               <WishlistButton productId={product.id} productName={product.name} appearance="labelled" className="shrink-0" />
             </div>
             <DialogClose asChild>

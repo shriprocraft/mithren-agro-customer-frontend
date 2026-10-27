@@ -43,7 +43,10 @@ export function ProfileView() {
   };
 
   const restore = () => {
-    updateProfile(demoProfile);
+    if (!updateProfile(demoProfile)) {
+      setStatus({ kind: "error", message: "The demo defaults could not be saved in this browser. Check that site storage is enabled." });
+      return;
+    }
     setEditing(null);
     setStatus({ kind: "saved" });
     announce("Demo profile restored.");
@@ -65,11 +68,11 @@ export function ProfileView() {
 
       {editing ? (
         <form noValidate onSubmit={save} className="surface-card grid gap-4 rounded-3xl p-5 sm:grid-cols-2 sm:p-6">
-          <TextField name="full_name" label="Full name" autoComplete="name" value={editing.full_name} error={submitted ? errors.full_name : undefined}
+          <TextField name="full_name" label="Full name" autoComplete="name" placeholder="Enter your full name" value={editing.full_name} error={submitted ? errors.full_name : undefined}
             onChange={(v) => setEditing({ ...editing, full_name: v })} />
-          <TextField name="email" label="Email address" type="email" autoComplete="email" value={editing.email} error={submitted ? errors.email : undefined}
+          <TextField name="email" label="Email address" type="email" placeholder="Enter your email address" autoComplete="email" value={editing.email} error={submitted ? errors.email : undefined}
             onChange={(v) => setEditing({ ...editing, email: v })} />
-          <TextField name="mobile" label="Mobile number" optional type="tel" inputMode="tel" autoComplete="tel-national" hint="10 digits, e.g. 98765 43210"
+          <TextField name="mobile" label="Mobile number" optional type="tel" placeholder="Enter your 10-digit mobile number" inputMode="tel" autoComplete="tel-national" hint="10 digits, e.g. 98765 43210"
             value={editing.mobile} error={submitted ? errors.mobile : undefined} onChange={(v) => setEditing({ ...editing, mobile: v })} />
           <div className="flex flex-wrap gap-3 sm:col-span-2">
             <Button type="submit">Save changes</Button>

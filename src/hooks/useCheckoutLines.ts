@@ -12,7 +12,11 @@ import type { Product } from "@/types/catalog";
 export function useCheckoutLines(catalog: Product[]): { lines: CartLine[]; isBuyNow: boolean; ready: boolean } {
   const cart = useCart();
   const { session, hydrated } = useCheckout();
-  const items = session.source.kind === "buy_now" ? [{ product_id: session.source.product_id, quantity: session.source.quantity }] : cart.items;
+  const { source } = session;
+  const items =
+    source.kind === "buy_now"
+      ? [{ product_id: source.product_id, ...(source.variant_id && { variant_id: source.variant_id }), quantity: source.quantity }]
+      : cart.items;
   return {
     lines: resolveLines(items, catalog).lines,
     isBuyNow: session.source.kind === "buy_now",

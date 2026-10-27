@@ -1,4 +1,4 @@
-import { AddToCartButton } from "@/components/products/AddToCartButton";
+import { QuickAddButton } from "@/components/products/QuickAddButton";
 import { CatalogImage } from "@/components/products/CatalogImage";
 import { PriceDisplay } from "@/components/products/PriceDisplay";
 import { ProductLink } from "@/components/products/ProductLink";
@@ -34,12 +34,7 @@ export function CompactProductCard({ product, vendorName, className }: CompactPr
           <StockBadge status={product.stock_status} />
         </div>
         <div className="relative z-10 mt-auto pt-2">
-          <AddToCartButton
-            productId={product.id}
-            productName={product.name}
-            stockStatus={product.stock_status}
-            className="w-fit px-4"
-          />
+          <QuickAddButton product={product} className="w-fit px-4" />
         </div>
       </div>
     </article>

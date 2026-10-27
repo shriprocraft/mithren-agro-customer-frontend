@@ -42,6 +42,22 @@ await send("Page.addScriptToEvaluateOnNewDocument", { source: `
 
 async function go(path) { await send("Page.navigate", { url: BASE + path }); await waitFor("document.readyState === 'complete'"); await sleep(900); }
 async function waitFor(expr, ms = 15000) { const end = Date.now() + ms; while (Date.now() < end) { try { if (await js(`!!(${expr})`)) return true; } catch {} await sleep(150); } throw new Error("timeout waiting for: " + expr); }
+// A trusted mouse click at the centre of the first visible element matching sel (and text). Radix
+// Select opens on pointer events, which element.click() does not send.
+async function tap(sel, text) {
+  const find = text ? `__t.byText(${JSON.stringify(sel)}, ${JSON.stringify(text)})` : `document.querySelector(${JSON.stringify(sel)})`;
+  const rect = await js(`(() => { const el = ${find}; if (!el) return null; el.scrollIntoView({ block: "center" }); const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+  if (!rect) throw new Error("not found: " + sel + " " + (text ?? ""));
+  for (const type of ["mouseMoved", "mousePressed", "mouseReleased"]) await send("Input.dispatchMouseEvent", { type, x: rect.x, y: rect.y, button: "left", buttons: type === "mousePressed" ? 1 : 0, clickCount: 1, pointerType: "mouse" });
+  await sleep(250);
+}
+/** Opens the dropdown labelled `label` and picks the option whose text includes `option`. */
+async function choose(label, option) {
+  await tap(`button[role=combobox][aria-label="${label}"]`);
+  await waitFor("document.querySelector('[role=listbox]')");
+  await tap("[role=option]", option);
+  await waitFor("!document.querySelector('[role=listbox]')");
+}
 async function shot(name) { const r = await send("Page.captureScreenshot", { format: "png" }); writeFileSync(`${OUT}/${name}.png`, Buffer.from(r.result.data, "base64")); }
 
 const results = [];
@@ -90,11 +106,11 @@ await step(7, "Open the cart", async () => {
 await step(8, "Verify quantity and totals; edit and remove", async () => {
   let t = await js("__t.text()");
   expect(t.includes("Subtotal (4 items) ₹175"), "subtotal 4 items ₹175 (3×40 + 55): " + t.slice(t.indexOf("Subtotal"), t.indexOf("Subtotal") + 40));
-  await js(`[...document.querySelectorAll('[aria-label="Quantity of Tomatoes"] button[aria-label="Increase quantity"]')].find(b=>b.offsetParent).click()`);
+  await js(`[...document.querySelectorAll('[aria-label^="Quantity of Tomatoes"] button[aria-label="Increase quantity"]')].find(b=>b.offsetParent).click()`);
   await waitFor("__t.text().includes('Subtotal (5 items) ₹215') && __t.cartLabel() === 'Cart, 5 items'");
-  await js(`[...document.querySelectorAll('button[aria-label="Remove Papaya from cart"]')].find(b=>b.offsetParent).click()`);
+  await js(`[...document.querySelectorAll('button[aria-label^="Remove Papaya"]')].find(b=>b.offsetParent).click()`);
   await waitFor("__t.text().includes('Subtotal (4 items) ₹160') && __t.cartLabel() === 'Cart, 4 items'");
-  await js(`[...document.querySelectorAll('[aria-label="Quantity of Tomatoes"] button[aria-label="Decrease quantity"]')].find(b=>b.offsetParent).click()`);
+  await js(`[...document.querySelectorAll('[aria-label^="Quantity of Tomatoes"] button[aria-label="Decrease quantity"]')].find(b=>b.offsetParent).click()`);
   await waitFor("__t.text().includes('Subtotal (3 items) ₹120') && __t.text().includes('Total ₹120')");
   await shot("08-cart"); return "+1 → ₹215, remove papaya → ₹160, −1 → ₹120; header count follows";
 });
@@ -234,11 +250,11 @@ await step(29, "Combine search and filters", async () => {
   expect(t.includes("Showing 1 of 26") && t.includes("Banganapalli Mangoes"), t.slice(0, 200)); return "q=mango + fruits + price → 1 result";
 });
 await step(30, "Sorting", async () => {
-  await go("/products"); await js(`__t.type('main select', 'price-asc')`); await waitFor("location.search === '?sort=price-asc'");
+  await go("/products"); await choose("Sort products", "Price: Low to High"); await waitFor("location.search === '?sort=price-asc'");
   await sleep(400); let p = await js("__t.prices()"); expect(p.join() === [...p].sort((a, b) => a - b).join(), "asc " + p);
-  await js(`__t.type('main select', 'price-desc')`); await waitFor("location.search === '?sort=price-desc'");
+  await choose("Sort products", "Price: High to Low"); await waitFor("location.search === '?sort=price-desc'");
   await sleep(400); p = await js("__t.prices()"); expect(p.join() === [...p].sort((a, b) => b - a).join(), "desc " + p);
-  await js(`__t.type('main select', 'name-asc')`); await waitFor("location.search === '?sort=name-asc'");
+  await choose("Sort products", "Name: A to Z"); await waitFor("location.search === '?sort=name-asc'");
   await sleep(400); const names = await js("[...document.querySelectorAll('main article h3')].map(h=>h.textContent)");
   expect(names.join() === [...names].sort((a, b) => a.localeCompare(b)).join(), "names"); return "price ↑, price ↓, name A–Z verified";
 });
@@ -263,10 +279,11 @@ await step(33, "Wishlist and cart still work from the marketplace", async () => 
   await waitFor("__t.cartLabel() === 'Cart, 1 item'");
   await go("/wishlist"); await waitFor("__t.text().includes('Carrots')");
   await js(`__t.click('main button[aria-label="Quick view: Carrots"]')`); await waitFor("document.querySelector('[role=dialog]')?.textContent.includes('View full details')");
+  await js("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true"); await waitFor("!document.querySelector('[role=dialog]')", 3000);
   return "heart → Wishlist, 1 saved; Add to cart → Cart, 1 item; /wishlist lists it; quick view opens";
 });
 await step(34, "Responsive layouts", async () => {
-  const routes = ["/", "/products", `/products/p-tomatoes`, "/cart", "/checkout/address", "/wishlist", `/orders/${orderId}/tracking`, `/orders/${orderId}/confirmation`];
+  const routes = ["/", "/about", "/agent-benefits", "/investors", "/privacy-policy", "/cancellation-refund-policy", "/return-policy", "/products", "/products/p-floral-kurta-set", `/products/p-tomatoes`, "/cart", "/checkout/address", "/wishlist", `/orders/${orderId}/tracking`, `/orders/${orderId}/confirmation`];
   const problems = [];
   for (const [w, h] of [[320, 568], [375, 812], [390, 844], [430, 932], [768, 1024], [1024, 768], [1280, 720], [1440, 900]]) {
     await viewport(w, h);
@@ -316,12 +333,18 @@ await step(37, "Quantity changes keep the scroll position", async () => {
   await viewport(1440, 900); expect(before === after && before > 0, `${before} → ${after}`); return `scrollY ${before} → ${after}`;
 });
 await step(38, "Quick view closes when opening the full details", async () => {
-  await go("/"); await js(`__t.click('main button[aria-label="Quick view: Tomatoes"]')`);
+  await go("/products"); await js(`__t.click('main button[aria-label="Quick view: Tomatoes"]')`);
   await waitFor("document.querySelector('[role=dialog]')");
   await js(`__t.click('[role=dialog] a', 'View full details')`); await waitFor("location.pathname === '/products/p-tomatoes'");
-  await sleep(600); expect(!(await js("!!document.querySelector('[role=dialog]')")), "dialog still mounted after navigating");
-  await js("history.back(); true"); await waitFor("location.pathname === '/'"); await sleep(600);
-  expect(!(await js("!!document.querySelector('[role=dialog]')")), "dialog reopened on back");
+  // The dialog unmounts after its close animation (up to ~0.6 s on the dev server); it must never stay open.
+  // Only the dialog opened here counts (hidden earlier pages kept alive by Next could hold their own).
+  const tomatoesDialog = "[...document.querySelectorAll('[role=dialog]')].some(d => d.textContent.includes('Tomatoes'))";
+  await waitFor(`!${tomatoesDialog}`, 3000).catch(async () => {
+    const state = await js("[...document.querySelectorAll('[role=dialog]')].filter(d => d.textContent.includes('Tomatoes')).map(d => [d.getAttribute('data-state'), d.getBoundingClientRect().width > 0, getComputedStyle(d).display, !!d.closest('[hidden]'), document.activeElement === document.body].join(',')).join(' / ')");
+    throw new Error("quick view still mounted 3 s after navigating: " + state);
+  });
+  await js("history.back(); true"); await waitFor("location.pathname === '/products'"); await sleep(600);
+  expect(!(await js(tomatoesDialog)), "dialog reopened on back");
   return "dialog closed on navigation and stays closed after Back";
 });
 await step(39, "Buy now orders only that product and leaves the cart unchanged", async () => {
@@ -460,6 +483,165 @@ await step(51, "Help & support is honest and reachable", async () => {
   const t = await js("__t.text()");
   expect(t.includes("will be added here before launch") && !/\+91|@mithren/i.test(t), "no invented contact details");
   return "FAQs; contact placeholder; no phone or email invented";
+});
+
+// ---- Homepage, opportunity pages, loading and feedback (phase 6) ----
+await step(52, "Homepage order; static hero; no liquid glass on the hero strip", async () => {
+  await viewport(1440, 900); await go("/");
+  const order = await js("[...document.querySelectorAll('main > section')].map(s => s.getAttribute('aria-labelledby')).join()");
+  expect(order === "hero-title,about-title,videos-title,categories-title,seasonal-title,bundles-title,banner-title", order);
+  const t = await js("__t.text()");
+  expect(!t.includes("Fresh picks") && !t.includes("Pantry staples, sold by the pack") && !t.includes("Meet Our Farmers"), "removed content still present");
+  // Static hero (no slider) and no liquid glass on the benefits strip along its bottom.
+  expect(!(await js("!!document.querySelector('[aria-roledescription=carousel], [aria-roledescription=slide]')")), "slider still present");
+  const strip = await js("(() => { const ul = [...document.querySelectorAll('main section[aria-labelledby=hero-title] ul')].pop(); const outer = ul.parentElement; return [ul.className.includes('glass'), getComputedStyle(outer).backdropFilter, getComputedStyle(outer).backgroundColor].join('|'); })()");
+  expect(strip === "false|none|rgba(0, 0, 0, 0)", strip);
+  await shot("52-home-1440"); return `sections ${order}; strip: ${strip}`;
+});
+await step(53, "Agent Benefits: hero link, sections, direct open", async () => {
+  await js("__t.click('main a', 'Agent Benefits')"); await waitFor("location.pathname === '/agent-benefits' && __t.text().includes('Grow local agriculture')");
+  const t = await js("__t.text()");
+  const missing = ["Seller Agent", "Delivery Agent", "Proposed benefits — subject to final company policy", "From interest to onboarding", "What onboarding is planned to cover", "Not yet published", "Become a Mithren Agent"].filter((x) => !t.includes(x));
+  expect(missing.length === 0, "missing " + missing.join(", "));
+  await js("__t.click('main a', 'Explore Delivery Opportunities')"); await waitFor("location.hash === '#delivery-agent'"); await sleep(600);
+  const top = await js("Math.round(document.getElementById('delivery-agent').getBoundingClientRect().top)");
+  expect(top >= 0 && top < 300, "anchor top " + top);
+  expect(await js("[...document.querySelectorAll('main button')].filter(b => /applications: coming soon/.test(b.textContent)).length === 2 && [...document.querySelectorAll('main button')].filter(b => /applications: coming soon/.test(b.textContent)).every(b => b.disabled)"), "apply buttons must be disabled");
+  await go("/agent-benefits"); await waitFor("__t.text().includes('Seller Agent')"); await shot("53-agents");
+  return `hero → /agent-benefits; anchor scrolls to Delivery Agent (top ${top}px); applications disabled; direct load OK`;
+});
+await step(54, "Investor Opportunities: hero link, risk section, portal fallback, footer links", async () => {
+  await go("/"); await js("__t.click('main a', 'Investor Opportunities')"); await waitFor("location.pathname === '/investors' && __t.text().includes('Investor Opportunities at Mithren Agro')");
+  const t = await js("__t.text()");
+  expect(t.includes("Risks and disclosures") && t.includes("no guarantee of returns") && !/guaranteed returns/i.test(t), "disclosure");
+  const portal = await js("[...document.querySelectorAll('main button, main a')].filter(e => /Investor Portal/.test(e.textContent)).map(e => e.tagName + ':' + e.disabled).join()");
+  expect(!portal.includes("A:") && portal.split(",").length === 2, "no link without a configured URL: " + portal);
+  const footer = await js("[...document.querySelectorAll('footer a')].map(a => a.getAttribute('href')).join()");
+  expect(footer.includes("/agent-benefits") && footer.includes("/investors"), footer);
+  await shot("54-investors"); return `portal unconfigured → ${portal}; footer links to both pages`;
+});
+await step(55, "Video cards: two, after the hero, safe without a source", async () => {
+  await go("/"); const info = await js("(() => { const s = document.querySelector('section[aria-labelledby=videos-title]'); return [s.querySelectorAll('article').length, s.querySelectorAll('video').length, s.textContent.includes('Video coming soon'), s.previousElementSibling.getAttribute('aria-labelledby')].join('|'); })()");
+  expect(info === "2|0|true|about-title", info);
+  await viewport(390, 844); await go("/"); await js("document.querySelector('section[aria-labelledby=videos-title]').scrollIntoView(); true"); await sleep(400); await shot("55-videos-390");
+  await viewport(1440, 900); return "2 cards right after About, 'Video coming soon', no <video> element (nothing downloads) until a source is set";
+});
+await step(56, "Add to cart toast: success, auto-dismiss, error at the limit", async () => {
+  await js("localStorage.removeItem('mithren.cart'); true");
+  const addOkra = "(() => { const card = [...document.querySelectorAll('main article')].find(a => a.textContent.includes('Okra')); [...card.querySelectorAll('button')].find(b => b.textContent.includes('Add to cart')).click(); return true; })()";
+  await go("/products"); await js(addOkra);
+  await waitFor("__t.byText('[aria-label=Notifications] [role=status]', 'Added to cart successfully!')");
+  expect((await js("__t.cartLabel()")) === "Cart, 1 item", "cart count");
+  await shot("56-toast");
+  await waitFor("!document.querySelector('[aria-label=Notifications] [role=status]')", 8000);
+  const okra = await js("JSON.parse(localStorage.getItem('mithren.cart'))[0].product_id");
+  await js(`localStorage.setItem('mithren.cart', JSON.stringify([{ product_id: ${JSON.stringify(okra)}, quantity: 20 }])); true`); await go("/products");
+  await js(addOkra);
+  await waitFor("__t.byText('[aria-label=Notifications] [role=alert]', 'Couldn’t add to cart')");
+  expect(!(await js("!!__t.byText('[aria-label=Notifications] *', 'Added to cart successfully!')")), "no success toast on failure");
+  await js("localStorage.removeItem('mithren.cart'); true");
+  return "success toast, dismissed within 8 s; at the 20-item limit an error toast and no success toast";
+});
+await step(57, "Buy now is logo gold with dark text", async () => {
+  await go("/products/p-tomatoes"); const c = await js("(() => { const b = __t.byText('main button', 'Buy now'); return getComputedStyle(b).backgroundColor + '|' + getComputedStyle(b).color; })()");
+  expect(c === "rgb(245, 165, 28)|rgb(31, 45, 33)", c);
+  const add = await js("getComputedStyle(__t.byText('main button', 'Add to cart')).backgroundColor");
+  expect(add === "rgb(46, 125, 50)", "Add to cart stays green: " + add);
+  await shot("57-buy-now"); return `Buy now ${c}; Add to cart ${add}`;
+});
+await step(58, "Category dropdown switches results; combines with sort", async () => {
+  await go("/products"); await choose("Category", "Vegetables");
+  await waitFor("location.search === '?category=vegetables' && /Showing \\d+ of 26/.test(__t.text())");
+  const veg = await js("__t.text().match(/Showing (\\d+) of 26/)[1]");
+  await choose("Sort products", "Price: Low to High"); await waitFor("location.search === '?category=vegetables&sort=price-asc'");
+  await sleep(300); const p = await js("__t.prices()"); expect(p.length === Number(veg) && p.join() === [...p].sort((a, b) => a - b).join(), "sorted veg " + p);
+  await choose("Category", "Fruits"); await waitFor("location.search === '?category=fruits&sort=price-asc'");
+  await choose("Category", "All products"); await waitFor("location.search === '?sort=price-asc' && __t.text().includes('Showing 26 of 26')");
+  await shot("58-category"); return `Vegetables ${veg} (sorted by price) → Fruits → All products 26`;
+});
+await step(59, "Account menu: My Orders opens the order history", async () => {
+  await go("/"); await js("__t.click('header button[aria-label^=Account]')"); await waitFor("__t.byText('[data-slot=popover-content] a', 'My Orders')");
+  expect(!(await js("document.querySelector('[data-slot=popover-content]').textContent.includes('Orders in this browser')")), "old label");
+  await js("__t.click('[data-slot=popover-content] a', 'My Orders')"); await waitFor("location.pathname === '/account/orders'");
+  return "signed out: My Orders → /account/orders (demo gate unchanged)";
+});
+await step(60, "Scrollbar hidden, scrolling still works", async () => {
+  await go("/agent-benefits"); const st = await js("getComputedStyle(document.documentElement).scrollbarWidth + '|' + getComputedStyle(document.documentElement).overflowY + '|' + getComputedStyle(document.body).overflowY");
+  expect(st === "none|visible|visible", st);
+  await js("scrollTo(0, 900); true"); await sleep(300); const y = await js("Math.round(scrollY)");
+  expect(y === 900, "scrollY " + y);
+  await send("Input.dispatchMouseEvent", { type: "mouseWheel", x: 400, y: 400, deltaX: 0, deltaY: 400 }); await sleep(800);
+  const y2 = await js("Math.round(scrollY)"); expect(y2 > y, `wheel ${y} → ${y2}`);
+  return `scrollbar-width none; overflow visible; scrollTo → ${y}; wheel → ${y2}`;
+});
+await step(61, "Form placeholders with visible labels", async () => {
+  await go("/register"); const ph = await js("[...document.querySelectorAll('main input[type=text], main input[type=email], main input[type=tel]')].map(i => (document.querySelector('label[for=\"' + i.id + '\"]')?.textContent ?? '?') + '=' + i.placeholder).join('; ')");
+  expect(ph.split("; ").every((p) => !p.startsWith("?") && !p.endsWith("=")), ph);
+  return ph;
+});
+
+// ---- Hero slider, About, policies and product options (phase 7) ----
+await step(62, "Static hero buttons open the opportunity pages; About sits right below", async () => {
+  await viewport(1440, 900); await go("/");
+  const info = await js("(() => { const h = document.querySelector('section[aria-labelledby=hero-title]'); const a = document.querySelector('section[aria-labelledby=about-title]'); return [h.querySelectorAll('img').length, h.nextElementSibling === a, Math.round(a.getBoundingClientRect().height)].join('|'); })()");
+  const [imgs, next, aboutHeight] = info.split("|");
+  expect(imgs === "1" && next === "true" && Number(aboutHeight) < 300, info);
+  await js("__t.click('section[aria-labelledby=hero-title] a', 'Investor Opportunities')"); await waitFor("location.pathname === '/investors'");
+  await go("/"); await js("__t.click('section[aria-labelledby=hero-title] a', 'Agent Benefits')"); await waitFor("location.pathname === '/agent-benefits'");
+  await go("/"); await js("document.querySelector('section[aria-labelledby=about-title]').scrollIntoView({ block: 'center' }); true"); await sleep(400); await shot("62-about-compact-1440");
+  await viewport(390, 844); await go("/"); await shot("63-hero-390");
+  const sw = await js("document.documentElement.scrollWidth"); expect(sw <= 390, "scrollWidth " + sw);
+  await js("document.querySelector('section[aria-labelledby=about-title]').scrollIntoView(); true"); await sleep(400); await shot("63-about-390");
+  await viewport(1440, 900); return `1 hero image; About right after it, ${aboutHeight}px tall at 1440; both hero buttons work; no overflow at 390`;
+});
+await step(64, "About section → About Us page", async () => {
+  await go("/"); const t = await js("document.querySelector('section[aria-labelledby=about-title]').innerText");
+  expect(t.includes("Farm Fresh") && t.includes("One Place") && t.includes("Grow Together") && !/[0-9]/.test(t), t.slice(0, 120));
+  await js("__t.click('section[aria-labelledby=about-title] a', 'Learn More')"); await waitFor("location.pathname === '/about' && __t.text().includes('A marketplace built around farms')");
+  await shot("64-about-page"); return "3 highlights, no numbers; Learn More → /about";
+});
+await step(65, "Footer: every policy link opens its page", async () => {
+  const out = [];
+  for (const label of ["Privacy Policy", "Terms and Conditions", "Cancellation and Refund Policy", "Shipping Policy", "Return Policy"]) {
+    await go("/"); await js(`__t.click('footer a', ${JSON.stringify(label)})`);
+    await waitFor(`document.querySelector('main h1')?.textContent === ${JSON.stringify(label)} && __t.text().includes('Draft for legal review')`);
+    out.push(await js("location.pathname"));
+  }
+  const t = await js("__t.text()"); expect(t.includes("10-day return option applies only to eligible women’s apparel"), "return rule");
+  await go("/cancellation-refund-policy"); const c = await js("__t.text()");
+  expect(c.includes("Ready for Dispatch") && c.includes("customer-initiated cancellation is not permitted"), "packed rule"); await shot("65-cancellation-policy");
+  return out.join(", ");
+});
+await step(66, "Product options: weight changes price; cart, checkout and order keep it", async () => {
+  await js("localStorage.removeItem('mithren.cart'); true");
+  await go("/products/p-red-onions"); await js("__t.click('main label', '500 g')"); await waitFor("__t.text().includes('per 500 g')");
+  const t = await js("__t.text()"); expect(t.includes("₹20") && t.includes("Total ₹20"), "price for 500 g");
+  const addHere = "document.querySelector('main [data-slot=button]:has(+ [data-variant=buy])').click(); true";
+  await js(addHere); await waitFor("__t.byText('[aria-label=Notifications] [role=status]', 'Red Onions (500 g)')");
+  await js("__t.click('main label', '2 kg')"); await waitFor("__t.text().includes('per 2 kg')"); await js(addHere);
+  await waitFor("__t.cartLabel() === 'Cart, 2 items'"); await shot("66-onions-options");
+  await go("/cart"); await waitFor("__t.text().includes('2 kg')");
+  const lines = await js("[...document.querySelectorAll('main li')].filter(li => li.textContent.includes('Red Onions')).map(li => li.innerText.replace(/\\s+/g, ' ')).join(' | ')");
+  expect(lines.includes("500 g") && lines.includes("2 kg") && lines.includes("₹20 each") && lines.includes("₹76 each"), lines);
+  await js("__t.click('main button', 'Proceed to checkout')"); await waitFor("location.pathname === '/checkout/address'");
+  await waitFor("document.querySelector('input[name=delivery-address]')"); await js("document.querySelector('input[name=delivery-address]').click(); true");
+  await js("__t.click('main button', 'Continue to review')"); await waitFor("location.pathname === '/checkout/review' && __t.text().includes('Place order')");
+  const review = await js("__t.text()"); expect(review.includes("500 g · Qty 1 × ₹20") && review.includes("2 kg · Qty 1 × ₹76") && review.includes("₹96"), review.slice(0, 300));
+  await js("__t.click('main button', 'Place order')"); await waitFor("/confirmation$/.test(location.pathname) && __t.text().includes('Order Placed Successfully')");
+  const conf = await js("__t.text()"); expect(conf.includes("500 g") && conf.includes("2 kg") && conf.includes("You can ask to cancel this order until it is packed"), "confirmation");
+  return "500 g ₹20 and 2 kg ₹76 as two lines; review and confirmation keep both; total ₹96; cancellation note shown";
+});
+await step(67, "Apparel sizes: card asks for a size; out-of-stock size disabled; size kept to checkout", async () => {
+  await go("/products?category=womens-apparel"); await waitFor("__t.text().includes('Floral Print Kurta Set')");
+  await js("(() => { const card = [...document.querySelectorAll('main article')].find(a => a.textContent.includes('Floral Print Kurta Set')); [...card.querySelectorAll('a')].find(a => a.textContent.includes('Choose size')).click(); return true; })()");
+  await waitFor("location.pathname === '/products/p-floral-kurta-set' && document.querySelector('input[type=radio][value=xxl]')");
+  expect(await js("document.querySelector('input[type=radio][value=xxl]').disabled"), "XXL must be disabled");
+  await js("__t.click('main label', 'L')"); await waitFor("__t.text().includes('2-piece set · Size L')");
+  await js("__t.click('main button', 'Buy now')"); await waitFor("location.pathname === '/checkout/address'");
+  await waitFor("document.querySelector('input[name=delivery-address]')"); await js("document.querySelector('input[name=delivery-address]').click(); true");
+  await js("__t.click('main button', 'Continue to review')"); await waitFor("location.pathname === '/checkout/review'");
+  expect((await js("__t.text()")).includes("2-piece set · Size L"), "size in review");
+  return "Choose size → product page; XXL disabled; Size L carried into Buy now review";
 });
 
 writeFileSync(`${OUT}/results.json`, JSON.stringify({ results, consoleErrors: [...new Set(consoleErrors)], orderId }, null, 1));

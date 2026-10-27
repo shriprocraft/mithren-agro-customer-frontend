@@ -2,7 +2,7 @@
 
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAnnounce } from "@/context/AnnouncerContext";
+import { useToast } from "@/context/ToastContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { cn } from "@/lib/utils";
 
@@ -16,12 +16,17 @@ interface WishlistButtonProps {
 
 export function WishlistButton({ productId, productName, appearance = "icon", className }: WishlistButtonProps) {
   const wishlist = useWishlist();
-  const announce = useAnnounce();
+  const toast = useToast();
   const saved = wishlist.has(productId);
 
   const handleToggle = () => {
     const nowSaved = wishlist.toggle(productId);
-    announce(nowSaved ? `${productName} saved to wishlist.` : `${productName} removed from wishlist.`);
+    // One toast per product (announced by the toast region), replaced on every toggle.
+    toast.success(nowSaved ? "Saved to your wishlist" : "Removed from your wishlist", {
+      id: `wishlist:${productId}`,
+      description: productName,
+      ...(nowSaved && { action: { href: "/wishlist", label: "View wishlist" } }),
+    });
   };
 
   const heart = <Heart aria-hidden="true" className={cn(saved && "fill-current")} />;
@@ -49,7 +54,7 @@ export function WishlistButton({ productId, productName, appearance = "icon", cl
         className,
       )}
     >
-      <span className="glass-chip grid size-8 place-items-center rounded-full transition-colors group-hover/button:bg-white/90">
+      <span className="glass-chip-solid grid size-8 place-items-center rounded-full transition-colors group-hover/button:bg-white/90">
         {heart}
       </span>
     </Button>

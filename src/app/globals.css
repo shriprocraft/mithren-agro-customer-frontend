@@ -17,6 +17,9 @@
   --color-soft: var(--soft);
   --color-band: var(--band);
   --color-highlight: var(--highlight);
+  --color-gold: var(--gold);
+  --color-gold-hover: var(--gold-hover);
+  --color-gold-active: var(--gold-active);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-info: var(--info);
@@ -81,6 +84,9 @@
   --secondary-foreground: #1b5e20;
   --band: #f0f9f4;
   --highlight: #ffd88a;
+  --gold: #f5a51c;
+  --gold-hover: #e8960c;
+  --gold-active: #d6870a;
   --muted: #f0f9f4;
   --muted-foreground: #667085;
   --accent: #f5fdf7;
@@ -166,8 +172,14 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* The page scrolls as usual (wheel, touch, trackpad, keyboard) but shows no scrollbar
+     (docs/DESIGN_SYSTEM.md). Only the bar is hidden; overflow is never changed. */
   html {
     @apply font-sans;
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar {
+    display: none;
   }
   /* Fallback focus ring for native elements; component utilities (ring-*) override it. */
   :focus-visible {
@@ -234,6 +246,20 @@
   backdrop-filter: blur(var(--glass-chip-blur)) saturate(150%);
 }
 
+/* glass-chip without the backdrop blur, for chips repeated on every product card (wishlist heart,
+   quick view). They sit over white studio photos, where the blur is invisible, but each blurred
+   chip is its own GPU render pass on every scroll frame: on /products the backdrop filters were
+   most of the GPU work while scrolling (docs/PERFORMANCE.md). Same fill, highlight and rims. */
+@utility glass-chip-solid {
+  background-color: var(--glass-chip);
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.75), rgb(255 255 255 / 0.15));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 1),
+    inset 0 0 0 1px var(--glass-edge),
+    0 0 0 1px rgb(var(--shadow-tint) / 0.05),
+    0 6px 16px -10px rgb(var(--shadow-tint) / 0.35);
+}
+
 /* Recessed field: darker inner top edge instead of a raised highlight. */
 @utility glass-field {
   background-color: var(--glass-field);
@@ -257,6 +283,15 @@
     var(--elevation-overlay);
   -webkit-backdrop-filter: blur(var(--glass-overlay-blur)) saturate(170%);
   backdrop-filter: blur(var(--glass-overlay-blur)) saturate(170%);
+}
+
+/* Hides an element's scrollbar while keeping it scrollable (swipe rows, the page). */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Opaque surface for content cards (products, categories, listings). Glass is reserved for the
@@ -307,5 +342,15 @@
     --glass-chip: rgb(255 255 255 / 0.94);
     --glass-field: rgb(255 255 255 / 0.94);
     --glass-overlay: rgb(255 255 255 / 0.98);
+  }
+}
+
+/* NavigationProgress: grows quickly, then slows, and never reaches the end on its own. */
+@keyframes nav-progress {
+  from {
+    transform: scaleX(0.04);
+  }
+  to {
+    transform: scaleX(0.92);
   }
 }

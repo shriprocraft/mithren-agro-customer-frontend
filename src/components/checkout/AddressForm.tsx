@@ -37,7 +37,7 @@ export function AddressForm({ initial = emptyAddress, submitLabel, onSubmit, onC
     onSubmit(values);
   };
 
-  const field = (name: keyof AddressInput, label: string, props: { optional?: boolean; autoComplete?: string; inputMode?: "numeric" | "tel" | "text"; maxLength?: number; hint?: string; className?: string } = {}) => (
+  const field = (name: keyof AddressInput, label: string, props: { optional?: boolean; placeholder?: string; autoComplete?: string; inputMode?: "numeric" | "tel" | "text"; maxLength?: number; hint?: string; className?: string } = {}) => (
     <Field name={name} label={label} optional={props.optional} error={visible(name)} hint={props.hint} className={props.className}>
       {(describedBy) => (
         <input
@@ -47,6 +47,7 @@ export function AddressForm({ initial = emptyAddress, submitLabel, onSubmit, onC
           onChange={(e) => set(name)(e.target.value)}
           onBlur={blur(name)}
           autoComplete={props.autoComplete}
+          placeholder={props.placeholder}
           inputMode={props.inputMode}
           maxLength={props.maxLength}
           aria-invalid={visible(name) ? true : undefined}
@@ -65,12 +66,12 @@ export function AddressForm({ initial = emptyAddress, submitLabel, onSubmit, onC
           Please fix the {Object.keys(errors).length === 1 ? "highlighted field" : `${Object.keys(errors).length} highlighted fields`} below.
         </p>
       )}
-      {field("full_name", "Full name", { autoComplete: "name" })}
-      {field("mobile", "Mobile number", { autoComplete: "tel-national", inputMode: "tel", maxLength: 15, hint: "10 digits, e.g. 98765 43210" })}
-      {field("house", "House / flat / building", { autoComplete: "address-line1" })}
-      {field("street", "Street and locality", { autoComplete: "address-line2" })}
-      {field("landmark", "Landmark", { optional: true, className: "sm:col-span-2" })}
-      {field("city", "City", { autoComplete: "address-level2" })}
+      {field("full_name", "Full name", { autoComplete: "name", placeholder: "Enter the recipient’s full name" })}
+      {field("mobile", "Mobile number", { placeholder: "Enter a 10-digit mobile number", autoComplete: "tel-national", inputMode: "tel", maxLength: 15, hint: "10 digits, e.g. 98765 43210" })}
+      {field("house", "House / flat / building", { autoComplete: "address-line1", placeholder: "e.g. Flat 4B, Green Residency" })}
+      {field("street", "Street and locality", { autoComplete: "address-line2", placeholder: "e.g. 12th Main Road, Indiranagar" })}
+      {field("landmark", "Landmark", { optional: true, placeholder: "e.g. Near the bus stop", className: "sm:col-span-2" })}
+      {field("city", "City", { autoComplete: "address-level2", placeholder: "Enter your city" })}
       <Field name="state" label="State" error={visible("state")}>
         {(describedBy) => (
           <select
@@ -90,7 +91,7 @@ export function AddressForm({ initial = emptyAddress, submitLabel, onSubmit, onC
           </select>
         )}
       </Field>
-      {field("pincode", "PIN code", { autoComplete: "postal-code", inputMode: "numeric", maxLength: 6 })}
+      {field("pincode", "PIN code", { placeholder: "6-digit PIN code", autoComplete: "postal-code", inputMode: "numeric", maxLength: 6 })}
 
       <fieldset className="sm:col-span-2">
         <legend className="text-sm font-medium">Address type</legend>
@@ -113,7 +114,7 @@ export function AddressForm({ initial = emptyAddress, submitLabel, onSubmit, onC
 }
 
 const inputClass =
-  "h-11 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive";
+  "h-11 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive";
 
 function Field({ name, label, optional, error, hint, className, children }: { name: string; label: string; optional?: boolean; error?: string; hint?: string; className?: string; children: (describedBy: string | undefined) => ReactNode }) {
   const ids = [hint && !error && `address-${name}-hint`, error && `address-${name}-error`].filter(Boolean).join(" ") || undefined;

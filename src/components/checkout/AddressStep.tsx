@@ -8,8 +8,8 @@ import { AddressForm } from "@/components/checkout/AddressForm";
 import { LoadingState, MessageState } from "@/components/checkout/PageState";
 import { Button } from "@/components/ui/button";
 import { useAddressBook } from "@/context/AddressBookContext";
-import { useAnnounce } from "@/context/AnnouncerContext";
 import { useCheckout } from "@/context/CheckoutContext";
+import { useToast } from "@/context/ToastContext";
 import { useCheckoutLines } from "@/hooks/useCheckoutLines";
 import { addressTypeLabels, formatAddressLine, isValidAddress } from "@/lib/address";
 import { checkoutBlocker } from "@/lib/cart";
@@ -22,7 +22,7 @@ type Mode = { kind: "list" } | { kind: "add" } | { kind: "edit"; id: string };
 // kept in the checkout session, so it survives a refresh and coming back from the review step.
 export function AddressStep({ catalog }: { catalog: Product[] }) {
   const router = useRouter();
-  const announce = useAnnounce();
+  const toast = useToast();
   const book = useAddressBook();
   const { session, selectAddress } = useCheckout();
   const { lines, isBuyNow, ready } = useCheckoutLines(catalog);
@@ -67,12 +67,13 @@ export function AddressStep({ catalog }: { catalog: Product[] }) {
             submitLabel={editing ? "Save changes" : "Save and use this address"}
             onSubmit={(input) => {
               if (editing) {
-                book.update(editing.id, input);
-                announce("Address updated.");
+                if (book.update(editing.id, input)) toast.success("Address updated", { id: "address" });
+                else toast.error("Change not saved", { id: "address", description: "It applies for this visit only: this browser isn’t letting the site store data." });
               } else {
-                const saved = book.add(input);
-                selectAddress(saved.id);
-                announce("Address saved and selected.");
+                const { address, saved } = book.add(input);
+                selectAddress(address.id);
+                if (saved) toast.success("Address saved and selected", { id: "address" });
+                else toast.info("Address selected for this order", { id: "address", description: "This browser isn’t letting the site keep it for next time." });
               }
               setError(null);
               setMode({ kind: "list" });
@@ -117,9 +118,10 @@ export function AddressStep({ catalog }: { catalog: Product[] }) {
                   </Button>
                   <Button variant="ghost" size="icon" aria-label={`Remove address for ${address.full_name}`}
                     onClick={() => {
-                      book.remove(address.id);
+                      const saved = book.remove(address.id);
                       if (session.address_id === address.id) selectAddress(null);
-                      announce("Address removed.");
+                      if (saved) toast.success("Address removed", { id: "address" });
+                      else toast.error("Change not saved", { id: "address", description: "It applies for this visit only: this browser isn’t letting the site store data." });
                     }}>
                     <Trash2 aria-hidden="true" />
                   </Button>

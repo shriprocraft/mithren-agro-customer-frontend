@@ -13,11 +13,13 @@ interface AddressBookValue {
   hydrated: boolean;
   /** Id of the default address, when it still exists. */
   defaultId: string | null;
-  setDefault: (id: string | null) => void;
+  // Each change returns whether this browser stored it (false when site storage is blocked; the
+  // change then lasts for this visit only), so the UI reports success only once it is saved.
+  setDefault: (id: string | null) => boolean;
   /** Saves a validated address and returns it with its new id. */
-  add: (input: AddressInput) => Address;
-  update: (id: string, input: AddressInput) => void;
-  remove: (id: string) => void;
+  add: (input: AddressInput) => { address: Address; saved: boolean };
+  update: (id: string, input: AddressInput) => boolean;
+  remove: (id: string) => boolean;
   /** Demo account: adds the fictional sample address (flagged is_sample) and returns it. */
   addSample: (input: AddressInput) => Address;
   /** Demo account: removes every sample address. */
@@ -41,14 +43,15 @@ export function AddressBookProvider({ children }: { children: ReactNode }) {
       setDefault: (id) => setStoredDefault(id),
       add: (input) => {
         const address: Address = { ...cleanAddress(input), id: `addr-${crypto.randomUUID()}` };
-        setAddresses((current) => [...current, address]);
-        return address;
+        const saved = setAddresses((current) => [...current, address]);
+        return { address, saved };
       },
       update: (id, input) =>
         setAddresses((current) => current.map((a) => (a.id === id ? { ...cleanAddress(input), id, ...(a.is_sample && { is_sample: true }) } : a))),
       remove: (id) => {
-        setAddresses((current) => current.filter((a) => a.id !== id));
+        const saved = setAddresses((current) => current.filter((a) => a.id !== id));
         if (id === defaultId) setStoredDefault(null);
+        return saved;
       },
       addSample: (input) => {
         const address: Address = { ...cleanAddress(input), id: `addr-sample-${crypto.randomUUID()}`, is_sample: true };

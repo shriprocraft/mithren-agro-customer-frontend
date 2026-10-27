@@ -61,10 +61,13 @@ export function buildOrder(lines: CartLine[], address: Address, id: string, now:
   return {
     id,
     created_at,
-    items: lines.map(({ product, quantity, unit_price, line_total }) => ({
+    items: lines.map(({ product, selection, quantity, unit_price, line_total }) => ({
       product_id: product.id,
+      ...(selection.variant && { variant_id: selection.variant.id }),
+      ...(selection.variantLabel && { variant_label: selection.variantLabel }),
+      category_id: product.category_id,
       name: product.name,
-      unit: product.unit,
+      unit: selection.unit,
       image_src: product.images[0]?.src ?? "",
       image_alt: product.images[0]?.alt ?? product.name,
       image_studio: product.images[0]?.studio,

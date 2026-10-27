@@ -8,8 +8,9 @@ import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/compone
 import { CountBadge } from "@/components/layout/CountBadge";
 import { useCart } from "@/context/CartContext";
 import { useCheckout } from "@/context/CheckoutContext";
+import { useRemovedFromCartToast } from "@/hooks/useRemovedFromCartToast";
 import { checkoutBlocker, resolveLines } from "@/lib/cart";
-import { effectivePrice, formatPrice } from "@/lib/formatters";
+import { formatPrice } from "@/lib/formatters";
 import type { Product } from "@/types/catalog";
 
 // Mini cart. "Checkout" starts the same cart checkout as the cart page; when something blocks it (such
@@ -17,12 +18,11 @@ import type { Product } from "@/types/catalog";
 export function CartMenu({ catalog }: { catalog: Product[] }) {
   const { items, count, removeItem } = useCart();
   const { start } = useCheckout();
-  const blocked = checkoutBlocker(resolveLines(items, catalog).lines) !== null;
-  const lines = items.flatMap((item) => {
-    const product = catalog.find((p) => p.id === item.product_id);
-    return product ? [{ product, quantity: item.quantity }] : [];
-  });
-  const subtotal = lines.reduce((sum, line) => sum + effectivePrice(line.product) * line.quantity, 0);
+  const removed = useRemovedFromCartToast();
+  // Same lines as the cart page: each product option with its own price.
+  const { lines } = resolveLines(items, catalog);
+  const blocked = checkoutBlocker(lines) !== null;
+  const subtotal = lines.reduce((sum, line) => sum + line.line_total, 0);
 
   return (
     <Popover>
@@ -39,18 +39,18 @@ export function CartMenu({ catalog }: { catalog: Product[] }) {
         ) : (
           <>
             <ul className="-mx-1 max-h-72 divide-y overflow-y-auto">
-              {lines.map(({ product, quantity }) => (
-                <li key={product.id} className="flex items-center gap-3 px-1 py-2">
+              {lines.map(({ key, product, selection, quantity, unit_price }) => (
+                <li key={key} className="flex items-center gap-3 px-1 py-2">
                   {product.images[0] && (
                     <Image src={product.images[0].src} alt="" width={48} height={48} className={`size-12 rounded-lg ${product.images[0].studio ? "bg-white object-contain p-0.5 ring-1 ring-border" : "object-cover"}`} />
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {quantity} × {formatPrice(effectivePrice(product))}
+                    <p className="truncate text-xs text-muted-foreground">
+                      {selection.description} · {quantity} × {formatPrice(unit_price)}
                     </p>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => removeItem(product.id)} aria-label={`Remove ${product.name} from cart`}>
+                  <Button variant="ghost" size="icon" onClick={() => removed(product.name, removeItem(key))} aria-label={`Remove ${product.name}, ${selection.description}, from cart`}>
                     <X aria-hidden="true" />
                   </Button>
                 </li>

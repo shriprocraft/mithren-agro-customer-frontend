@@ -1,4 +1,5 @@
 import { effectivePrice } from "@/lib/formatters";
+import { lineKey, resolveSelection, type Selection } from "@/lib/variants";
 import type { Product } from "@/types/catalog";
 import type { CartItem } from "@/types/cart";
 
@@ -13,35 +14,49 @@ export function clampQuantity(quantity: number): number {
   return Math.min(MAX_QUANTITY_PER_ITEM, Math.max(1, Math.floor(quantity)));
 }
 
+/** The cart line an item belongs to (product + option). */
+export const itemKey = (item: CartItem) => lineKey(item.product_id, item.variant_id);
+
 /**
- * Adding an existing product increases its quantity instead of creating a duplicate line. Quantities
- * are capped at the per-item limit; "limit_reached" means nothing could be added.
+ * Adding a product option that is already in the cart increases its quantity instead of creating a
+ * duplicate line; a different option of the same product is its own line. A line saved before the
+ * product had options (no variant_id) stands for its default option, so adding the default option
+ * (`defaultVariantId`) joins that line and records the option on it. Quantities are capped at the
+ * per-item limit; "limit_reached" means nothing could be added.
  */
 export function addToCart(
   items: CartItem[],
   productId: string,
   quantity = 1,
+  variantId?: string,
+  defaultVariantId?: string,
 ): { items: CartItem[]; result: AddResult } {
-  const existing = items.find((item) => item.product_id === productId);
+  const key = lineKey(productId, variantId);
+  const isLegacyDefault = (item: CartItem) =>
+    variantId !== undefined && variantId === defaultVariantId && item.product_id === productId && item.variant_id === undefined;
+  const matches = (item: CartItem) => itemKey(item) === key || isLegacyDefault(item);
+  const existing = items.find(matches);
   if (!existing) {
-    return { items: [...items, { product_id: productId, quantity: clampQuantity(quantity) }], result: "added" };
+    const item: CartItem = { product_id: productId, ...(variantId && { variant_id: variantId }), quantity: clampQuantity(quantity) };
+    return { items: [...items, item], result: "added" };
   }
   if (existing.quantity >= MAX_QUANTITY_PER_ITEM) {
     return { items, result: "limit_reached" };
   }
   const next = clampQuantity(existing.quantity + quantity);
   return {
-    items: items.map((item) => (item.product_id === productId ? { ...item, quantity: next } : item)),
+    items: items.map((item) => (item === existing ? { product_id: productId, ...(variantId && { variant_id: variantId }), quantity: next } : item)),
     result: "added",
   };
 }
 
-export function setCartQuantity(items: CartItem[], productId: string, quantity: number): CartItem[] {
-  return items.map((item) => (item.product_id === productId ? { ...item, quantity: clampQuantity(quantity) } : item));
+/** `key` is a line key (`lineKey` / `CartLine.key`); for a product without options it is the product id. */
+export function setCartQuantity(items: CartItem[], key: string, quantity: number): CartItem[] {
+  return items.map((item) => (itemKey(item) === key ? { ...item, quantity: clampQuantity(quantity) } : item));
 }
 
-export function removeFromCart(items: CartItem[], productId: string): CartItem[] {
-  return items.filter((item) => item.product_id !== productId);
+export function removeFromCart(items: CartItem[], key: string): CartItem[] {
+  return items.filter((item) => itemKey(item) !== key);
 }
 
 export function countItems(items: CartItem[]): number {
@@ -59,13 +74,21 @@ export function parseCart(value: unknown): CartItem[] | null {
       Number.isInteger((item as CartItem).quantity) &&
       (item as CartItem).quantity > 0,
   );
-  return items.map((item) => ({ product_id: item.product_id, quantity: clampQuantity(item.quantity) }));
+  return items.map((item) => ({
+    product_id: item.product_id,
+    ...(typeof item.variant_id === "string" && { variant_id: item.variant_id }),
+    quantity: clampQuantity(item.quantity),
+  }));
 }
 
 export type LineIssue = "out_of_stock";
 
 export interface CartLine {
+  /** Identifies the line as stored (product + option); use it to change or remove the line. */
+  key: string;
   product: Product;
+  /** The chosen option, its pack size and price. */
+  selection: Selection;
   quantity: number;
   /** Paise. */
   unit_price: number;
@@ -75,25 +98,29 @@ export interface CartLine {
 }
 
 /**
- * Joins cart items with the catalogue. Items whose product no longer exists are dropped (and
- * reported in `missing`), so a stale cart can never reach checkout with unknown products.
+ * Joins cart items with the catalogue. Items whose product or option no longer exists are dropped
+ * (and reported in `missing`), so a stale cart can never reach checkout with unknown products.
+ * Price and availability come from the chosen option.
  */
 export function resolveLines(items: CartItem[], catalog: Product[]): { lines: CartLine[]; missing: string[] } {
   const lines: CartLine[] = [];
   const missing: string[] = [];
   for (const item of items) {
     const product = catalog.find((p) => p.id === item.product_id);
-    if (!product) {
-      missing.push(item.product_id);
+    const selection = product && resolveSelection(product, item.variant_id);
+    if (!product || !selection) {
+      missing.push(itemKey(item));
       continue;
     }
-    const unit_price = effectivePrice(product);
+    const unit_price = effectivePrice(selection);
     lines.push({
+      key: itemKey(item),
       product,
+      selection,
       quantity: item.quantity,
       unit_price,
       line_total: unit_price * item.quantity,
-      issue: product.stock_status === "out_of_stock" ? "out_of_stock" : undefined,
+      issue: selection.stock_status === "out_of_stock" ? "out_of_stock" : undefined,
     });
   }
   return { lines, missing };

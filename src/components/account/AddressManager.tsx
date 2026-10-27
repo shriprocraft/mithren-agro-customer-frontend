@@ -8,10 +8,13 @@ import { AddressForm } from "@/components/checkout/AddressForm";
 import { MessageState } from "@/components/checkout/PageState";
 import { Button } from "@/components/ui/button";
 import { useAddressBook } from "@/context/AddressBookContext";
-import { useAnnounce } from "@/context/AnnouncerContext";
 import { useCheckout } from "@/context/CheckoutContext";
+import { useToast } from "@/context/ToastContext";
 import { addressTypeLabels, formatAddressLine } from "@/lib/address";
 import { cn } from "@/lib/utils";
+
+const notSaved = "Change not saved";
+const notSavedHelp = "It applies for this visit only: this browser isn’t letting the site store data. Check that site storage is enabled.";
 
 type Mode = { kind: "list" } | { kind: "add" } | { kind: "edit"; id: string };
 
@@ -20,8 +23,14 @@ type Mode = { kind: "list" } | { kind: "add" } | { kind: "edit"; id: string };
 export function AddressManager() {
   const book = useAddressBook();
   const { session, selectAddress } = useCheckout();
-  const announce = useAnnounce();
+  const toast = useToast();
   const [mode, setMode] = useState<Mode>({ kind: "list" });
+
+  const addAddress = (input: Parameters<typeof book.add>[0]) => {
+    const { address, saved } = book.add(input);
+    if (book.addresses.length === 0) book.setDefault(address.id);
+    return saved;
+  };
 
   if (mode.kind !== "list") {
     const editing = mode.kind === "edit" ? book.addresses.find((a) => a.id === mode.id) : undefined;
@@ -33,14 +42,9 @@ export function AddressManager() {
             initial={editing}
             submitLabel={editing ? "Save changes" : "Save address"}
             onSubmit={(input) => {
-              if (editing) {
-                book.update(editing.id, input);
-                announce("Address updated.");
-              } else {
-                const saved = book.add(input);
-                if (book.addresses.length === 0) book.setDefault(saved.id);
-                announce("Address saved.");
-              }
+              const saved = editing ? book.update(editing.id, input) : addAddress(input);
+              if (saved) toast.success(editing ? "Address updated" : "Address saved", { id: "address", description: `${input.full_name}, ${input.city}` });
+              else toast.error(notSaved, { id: "address", description: notSavedHelp });
               setMode({ kind: "list" });
             }}
             onCancel={() => setMode({ kind: "list" })}
@@ -77,7 +81,10 @@ export function AddressManager() {
                 <p className="text-sm text-muted-foreground">Mobile {address.mobile}</p>
                 <div className="mt-auto flex flex-wrap gap-2 pt-4">
                   {!isDefault && (
-                    <Button variant="outline" onClick={() => { book.setDefault(address.id); announce(`Default address set to ${address.full_name}, ${address.city}.`); }}>
+                    <Button variant="outline" onClick={() => {
+                      if (book.setDefault(address.id)) toast.success("Default address updated", { id: "address", description: `${address.full_name}, ${address.city}` });
+                      else toast.error(notSaved, { id: "address", description: notSavedHelp });
+                    }}>
                       <Star aria-hidden="true" />Set as default<span className="sr-only">: {address.full_name}, {address.city}</span>
                     </Button>
                   )}
@@ -89,9 +96,10 @@ export function AddressManager() {
                     description={`${address.full_name}, ${formatAddressLine(address)} will be removed from this browser.`}
                     confirmLabel="Delete address"
                     onConfirm={() => {
-                      book.remove(address.id);
+                      const saved = book.remove(address.id);
                       if (session.address_id === address.id) selectAddress(null);
-                      announce("Address deleted.");
+                      if (saved) toast.success("Address deleted", { id: "address", description: `${address.full_name}, ${address.city}` });
+                      else toast.error(notSaved, { id: "address", description: notSavedHelp });
                     }}
                     trigger={
                       <Button variant="ghost" className="text-destructive hover:text-destructive" aria-label={`Delete address for ${address.full_name}, ${address.city}`}>

@@ -66,9 +66,9 @@ export function RegisterView() {
         {submitted && Object.keys(errors).length > 0 && (
           <p role="alert" className="text-sm text-destructive">Please fix the {Object.keys(errors).length === 1 ? "highlighted field" : `${Object.keys(errors).length} highlighted fields`} below.</p>
         )}
-        <TextField name="full_name" label="Full name" autoComplete="name" value={values.full_name} error={shown("full_name")} onChange={(v) => setValues({ ...values, full_name: v })} />
-        <TextField name="email" label="Email address" type="email" inputMode="email" autoComplete="email" value={values.email} error={shown("email")} onChange={(v) => setValues({ ...values, email: v })} />
-        <TextField name="mobile" label="Mobile number" optional type="tel" inputMode="tel" autoComplete="tel-national" hint="10 digits, e.g. 98765 43210" value={values.mobile} error={shown("mobile")} onChange={(v) => setValues({ ...values, mobile: v })} />
+        <TextField name="full_name" label="Full name" autoComplete="name" placeholder="Enter your full name" value={values.full_name} error={shown("full_name")} onChange={(v) => setValues({ ...values, full_name: v })} />
+        <TextField name="email" label="Email address" type="email" placeholder="Enter your email address" inputMode="email" autoComplete="email" value={values.email} error={shown("email")} onChange={(v) => setValues({ ...values, email: v })} />
+        <TextField name="mobile" label="Mobile number" optional type="tel" placeholder="Enter your 10-digit mobile number" inputMode="tel" autoComplete="tel-national" hint="10 digits, e.g. 98765 43210" value={values.mobile} error={shown("mobile")} onChange={(v) => setValues({ ...values, mobile: v })} />
         <div>
           <label className={cn("flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm has-focus-visible:ring-2 has-focus-visible:ring-ring", shown("acknowledged") ? "border-destructive" : "border-border")}>
             <input

@@ -33,7 +33,7 @@ export function TrackOrders() {
       <AccountPageHeader title="Track Orders" description="Tracking is simulated in this preview: no delivery partner is connected." />
 
       <form onSubmit={find} noValidate className="surface-card flex flex-col gap-3 rounded-3xl p-5 sm:flex-row sm:items-start sm:p-6">
-        <TextField name="order_id" label="Order ID" value={query} onChange={(v) => { setQuery(v); setError(undefined); }} error={error} autoComplete="off" className="flex-1" />
+        <TextField name="order_id" label="Order ID" placeholder="Enter your order ID, e.g. MA-20261024-7K3QX9" value={query} onChange={(v) => { setQuery(v); setError(undefined); }} error={error} autoComplete="off" className="flex-1" />
         <Button type="submit" className="sm:mt-7"><Search aria-hidden="true" />Find order</Button>
       </form>
 

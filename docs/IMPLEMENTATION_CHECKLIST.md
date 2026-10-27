@@ -3,8 +3,8 @@
 Acceptance audit for the "complete customer frontend" brief (24 Oct 2026). Every row was verified by the method stated, not by the existence of a file.
 
 **Verification methods**
-- **E2E n**: step n of `npm run test:e2e` (`scripts/e2e-journey.mjs`), a real headless-Chrome run through the UI against `npm run dev`. Last run (25 Oct 2026): **54/54 steps passed, 0 console errors**.
-- **Unit**: Vitest (`npm test`): **135 tests in 10 files passed**.
+- **E2E n**: step n of `npm run test:e2e` (`scripts/e2e-journey.mjs`), a real headless-Chrome run through the UI against `npm run dev`. Last run (27 Oct 2026): **70/70 steps passed, 0 console errors**.
+- **Unit**: Vitest (`npm test`): **179 tests in 12 files passed**.
 - **Prod check**: production build (`npm run build && npm run start`) inspected in Chrome.
 
 **Status key:** PASS · FAIL · BLOCKED (needs something outside this repo)
@@ -176,6 +176,69 @@ Brief: "Demo authentication & customer account system". Details and production c
 | Existing behaviour (homepage, product scroll, cart, checkout, filters) | — | E2E 1–39; production scroll matrix 90/90 | PASS |
 | **Real authentication, secure sessions, server-side customer data, live tracking** | Not built (no backend) | — | **NOT DONE (by design)** |
 
+## Storefront update (27 Oct 2026)
+
+Brief: "Master implementation prompt" (agent and investor pages, homepage restructure, videos, shop toolbar, loading, Buy now colour, toasts, placeholders, My Orders). Decisions: ARCHITECTURE "Storefront update (phase 6)"; configuration: `docs/CONFIGURATION.md`.
+
+| Requirement | Implementation | Verification | Result |
+|---|---|---|---|
+| "Meet Our Farmers" → **Agent Benefits** page (Seller and Delivery Agent, benefits, responsibilities, eligibility, how it works, onboarding, policy placeholders, FAQ, CTA) | `/agent-benefits`, `components/opportunities/*` | Unit; E2E 53 | PASS |
+| Proposed benefits clearly marked; no guaranteed earnings, employment, insurance or eligibility | `ProvisionalNotice`, FAQ wording | Unit (no "guaranteed income/fixed salary"); review | PASS |
+| Application buttons not falsely functional | `ExternalCta`: disabled "coming soon" until `NEXT_PUBLIC_*_AGENT_APPLY_URL` is set | Unit; E2E 53 | PASS |
+| "Shop Fresh Produce" → **Investor Opportunities** page (business, opportunity, benefits, process, eligibility, risks, FAQ) | `/investors` | Unit; E2E 54 | PASS |
+| **Access Investor Portal**: configured URL or safe fallback; no investor login rebuilt | `NEXT_PUBLIC_INVESTOR_PORTAL_URL` via `safeExternalUrl`; disabled + note when unset; "Opening…" feedback | Unit (both states, unsafe URLs rejected); E2E 54 | PASS (URL not configured yet) |
+| Liquid-glass overlay removed from the hero's bottom strip, content kept | `ValueStrip` | E2E 52 (no backdrop filter or translucent plate); screenshots 390–1440 | PASS |
+| Two real video cards right after the hero | `VideoSection`, `VideoCard`, `homeVideos` | Unit (no source, play, loading, error, no preload/autoplay); E2E 55 | PASS (no video files supplied yet) |
+| Homepage order: hero, videos, Shop by category, Seasonal picks, Combo boxes, Browse banner, footer; Fresh picks and the in-between sections removed | `app/page.tsx` | Unit (order and absences); E2E 52 | PASS |
+| Shop by category and Seasonal picks unchanged | Not modified (only the shared scrollbar utility class) | E2E 1–3, 35 | PASS |
+| Hidden scrollbar, scrolling intact | `globals.css` (`html` rule, `scrollbar-none` utility) | Unit (CSS, no overflow hidden); E2E 60 (wheel and scrollTo) | PASS |
+| Shop white space used meaningfully | Intro copy, real catalogue counts beside the heading, one toolbar, results summary | Screenshots; E2E 34 (no overflow) | PASS |
+| Premium dropdowns; filter, sort, search and category combine | `ui/select.tsx` (Category, Sort), existing Filter drawer | E2E 26–32, 58; unit | PASS |
+| Loading: navigation, product list updates, actions | `NavigationProgress`, `ProductGridSkeleton` + `useDelayedFlag`, full-height Suspense fallbacks, `<Button loading>` on Buy now / Explore Demo Account / portal | Unit; E2E 0 console errors; manual | PASS (see note) |
+| Create/update/delete feedback, no success before saved | Cart, address book report `saved`; toasts on add/remove/default/delete; profile restore checks the save | Unit; E2E 45, 56 | PASS |
+| Buy now in logo gold, dark text, other buttons unchanged | Tokens `gold*`, `Button variant="buy"` | Unit (contrast ≥ 5:1, variant); E2E 57 (computed colours) | PASS |
+| "Added to cart successfully!" toast; error on failure; one per action | `ToastProvider`, `AddToCartButton` | Unit; E2E 56 | PASS |
+| Login placeholders | The sign-in page has **no input fields** (demo, no password by design), so none were added; placeholders added to registration, profile, address and order-ID fields with labels kept | Unit; E2E 61 | PASS (as noted) |
+| Account menu "Orders in this browser" → **My Orders** → order history | `AccountMenu` link to `/account/orders` | Unit; E2E 59 | PASS |
+| Order history loading, empty and error states | `OrdersList` skeleton, empty state, blocked-storage warning | Unit (server render skeleton, empty) | PASS |
+| Existing journeys (cart, checkout, Buy now, tracking, filters, account) | — | E2E 1–51 | PASS |
+
+Note on loading: every cart, wishlist, address and profile change is a synchronous write to this browser's storage, so there is no wait to show and no spinner was added (adding a delay would be fake). The skeleton and progress bar appear only when a navigation actually takes longer than 150 ms; on the dev server that is common, on the production build (prefetched static pages) it is rare.
+
+## Website upgrade (27 Oct 2026, second brief)
+
+Brief: "Complete customer website upgrade". Decisions: ARCHITECTURE "Website upgrade (phase 7)".
+
+| Requirement | Implementation | Verification | Result |
+|---|---|---|---|
+| Two-image cinematic hero with the supplied photos, 6 s autoplay, arrows, dots, progress, pause, swipe, reduced motion, no glass | `HeroSection`, `public/images/home/hero-slide-*.jpg` | Unit (timer restart, pause, inert slide, no glass); E2E 52, 62, 63 | PASS |
+| Both hero buttons reach the shop | "Explore Marketplace" → `/products`; "Shop Fresh Produce" → `/products?category=fruits,vegetables` | Unit; E2E 62 | PASS |
+| About Mithren Agro right after the hero; Learn More → About page | `AboutSection`, new `/about` | Unit; E2E 64 | PASS (reference screenshot not supplied; built from the description) |
+| Homepage order hero → About → videos → categories → seasonal → combo boxes → browse banner → footer; Fresh picks absent | `app/page.tsx` | Unit; E2E 52, 55 | PASS |
+| Agent Benefits and Investor Opportunities entries on the homepage | "Grow with Mithren Agro" bar in the hero; footer | Unit; E2E 53, 54 | PASS |
+| Seller and Delivery Agent topics (catalogue, pricing, orders, customer service, earnings subject to the model) | `/agent-benefits` | Unit; E2E 53 | PASS |
+| Investor page: business model, technology, growth, contact; portal button configurable, no fake login | `/investors`, `NEXT_PUBLIC_INVESTOR_PORTAL_URL` | Unit; E2E 54 | PASS (URL not configured) |
+| Footer: About, customer support, five policies, shopping, opportunities, no dead links | `SiteFooter` | Unit (every link exists); E2E 65 | PASS |
+| Five policy pages, consistent rules, legal-review notice | `app/*-policy`, `terms-and-conditions`, `config/policies.ts` | Unit (each page, rules); E2E 65 | PASS (drafts) |
+| No cancellation after Packed; per-order note | `canRequestCancellation` (`ready_for_dispatch`), `OrderPolicyNote` | Unit; E2E 65, 66 | PASS |
+| 10-day returns for women's apparel only, from delivery | `policyConfig.returns`, Return Policy, order note | Unit; E2E 65 | PASS |
+| Weight/pack/size options with their own price and stock; cart, checkout and orders keep them | `ProductVariant`, `lib/variants.ts`, cart/order changes | Unit (data, cart lines, legacy lines, order snapshot, panel, Buy now); E2E 66, 67 | PASS (sample data; backend must supply real options) |
+| Add to cart toast names the option, only after success | `AddToCartButton` | Unit; E2E 56, 66 | PASS |
+| Shop layout, premium dropdowns, hidden scrollbar, loading states, gold Buy now, My Orders | Phase 6, unchanged | E2E 26–34, 56–61 | PASS |
+| Login placeholders | The sign-in page still has no input fields (demo, no passwords by design); registration, profile, address and order-ID fields have placeholders | E2E 61 | PASS (as noted) |
+| Existing cart, checkout, account, tracking | — | E2E 1–51 | PASS |
+
+Run on 27 Oct 2026: lint clean, typecheck clean, **179 unit tests in 12 files**, production build (57 pages), **E2E 70/70, 0 console errors** (10 routes × 8 widths without horizontal overflow included).
+
+## Hero restored and About compacted (27 Oct 2026)
+
+| Requirement | Implementation | Verification | Result |
+|---|---|---|---|
+| Static hero restored exactly as before the slider (image, headline, copy, buttons, layout) | Git `0c33170` + the recorded phase-6 edit | Unit (one image, buttons, no slider, no glass on the strip); E2E 1, 52–54, 62 | PASS |
+| Slider code and timers removed | `HeroSection`, `globals.css` | Unit; E2E 52 | PASS |
+| The two supplied images kept | `public/images/home/hero-slide-*.jpg` | — | Kept (one used on /about) |
+| About section smaller and balanced | `AboutSection` | E2E 62 (height measured), screenshots 1440 and 390 | PASS |
+
 ## Known limitations (not failures)
 
 | Item | Status | Next step |
@@ -187,4 +250,5 @@ Brief: "Demo authentication & customer account system". Details and production c
 | Delivery charges, taxes, estimates | Not configured | Add rules to `CONFIGURED_CHARGES` once confirmed |
 | Stock is a status, not a count; 20-per-item cap is a placeholder | Open (register) | Confirm per-seller stock rules |
 | On a 320 × 568 phone the product price and buttons start just below the first screen (name visible) | Accepted | Revisit if analytics show many very small screens |
+| Agent and investor terms, the Investor Portal URL, application URLs and video files | Not supplied | Provide them (docs/CONFIGURATION.md); replace the provisional notices once official documents exist |
 | The hero's desktop "Delivery by area" chip points to the location selector, which is not checked against real areas | Preview copy | Replace once delivery areas exist |

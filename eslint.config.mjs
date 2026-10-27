@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Screenshots and the temporary Chrome profile written by npm run test:e2e.
     "e2e-results/**",
+    "perf-results/**",
   ]),
 ]);
 

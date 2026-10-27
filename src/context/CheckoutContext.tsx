@@ -26,7 +26,8 @@ function parseSession(value: unknown): CheckoutSession | null {
   const addressId = typeof address_id === "string" ? address_id : null;
   if (source?.kind === "cart") return { source: { kind: "cart" }, address_id: addressId };
   if (source?.kind === "buy_now" && typeof source.product_id === "string" && Number.isInteger(source.quantity)) {
-    return { source: { kind: "buy_now", product_id: source.product_id, quantity: clampQuantity(source.quantity) }, address_id: addressId };
+    const variant = typeof source.variant_id === "string" ? { variant_id: source.variant_id } : {};
+    return { source: { kind: "buy_now", product_id: source.product_id, ...variant, quantity: clampQuantity(source.quantity) }, address_id: addressId };
   }
   return null;
 }

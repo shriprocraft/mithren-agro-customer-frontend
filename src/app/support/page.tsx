@@ -1,17 +1,19 @@
-import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronDown, LifeBuoy } from "lucide-react";
+import { LifeBuoy } from "lucide-react";
 import { BackToAccountLink } from "@/components/account/BackToAccountLink";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Container } from "@/components/layout/Container";
+import { FaqList, type Faq } from "@/components/opportunities/FaqList";
 import { Heading } from "@/components/ui/typography";
+import { policyConfig } from "@/config/policies";
+import { orderStatusLabels } from "@/lib/orders";
 
 export const metadata: Metadata = { title: "Help & support" };
 
 // Answers describe what this preview actually does. No phone number, email, address, refund promise
 // or delivery promise is given: none has been supplied, so the contact section says so.
-const groups: { title: string; faqs: { q: string; a: ReactNode }[] }[] = [
+const groups: { title: string; faqs: Faq[] }[] = [
   {
     title: "Orders and tracking",
     faqs: [
@@ -38,7 +40,9 @@ const groups: { title: string; faqs: { q: string; a: ReactNode }[] }[] = [
   {
     title: "Returns, refunds and cancellations",
     faqs: [
-      { q: "What is the returns and refunds policy?", a: "It has not been published yet. Policies for cancellation, returns, refunds and shipping will be added before the store launches." },
+      { q: "Can I cancel an order?", a: <>You can ask to cancel until the order is packed (status “{orderStatusLabels[policyConfig.cancellation.packedStatus]}”). See the <Link href="/cancellation-refund-policy" className="font-medium text-primary underline-offset-4 hover:underline">Cancellation and Refund Policy</Link>.</> },
+      { q: "Which products can be returned?", a: <>Eligible {policyConfig.returns.eligibleCategoryLabel} can be returned within {policyConfig.returns.windowDays} days of delivery. Other categories have no routine return, but you can always report an incorrect, damaged, missing or defective item. See the <Link href="/return-policy" className="font-medium text-primary underline-offset-4 hover:underline">Return Policy</Link>.</> },
+      { q: "Are these policies final?", a: "Not yet. The policy pages are drafts awaiting legal review and some details (contacts, timelines, charges) are still to be added." },
     ],
   },
 ];
@@ -52,25 +56,15 @@ export default function SupportPage() {
         <Heading as="h1" variant="h1" className="mt-2 text-[1.625rem] sm:text-4xl">Help &amp; support</Heading>
         <p className="mt-2 text-muted-foreground">Answers about orders, tracking, addresses and the demo account.</p>
 
-        <div className="mt-8 space-y-8">
+        <div id="faqs" className="mt-8 scroll-mt-6 space-y-8 lg:scroll-mt-36">
           {groups.map((group) => (
             <section key={group.title} aria-labelledby={`faq-${group.title}`}>
               <h2 id={`faq-${group.title}`} className="font-heading text-lg font-semibold">{group.title}</h2>
-              <div className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
-                {group.faqs.map((faq) => (
-                  <details key={faq.q} className="group">
-                    <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
-                      {faq.q}
-                      <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
-                    </summary>
-                    <div className="px-4 pb-4 text-sm leading-relaxed text-muted-foreground">{faq.a}</div>
-                  </details>
-                ))}
-              </div>
+              <div className="mt-3"><FaqList faqs={group.faqs} /></div>
             </section>
           ))}
 
-          <section aria-labelledby="contact-title" className="flex gap-4 rounded-3xl bg-soft p-5 ring-1 ring-border sm:p-6">
+          <section id="contact" aria-labelledby="contact-title" className="scroll-mt-6 lg:scroll-mt-36 flex gap-4 rounded-3xl bg-soft p-5 ring-1 ring-border sm:p-6">
             <LifeBuoy className="size-6 shrink-0 text-brand" aria-hidden="true" />
             <div>
               <h2 id="contact-title" className="font-heading text-lg font-semibold">Contact us</h2>

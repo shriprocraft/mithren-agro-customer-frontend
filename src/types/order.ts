@@ -23,7 +23,7 @@ export interface Address {
 export type AddressInput = Omit<Address, "id" | "is_sample">;
 
 /** What is being bought: the whole cart, or one product via "Buy now" (the cart is left untouched). */
-export type CheckoutSource = { kind: "cart" } | { kind: "buy_now"; product_id: string; quantity: number };
+export type CheckoutSource = { kind: "cart" } | { kind: "buy_now"; product_id: string; variant_id?: string; quantity: number };
 
 export interface CheckoutSession {
   source: CheckoutSource;
@@ -49,7 +49,14 @@ export interface TrackingEvent {
 /** A snapshot of the line at the time of ordering, so later catalogue changes do not alter the order. */
 export interface OrderItem {
   product_id: string;
+  /** The option bought, for products with options. */
+  variant_id?: string;
+  /** e.g. "Size M"; the weight or pack of weight/pack options is already in `unit`. */
+  variant_label?: string;
+  /** Category at the time of ordering (decides return eligibility). */
+  category_id?: string;
   name: string;
+  /** Pack size as bought, e.g. "500 g" or "2-piece set". */
   unit: string;
   image_src: string;
   image_alt: string;
