@@ -354,3 +354,17 @@
     transform: scaleX(0.92);
   }
 }
+
+/* Continuous right-to-left marquee (Shop by category). The track holds the list twice, so moving it
+   by exactly half its width lands the copy where the original started: the loop has no jump or gap.
+   Each copy carries its own trailing gap (padding, not flex gap) to keep the two halves identical.
+   Speed comes from --marquee-duration; reduced motion turns it off (see CategoryGrid). */
+@keyframes marquee {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@utility animate-marquee {
+  animation: marquee var(--marquee-duration, 50s) linear infinite;
+}

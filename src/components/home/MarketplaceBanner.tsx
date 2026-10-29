@@ -23,7 +23,7 @@ export function MarketplaceBanner() {
           />
           <span
             aria-hidden="true"
-            className="absolute inset-0 -z-10 bg-linear-to-r from-white/90 via-white/75 to-white/0 sm:via-white/60"
+            className="absolute inset-0 -z-10 bg-linear-to-r from-white/90 via-white/80 to-white/60 sm:via-white/60 sm:to-white/0"
           />
           <LeafMark className="absolute top-8 left-5 hidden h-12 w-9 -rotate-[22deg] sm:block" />
           <div className="max-w-xl p-6 sm:py-10 sm:pr-10 sm:pl-20">

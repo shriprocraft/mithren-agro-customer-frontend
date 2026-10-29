@@ -54,7 +54,7 @@ async function ProjectContent({ params }: Pick<PageProps<"/investors/projects/[p
           { label: project.name },
         ]}
       />
-      <div className="mt-4 grid gap-6 md:grid-cols-2 md:gap-10 lg:mt-6">
+      <div className="mt-4 grid gap-6 md:grid-cols-2 md:gap-10 lg:mt-6 [&>*]:min-w-0">
         <DomainVisual domain={domain} image={project.image} className="aspect-[4/3] md:sticky md:top-36" sizes="(min-width: 768px) 45vw, 100vw" />
         <div>
           <p className="text-xs font-semibold tracking-wide text-brand uppercase">{domain.name}</p>
@@ -96,7 +96,7 @@ async function ProjectContent({ params }: Pick<PageProps<"/investors/projects/[p
             })}
           </ul>
 
-          <div className="mt-8 flex flex-col gap-2.5 sm:flex-row">
+          <div className="mt-8 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
             <Button asChild size="lg">
               <Link href={selectionHref({ project: project.id })}>Select this project<ArrowRight aria-hidden="true" /></Link>
             </Button>

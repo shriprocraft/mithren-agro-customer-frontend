@@ -13,13 +13,16 @@ interface SectionHeadingProps {
   action?: { href: string; label: string };
   /** Extra controls after the action link, such as carousel arrows. */
   controls?: ReactNode;
+  /** Show the controls on phones too (by default they appear from md). */
+  controlsOnMobile?: boolean;
   className?: string;
 }
 
 // Glossy leaf hanging just outside the content edge, compact title, "view all" link and optional
 // arrows on the right, following the reference image's section headers. The arrows are for mouse
-// users; touch screens swipe the row, so they are hidden below md.
-export function SectionHeading({ id, title, description, eyebrow, action, controls, className }: SectionHeadingProps) {
+// users; touch screens swipe the row, so they are hidden below md unless controlsOnMobile is set (the
+// category carousel's Pause / Play button).
+export function SectionHeading({ id, title, description, eyebrow, action, controls, controlsOnMobile = false, className }: SectionHeadingProps) {
   return (
     <div className={cn("mb-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-1 sm:mb-5 sm:gap-y-3", className)}>
       <div className="relative max-w-2xl pl-9 lg:pl-7">
@@ -45,7 +48,7 @@ export function SectionHeading({ id, title, description, eyebrow, action, contro
               <ArrowRight className="size-4" aria-hidden="true" />
             </Link>
           )}
-          {controls && <div className="hidden md:block">{controls}</div>}
+          {controls && <div className={controlsOnMobile ? "block" : "hidden md:block"}>{controls}</div>}
         </div>
       )}
     </div>

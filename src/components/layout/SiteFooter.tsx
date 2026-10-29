@@ -55,7 +55,7 @@ export function SiteFooter({ categories }: { categories: Category[] }) {
   const moreLinks = [...categoryLinks.slice(SHOP_COLUMN_CATEGORIES), { href: "/#combo-offers", label: "Combo offers" }];
 
   return (
-    <footer className="mt-12 border-t border-border bg-card">
+    <footer className="mt-6 border-t border-border bg-card sm:mt-12">
       <Container className="grid grid-cols-2 gap-x-6 gap-y-8 py-10 sm:grid-cols-3 sm:py-12 lg:grid-cols-[1.35fr_repeat(5,minmax(0,1fr))] lg:gap-x-7">
         <div className="col-span-2 space-y-4 sm:col-span-3 lg:col-span-1 lg:pr-6">
           <BrandMark className="h-14" />

@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import Home from "@/app/page";
 import { AppProviders } from "@/context/AppProviders";
@@ -75,13 +75,36 @@ describe("homepage", () => {
 
   it("shows exactly the nine categories, in order, each linking to its own filtered listing", async () => {
     render(<AppProviders>{await Home()}</AppProviders>);
-    const links = [...document.querySelectorAll<HTMLAnchorElement>("#categories ul a")];
+    const links = within(screen.getByRole("list", { name: "Categories" })).getAllByRole("link");
     expect(links.map((a) => a.textContent?.split(",")[0]?.trim())).toEqual([
       "Spinach", "Vegetables", "Fruits", "Organic Groceries", "Oil", "Cosmetics", "Fancy Items", "Women Apparels", "Fertilizers",
     ]);
     expect(links.map((a) => a.getAttribute("href"))).toEqual(
       ["spinach", "vegetables", "fruits", "organic-groceries", "oil", "cosmetics", "fancy-items", "womens-apparel", "fertilizers"].map((s) => `/products?category=${s}`),
     );
+  });
+
+  it("moves the categories as a marquee whose second copy is hidden from keyboards and screen readers", async () => {
+    render(<AppProviders>{await Home()}</AppProviders>);
+    const track = document.querySelector("#categories-row > div")!;
+    expect(track).toHaveClass("animate-marquee", "motion-reduce:animate-none");
+    const [original, copy] = [...track.children];
+    expect(track.children).toHaveLength(2);
+    expect(original).toHaveAttribute("aria-label", "Categories");
+    expect(copy).toHaveAttribute("aria-hidden", "true");
+    expect(copy).toHaveAttribute("inert");
+    expect(copy!.innerHTML).toBe(original!.innerHTML);
+    // Only the nine real links are reachable.
+    expect(within(screen.getByRole("region", { name: "Shop by category" })).getAllByRole("link").filter((a) => a.getAttribute("href")?.startsWith("/products?category="))).toHaveLength(9);
+    const toggle = screen.getByRole("button", { name: "Pause category animation" });
+    expect(toggle).toHaveAttribute("title", "Pause category animation");
+    expect(document.getElementById("categories-row")).not.toHaveAttribute("data-paused");
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAccessibleName("Resume category animation");
+    expect(document.getElementById("categories-row")).toHaveAttribute("data-paused");
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAccessibleName("Pause category animation");
+    expect(document.getElementById("categories-row")).not.toHaveAttribute("data-paused");
   });
 
   it("puts the search directly above Shop by category, and the hero has no delivery card", async () => {
