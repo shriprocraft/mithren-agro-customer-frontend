@@ -49,10 +49,11 @@ describe("product variants: data", () => {
     }
   });
 
-  it("uses sizes for apparel and weights or packs elsewhere, never both", () => {
+  it("uses sizes for apparel and bangles, and weights, packs or volumes elsewhere", () => {
+    const sized = new Set([apparelId, categories.find((c) => c.slug === "fancy-items")!.id]);
     for (const product of catalog.filter((p) => p.variants)) {
       const isApparel = product.category_id === apparelId;
-      expect(product.variant_type === "size").toBe(isApparel);
+      expect(product.variant_type === "size").toBe(sized.has(product.category_id));
       if (!isApparel) expect(product.variants!.every((v) => !/^(XS|S|M|L|XL|XXL)$/.test(v.label))).toBe(true);
     }
   });
@@ -181,6 +182,35 @@ describe("policy rules", () => {
     for (const href of ["/about", "/support#contact", "/support#faqs", "/account/orders", "/account/track", "/agent-benefits", "/investors"]) {
       expect(document.querySelector(`footer a[href="${href}"]`)).not.toBeNull();
     }
+  });
+});
+
+describe("footer", () => {
+  it("splits the categories into Shop and More categories without losing a link", () => {
+    render(<SiteFooter categories={categories} />);
+    const shop = within(screen.getByRole("navigation", { name: "Shop" })).getAllByRole("link").map((a) => a.textContent);
+    const more = within(screen.getByRole("navigation", { name: "More categories" })).getAllByRole("link").map((a) => a.textContent);
+    expect(shop).toEqual(["All products", "Spinach", "Vegetables", "Fruits", "Organic Groceries"]);
+    expect(more).toEqual(["Oil", "Cosmetics", "Fancy Items", "Women Apparels", "Fertilizers", "Combo offers"]);
+  });
+
+  it("keeps copyright and the preview notices in one row, with the Shri Pro Craft credit on its own centred line below", () => {
+    const { container } = render(<SiteFooter categories={categories} />);
+    const credit = screen.getByRole("link", { name: "Shri Pro Craft (opens in a new tab)" });
+    expect(credit).toHaveAttribute("href", "https://shriprocraft.com/");
+    expect(credit).toHaveAttribute("target", "_blank");
+    expect(credit).toHaveAttribute("rel", "noopener noreferrer");
+    const creditLine = credit.closest("p")!;
+    expect(creditLine.textContent!.replace(/\s+/g, " ").trim()).toBe("Powered by Shri Pro Craft");
+    expect(creditLine.parentElement).toHaveClass("text-center");
+    const notices = screen.getByText(/All rights reserved/);
+    expect(notices.textContent!.replace(/\s+/g, " ").trim()).toBe(
+      "© Mithren Agro Pvt. Ltd. All rights reserved. · Preview storefront · Listings, prices and sellers are sample data · Policies are drafts under legal review",
+    );
+    // The credit is the footer's last line, after the notices.
+    expect(container.querySelector("footer")!.lastElementChild).toContainElement(creditLine);
+    expect(notices.compareDocumentPosition(creditLine) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getAllByText(/Powered by/)).toHaveLength(1);
   });
 });
 

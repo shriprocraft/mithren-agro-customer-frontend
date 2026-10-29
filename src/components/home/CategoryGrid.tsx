@@ -10,36 +10,40 @@ interface CategoryGridProps {
   productCounts: Record<string, number>;
 }
 
-// Same order as the header navigation (lib/navigation.ts), including the seasonal and combo-box
-// homepage sections. Swipeable row below lg (with arrows); seven tiles in one row from lg.
+// The nine categories in their configured order (data/categories.ts), each opening the marketplace
+// filtered to it. The cards keep a comfortable size instead of shrinking to fit nine across: one
+// row that swipes on touch screens (snapping card by card) and pages with the arrow buttons from md.
+// The row scrolls inside itself, so the page never scrolls sideways; on phones the next card peeks in
+// at the edge to show there is more. The 4px inner gutter keeps focus rings from being clipped.
 export function CategoryGrid({ categories, productCounts }: CategoryGridProps) {
   const tiles = shopLinks(categories).map((link) => {
-    const count = link.category ? (productCounts[link.category.id] ?? 0) : undefined;
+    const count = productCounts[link.category.id] ?? 0;
     return {
       href: link.href,
       name: link.name,
       image: link.image,
-      detail: count === undefined ? undefined : `${count} ${count === 1 ? "item" : "items"}`,
+      detail: `${count} ${count === 1 ? "item" : "items"}`,
     };
   });
 
   return (
-    <section id="categories" aria-labelledby="categories-title" className="scroll-mt-4 pt-7 pb-3 sm:pt-10 sm:pb-4 lg:scroll-mt-32 lg:pt-12">
+    <section id="categories" aria-labelledby="categories-title" className="scroll-mt-4 pt-6 pb-3 sm:pt-8 sm:pb-4 lg:scroll-mt-32">
       <Container>
         <SectionHeading
           id="categories-title"
           title="Shop by category"
-          description="From the orchard and the field to the pantry and the wardrobe."
+          description="From the field and the pantry to skincare, crafts and the wardrobe."
           action={{ href: "/products", label: "Browse all products" }}
-          controls={<ScrollArrows targetId="category-row" label="categories" />}
+          controls={<ScrollArrows targetId="categories-row" label="categories" />}
         />
         <ul
-          id="category-row"
-          className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 py-1 sm:scroll-px-0 scrollbar-none sm:mx-0 sm:px-0 lg:grid lg:grid-cols-7 lg:overflow-visible"
+          id="categories-row"
+          aria-label="Categories"
+          className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-3 scrollbar-none sm:-mx-1 sm:scroll-px-1 sm:px-1 md:gap-4"
         >
           {tiles.map((tile) => (
-            <li key={tile.href} className="w-[38%] shrink-0 snap-start sm:w-[24%] md:w-[19%] lg:w-auto">
-              <CategoryCard {...tile} />
+            <li key={tile.href} className="w-[40%] shrink-0 snap-start min-[480px]:w-[29%] sm:w-[calc((100%-3*0.75rem)/4)] md:w-[calc((100%-3*1rem)/4)] lg:w-[calc((100%-4*1rem)/5)] xl:w-[calc((100%-5*1rem)/6)]">
+              <CategoryCard {...tile} sizes="(min-width: 1024px) 210px, (min-width: 640px) 25vw, 40vw" />
             </li>
           ))}
         </ul>

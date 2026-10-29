@@ -1,11 +1,15 @@
-import { Apple, Carrot, Shirt, Sprout, Wheat, type LucideIcon } from "lucide-react";
+import { Apple, Carrot, Droplet, Gem, Leaf, Shirt, Sparkles, Sprout, Wheat, type LucideIcon } from "lucide-react";
 import type { CategorySlug } from "@/types/catalog";
 
 // One icon per category, shared by navigation and category cards. No emoji (scope §2.1).
 export const categoryIcons: Record<CategorySlug, LucideIcon> = {
-  fruits: Apple,
+  spinach: Leaf,
   vegetables: Carrot,
+  fruits: Apple,
   "organic-groceries": Wheat,
-  fertilizers: Sprout,
+  oil: Droplet,
+  cosmetics: Sparkles,
+  "fancy-items": Gem,
   "womens-apparel": Shirt,
+  fertilizers: Sprout,
 };

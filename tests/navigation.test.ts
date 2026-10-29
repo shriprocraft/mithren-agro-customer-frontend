@@ -4,23 +4,24 @@ import { categories } from "@/data/categories";
 import { shopLinks } from "@/lib/navigation";
 
 describe("shopLinks", () => {
-  it("follows the reference navigation order, including the homepage collections", () => {
+  it("lists exactly the nine categories in the required order", () => {
     expect(shopLinks(categories).map((link) => link.name)).toEqual([
+      "Spinach",
       "Vegetables",
       "Fruits",
       "Organic Groceries",
-      "Seasonal produce",
-      "Combo boxes",
+      "Oil",
+      "Cosmetics",
+      "Fancy Items",
+      "Women Apparels",
       "Fertilizers",
-      "Women's Apparel",
     ]);
   });
 
-  it("links categories to the marketplace and collections to their homepage sections", () => {
+  it("links every category to its own filtered marketplace listing", () => {
     const hrefs = shopLinks(categories).map((link) => link.href);
-    expect(hrefs).toContain("/products?category=vegetables");
-    expect(hrefs).toContain("/#seasonal");
-    expect(hrefs).toContain("/#bundles");
+    expect(new Set(hrefs).size).toBe(9);
+    for (const href of hrefs) expect(href).toMatch(/^\/products\?category=[a-z-]+$/);
   });
 
   it("still lists a category that the reference order does not mention", () => {

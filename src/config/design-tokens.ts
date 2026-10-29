@@ -34,8 +34,8 @@ export const designTokens = {
     error: "#B42318", // red (6.57:1)
     info: "#175CD3", // blue (5.99:1)
   },
-  // The reference uses one geometric sans for headings and body, plus a handwritten accent.
-  fonts: { heading: "Poppins", body: "Poppins", script: "Caveat" },
+  // Montserrat for body, headings and interface text; Playfair Display only for the hero heading.
+  fonts: { heading: "Montserrat", body: "Montserrat", display: "Playfair Display" },
   radii: { sm: "0.5rem", md: "0.75rem", lg: "1rem", pill: "9999px" },
   // Shadows are tinted with Deep Heading Green (31 45 33) so they read as part of the palette.
   shadows: {

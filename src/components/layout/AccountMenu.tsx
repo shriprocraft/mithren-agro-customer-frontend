@@ -37,15 +37,15 @@ export function AccountMenu() {
     <Popover>
       <PopoverTrigger
         aria-label={signedIn ? `Account: ${profile.full_name} (demo)` : "Account: sign in"}
-        className="inline-flex min-h-11 items-center gap-2 rounded-full text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring xl:pr-1"
+        className="inline-flex h-11 items-center gap-2 rounded-full p-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring sm:pr-3"
       >
-        <span className="relative grid size-11 place-items-center rounded-full bg-linear-to-b from-white/70 to-secondary text-brand shadow-[inset_0_0_0_1px_rgb(255_255_255/0.85),0_6px_16px_-10px_rgb(var(--shadow-tint)/0.4)]">
+        <span className="relative grid size-9 place-items-center rounded-full bg-linear-to-b from-white/70 to-secondary text-brand shadow-[inset_0_0_0_1px_rgb(255_255_255/0.85),0_6px_16px_-10px_rgb(var(--shadow-tint)/0.4)]">
           {signedIn ? <span className="font-heading text-base font-semibold" aria-hidden="true">{profile.full_name.trim().charAt(0).toUpperCase() || "D"}</span> : <UserRound className="size-5" aria-hidden="true" />}
         </span>
-        <span className="hidden max-w-32 truncate xl:inline" aria-hidden="true">
+        <span className="hidden max-w-28 truncate sm:inline" aria-hidden="true">
           {signedIn ? profile.full_name.split(/\s+/)[0] : "Account"}
         </span>
-        <ChevronDown className="hidden size-4 text-muted-foreground xl:block" aria-hidden="true" />
+        <ChevronDown className="hidden size-4 text-muted-foreground sm:block" aria-hidden="true" />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[min(20rem,calc(100vw-2rem))] gap-3 p-4">
         {signedIn ? (

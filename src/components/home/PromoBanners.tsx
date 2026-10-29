@@ -9,7 +9,7 @@ import { shopHref } from "@/lib/browse";
 // Copy describes what is listed; it makes no quality, nutrition or yield claims.
 const banners = [
   {
-    href: "/#bundles",
+    href: "/#combo-offers",
     lead: "Fruit & Veg",
     accent: "Combo Boxes",
     text: "Mixed fruit and vegetable boxes.",

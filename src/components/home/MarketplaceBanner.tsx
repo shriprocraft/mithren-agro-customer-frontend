@@ -32,7 +32,7 @@ export function MarketplaceBanner() {
               For the kitchen, the garden and the wardrobe
             </Heading>
             <p className="mt-2 text-sm leading-relaxed text-foreground/80">
-              Browse all five categories and add items from different sellers to the same cart.
+              Browse all nine categories and add items from different sellers to the same cart.
             </p>
             <Button asChild className="mt-6">
               <Link href={shopHref("all")}>

@@ -9,7 +9,7 @@ const points = [
   { Icon: Store, title: "Independent sellers", text: "Seller named on every item" },
   { Icon: Scale, title: "Clear pack sizes", text: "Priced per pack or unit" },
   { Icon: BadgeCheck, title: "Verified labels only", text: "Organic tags after review" },
-  { Icon: Layers, title: "Five categories, one cart", text: "Produce, pantry and apparel" },
+  { Icon: Layers, title: "Nine categories, one cart", text: "Produce, pantry, skincare and more" },
 ];
 
 // The strip across the bottom of the hero: one clean frosted panel (near-opaque white, a light blur

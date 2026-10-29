@@ -4,15 +4,17 @@ import { cn } from "cn"
 
 // Shared text styles (guide, Section K). The visual variant is independent of the semantic tag,
 // so a page keeps one h1 while sections can still use large headings.
-const headingVariants = cva("font-heading text-foreground text-balance", {
+const headingVariants = cva("text-foreground text-balance", {
   variants: {
     variant: {
       // Hero 34–38px on phones, 44px at 1024px and 56px from 1280px, sized for the spacious landing hero; 22px section titles.
-      display: "text-[2.125rem] leading-[1.06] min-[375px]:text-[2.375rem] font-medium tracking-tight sm:text-5xl lg:text-[2.75rem] lg:leading-[1.04] xl:text-[3.5rem] xl:leading-[1.02]",
-      h1: "text-3xl leading-tight font-medium tracking-tight sm:text-4xl",
-      h2: "text-xl leading-tight font-semibold tracking-tight sm:text-[1.375rem]",
-      h3: "text-xl leading-snug font-medium",
-      h4: "text-base leading-snug font-semibold",
+      // The hero alone is set in the editorial serif (font-display, Playfair Display); every other heading
+      // uses font-heading (Montserrat), like the body.
+      display: "font-display text-[2.125rem] leading-[1.08] min-[375px]:text-[2.375rem] font-semibold tracking-[-0.01em] sm:text-5xl lg:text-[2.875rem] lg:leading-[1.06] xl:text-[3.625rem] xl:leading-[1.04]",
+      h1: "font-heading text-3xl leading-tight font-medium tracking-tight sm:text-4xl",
+      h2: "font-heading text-xl leading-tight font-semibold tracking-tight sm:text-[1.375rem]",
+      h3: "font-heading text-xl leading-snug font-medium",
+      h4: "font-heading text-base leading-snug font-semibold",
     },
   },
   defaultVariants: { variant: "h2" },

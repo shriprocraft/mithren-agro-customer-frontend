@@ -6,6 +6,9 @@ import type { ImageAsset, Product, ProductVariant, StockStatus, VariantType } fr
 const studio = (slug: string, alt: string): ImageAsset[] => [
   { src: `/images/studio/products/${slug}-studio.jpg`, alt, studio: true },
 ];
+// Oil, cosmetics and fancy items use photographs (Unsplash License, docs/IMAGE_CREDITS.md) until the
+// sellers supply their own: framed by a cover crop rather than contained like the studio shots.
+const photo = (file: string, alt: string): ImageAsset[] => [{ src: `/images/products/${file}.jpg`, alt }];
 
 const listings: Product[] = [
   // Fruits
@@ -37,6 +40,14 @@ const listings: Product[] = [
     stock_status: "in_stock", is_seasonal: true,
     images: studio("pomegranates", "Whole red pomegranates and one halved pomegranate"),
   },
+  // Spinach
+  {
+    id: "p-spinach", slug: "spinach", name: "Spinach (Palak)",
+    description: "A tied bunch of fresh spinach leaves.",
+    category_id: "cat-spinach", vendor_id: "v-green-acres", unit: "1 bunch", price: 3000,
+    stock_status: "low_stock",
+    images: studio("spinach", "A tied bunch of fresh spinach leaves"),
+  },
   // Vegetables
   {
     id: "p-tomatoes", slug: "tomatoes", name: "Tomatoes",
@@ -44,13 +55,6 @@ const listings: Product[] = [
     category_id: "cat-vegetables", vendor_id: "v-green-acres", unit: "1 kg", price: 4000,
     stock_status: "in_stock",
     images: studio("tomatoes", "A cluster of ripe red tomatoes"),
-  },
-  {
-    id: "p-spinach", slug: "spinach", name: "Spinach (Palak)",
-    description: "A tied bunch of fresh spinach leaves.",
-    category_id: "cat-vegetables", vendor_id: "v-green-acres", unit: "1 bunch", price: 3000,
-    stock_status: "low_stock",
-    images: studio("spinach", "A tied bunch of fresh spinach leaves"),
   },
   {
     id: "p-carrots", slug: "carrots", name: "Carrots",
@@ -122,6 +126,79 @@ const listings: Product[] = [
     category_id: "cat-organic-groceries", vendor_id: "v-annapurna", unit: "1 kg", price: 9000,
     stock_status: "in_stock",
     images: studio("jaggery", "Blocks of golden-brown jaggery"),
+  },
+  // Oil (sample listings; no health or certification claims)
+  {
+    id: "p-groundnut-oil", slug: "cold-pressed-groundnut-oil", name: "Cold-Pressed Groundnut Oil",
+    description: "Groundnut oil extracted by cold pressing, for everyday cooking.",
+    category_id: "cat-oil", vendor_id: "v-chekku", unit: "1 L", price: 38000,
+    stock_status: "in_stock",
+    images: photo("groundnut-oil", "Golden cooking oil in a glass bottle with a pourer"),
+  },
+  {
+    id: "p-sesame-oil", slug: "cold-pressed-sesame-oil", name: "Cold-Pressed Sesame Oil",
+    description: "Gingelly (sesame) oil extracted by cold pressing, for cooking and tempering.",
+    category_id: "cat-oil", vendor_id: "v-chekku", unit: "1 L", price: 48000,
+    stock_status: "in_stock",
+    images: photo("sesame-oil", "Glass bottle of amber oil on a white background"),
+  },
+  {
+    id: "p-coconut-oil", slug: "cold-pressed-coconut-oil", name: "Cold-Pressed Coconut Oil",
+    description: "Coconut oil extracted by cold pressing from dried coconut.",
+    category_id: "cat-oil", vendor_id: "v-chekku", unit: "1 L", price: 42000,
+    stock_status: "in_stock",
+    images: photo("coconut-oil", "Halved coconuts showing their white flesh"),
+  },
+  // Cosmetics (sample listings; no medical, therapeutic or certification claims)
+  {
+    id: "p-beetroot-lip-balm", slug: "beetroot-lip-balm", name: "Beetroot Lip Balm",
+    description: "A lightly tinted lip balm made with beetroot extract.",
+    category_id: "cat-cosmetics", vendor_id: "v-tulsi", unit: "10 g", price: 18000,
+    stock_status: "in_stock",
+    images: photo("beetroot-lip-balm", "Small pink lip balm pot with its lid on a white surface"),
+  },
+  {
+    id: "p-milk-drops", slug: "milk-drops", name: "Milk Drops",
+    description: "A light, milk-based face drop for everyday skincare routines.",
+    category_id: "cat-cosmetics", vendor_id: "v-tulsi", unit: "30 ml", price: 32000,
+    stock_status: "in_stock",
+    images: photo("milk-drops", "Amber glass dropper bottle on a white surface"),
+  },
+  {
+    id: "p-aloe-vera-gel", slug: "aloe-vera-gel", name: "Aloe Vera Gel",
+    description: "A plant-based aloe vera gel for skin and hair.",
+    category_id: "cat-cosmetics", vendor_id: "v-tulsi", unit: "100 g", price: 22000,
+    stock_status: "in_stock",
+    images: photo("aloe-vera-gel", "Hands holding an open jar of clear gel"),
+  },
+  // Fancy items (sample listings of handmade products)
+  {
+    id: "p-rajasthani-bangles", slug: "handmade-rajasthani-bangles", name: "Handmade Rajasthani Bangles",
+    description: "A set of hand-decorated lac bangles in the Rajasthani style.",
+    category_id: "cat-fancy-items", vendor_id: "v-kalakar", unit: "Set of 12", price: 45000,
+    stock_status: "in_stock",
+    images: photo("rajasthani-bangles", "Decorated traditional bangles displayed on a wooden stand"),
+  },
+  {
+    id: "p-glass-bangles", slug: "traditional-glass-bangles", name: "Traditional Glass Bangles",
+    description: "A set of colourful glass bangles for festivals and everyday wear.",
+    category_id: "cat-fancy-items", vendor_id: "v-kalakar", unit: "Set of 24", price: 35000,
+    stock_status: "in_stock",
+    images: photo("glass-bangles", "Stack of colourful glass bangles"),
+  },
+  {
+    id: "p-terracotta-diyas", slug: "hand-painted-terracotta-diyas", name: "Hand-Painted Terracotta Diyas",
+    description: "Clay lamps shaped and painted by hand.",
+    category_id: "cat-fancy-items", vendor_id: "v-kalakar", unit: "Set of 6", price: 24000,
+    stock_status: "in_stock",
+    images: photo("terracotta-diyas", "Lit clay diyas arranged on a platter"),
+  },
+  {
+    id: "p-jute-basket", slug: "handwoven-jute-basket", name: "Handwoven Jute Basket",
+    description: "A sturdy jute basket for storage or gifting.",
+    category_id: "cat-fancy-items", vendor_id: "v-kalakar", unit: "1 piece", price: 55000,
+    stock_status: "in_stock",
+    images: photo("jute-basket", "Stacked handwoven baskets on white fabric"),
   },
   // Fertilizers (no specifications, certifications or usage claims)
   {
@@ -214,6 +291,11 @@ const productOptions: Record<string, Pick<Product, "variants" | "variant_type" |
   "p-chana-dal": options("weight", "1 kg", [["500 g", 5800], ["1 kg", 11000]]),
   "p-wheat-atta": options("weight", "5 kg", [["1 kg", 5800], ["5 kg", 26000], ["10 kg", 50000]]),
   "p-jaggery": options("weight", "1 kg", [["500 g", 4800], ["1 kg", 9000]]),
+  "p-groundnut-oil": options("volume", "1 L", [["500 ml", 20000], ["1 L", 38000]]),
+  "p-sesame-oil": options("volume", "1 L", [["500 ml", 25000], ["1 L", 48000]]),
+  "p-coconut-oil": options("volume", "1 L", [["500 ml", 22000], ["1 L", 42000]]),
+  "p-rajasthani-bangles": options("size", "2.6", sizes(["2.4", "2.6", "2.8"], 45000)),
+  "p-glass-bangles": options("size", "2.6", sizes(["2.4", "2.6", "2.8"], 35000)),
   "p-vermicompost": options("weight", "5 kg bag", [["5 kg bag", 25000], ["10 kg bag", 48000], ["25 kg bag", 110000, undefined, "low_stock"]]),
   "p-potting-mix": options("weight", "10 kg bag", [["5 kg bag", 17000], ["10 kg bag", 32000]]),
   "p-floral-kurta-set": options("size", "M", sizes(["S", "M", "L", "XL", "XXL"], 129900, { XXL: "out_of_stock" })),

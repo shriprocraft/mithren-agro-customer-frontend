@@ -88,7 +88,7 @@ Use `<Button>` from `src/components/ui/button.tsx`. Do not restyle buttons per p
 - Headings and product names: `text-foreground` (`#1F2D21`). One highlighted word may use `text-primary`.
 - Descriptions, metadata and helper text: `text-muted-foreground` (`#667085`).
 - Eyebrows, links and selected navigation: `text-primary` / `text-brand`.
-- Fonts: Poppins for headings and body; Caveat only for the hero's handwritten note.
+- Fonts (loaded once with `next/font` in `src/app/layout.tsx`): Montserrat (`font-sans`, `font-heading`) for body, headings, navigation, buttons, form controls and labels; Playfair Display (`font-display`) only for the homepage hero heading, via `<Heading variant="display">`. Don't set other headings in the serif.
 
 ## States
 

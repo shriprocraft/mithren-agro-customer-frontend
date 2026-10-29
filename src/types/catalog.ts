@@ -8,11 +8,15 @@ export interface ImageAsset {
 }
 
 export const categorySlugs = [
-  "fruits",
+  "spinach",
   "vegetables",
+  "fruits",
   "organic-groceries",
-  "fertilizers",
+  "oil",
+  "cosmetics",
+  "fancy-items",
   "womens-apparel",
+  "fertilizers",
 ] as const;
 
 export type CategorySlug = (typeof categorySlugs)[number];
@@ -57,6 +61,13 @@ export interface ProductVariant {
   stock_status: StockStatus;
 }
 
+/** One catalogue item inside a combo box: which product, which option and how many. */
+export interface BundleItem {
+  product_id: string;
+  variant_id?: string;
+  quantity: number;
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -73,8 +84,15 @@ export interface Product {
   discounted_price?: number;
   stock_status: StockStatus;
   is_seasonal?: boolean;
-  /** Present on combo boxes and bundles. */
+  /** Present on combo boxes and bundles: what the box holds, as shown to customers. */
   bundle_contents?: string[];
+  /**
+   * Combo boxes built from catalogue items. The box's price and stock are derived from these
+   * (lib/bundles.ts), so the advertised price, the cart line and checkout always agree.
+   */
+  bundle_items?: BundleItem[];
+  /** Short merchandising label on combo cards, e.g. "Family size". Never a discount claim. */
+  badge?: string;
   /**
    * Purchasable options. When present, `unit`, `price`, `discounted_price` and `stock_status` above
    * describe the default option (`default_variant_id`), so listings, sorting and filters use it.
@@ -82,10 +100,4 @@ export interface Product {
   variants?: ProductVariant[];
   variant_type?: VariantType;
   default_variant_id?: string;
-}
-
-export interface DeliveryArea {
-  id: string;
-  label: string;
-  postal_code: string;
 }

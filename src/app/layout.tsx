@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Caveat, Poppins } from "next/font/google";
+import { Montserrat, Playfair_Display } from "next/font/google";
 import { Suspense } from "react";
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
 import { NavigationProgress } from "@/components/layout/NavigationProgress";
@@ -8,19 +8,19 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { siteConfig } from "@/config/site";
 import { AppProviders } from "@/context/AppProviders";
-import { getBundles, getCategories, getDeliveryAreas, getProducts } from "@/services/catalog";
+import { getBundles, getCategories, getProducts } from "@/services/catalog";
 import "./globals.css";
 
 // Font families are defined in src/config/design-tokens.ts and mapped to Tailwind in globals.css.
-const poppins = Poppins({
-  variable: "--font-poppins",
+// Body, headings and interface text. Variable font, so one file covers every weight.
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
 });
 
-// Only the hero's handwritten note uses it.
-const caveat = Caveat({
-  variable: "--font-caveat",
+// Only the homepage hero heading uses it (Heading variant="display").
+const playfairDisplay = Playfair_Display({
+  variable: "--font-playfair-display",
   subsets: ["latin"],
 });
 
@@ -33,17 +33,16 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const [categories, products, bundles, deliveryAreas] = await Promise.all([
+  const [categories, products, bundles] = await Promise.all([
     getCategories(),
     getProducts(),
     getBundles(),
-    getDeliveryAreas(),
   ]);
 
   return (
     <html
       lang={siteConfig.locale}
-      className={`${poppins.variable} ${caveat.variable} h-full antialiased`}
+      className={`${montserrat.variable} ${playfairDisplay.variable} h-full antialiased`}
     >
       <body className="relative isolate flex min-h-full flex-col">
         <PageBackdrop />
@@ -59,7 +58,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         </Suspense>
         <AppProviders>
           <AnnouncementBar />
-          <SiteHeader categories={categories} catalog={[...products, ...bundles]} deliveryAreas={deliveryAreas} />
+          <SiteHeader catalog={[...products, ...bundles]} />
           {children}
           <SiteFooter categories={categories} />
         </AppProviders>

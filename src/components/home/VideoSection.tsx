@@ -2,7 +2,7 @@ import { VideoCard } from "@/components/home/VideoCard";
 import { Container } from "@/components/layout/Container";
 import { homeVideos } from "@/config/external-links";
 
-// Two video cards directly under the hero, side by side from md. Sources and copy live in
+// The two video cards, after About Mithren Agro and before the store search; side by side from md. Sources and copy live in
 // config/external-links.ts; the cards handle a missing or broken source themselves.
 export function VideoSection() {
   return (

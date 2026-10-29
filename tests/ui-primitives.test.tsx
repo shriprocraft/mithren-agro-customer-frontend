@@ -51,7 +51,14 @@ describe("Typography", () => {
       </Heading>,
     );
     const heading = screen.getByRole("heading", { level: 1, name: "Page title" });
-    expect(heading).toHaveClass("font-heading");
+    // The display variant (the homepage hero) is the one heading set in the serif.
+    expect(heading).toHaveClass("font-display");
+    expect(heading).not.toHaveClass("font-heading");
+  });
+
+  it("sets every other heading variant in the sans heading font", () => {
+    render(<Heading>Section title</Heading>);
+    expect(screen.getByRole("heading", { level: 2, name: "Section title" })).toHaveClass("font-heading");
   });
 
   it("renders text as a paragraph by default", () => {

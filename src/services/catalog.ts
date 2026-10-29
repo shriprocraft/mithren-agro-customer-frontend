@@ -1,9 +1,8 @@
-import { bundles } from "@/data/bundles";
+import { bundles, comboBoxes } from "@/data/bundles";
 import { categories } from "@/data/categories";
-import { deliveryAreas } from "@/data/delivery-areas";
 import { products } from "@/data/products";
 import { vendors } from "@/data/vendors";
-import type { Category, CategorySlug, DeliveryArea, Product, Vendor } from "@/types/catalog";
+import type { Category, CategorySlug, Product, Vendor } from "@/types/catalog";
 
 // The only layer pages call for catalogue data (guide, Section M). Functions are async so call
 // sites stay the same when these read from a real API instead of mock data.
@@ -29,12 +28,14 @@ export async function getSeasonalProducts(): Promise<Product[]> {
   return products.filter((p) => p.is_seasonal);
 }
 
+/** Every combo box and offer. */
 export async function getBundles(): Promise<Product[]> {
   return bundles;
 }
 
-export async function getDeliveryAreas(): Promise<DeliveryArea[]> {
-  return deliveryAreas;
+/** The ₹1,000 / ₹5,000 / ₹10,000 budget boxes that lead the homepage "Combo offers" section. */
+export async function getComboBoxes(): Promise<Product[]> {
+  return comboBoxes;
 }
 
 /** Everything that can be bought: individual products and combo boxes. */

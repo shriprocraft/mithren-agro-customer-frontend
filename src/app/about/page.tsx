@@ -70,8 +70,8 @@ export default async function AboutPage() {
         </section>
 
         <section aria-labelledby="shop-title">
-          <SectionTitle id="shop-title" eyebrow="What you can shop">Five categories, one cart</SectionTitle>
-          <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <SectionTitle id="shop-title" eyebrow="What you can shop">Nine categories, one cart</SectionTitle>
+          <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {categories.map((category) => (
               <li key={category.id}>
                 <Link href={shopHref(category.slug)} className="group surface-card flex h-full flex-col rounded-2xl p-4 outline-none hover:shadow-[var(--elevation-overlay)] focus-visible:ring-2 focus-visible:ring-ring">

@@ -40,18 +40,23 @@ function Column({ id, title, links }: { id: string; title: string; links: readon
   );
 }
 
-// Brand and About on the left, then Shop, Customer support, Policies and Grow with us. Phones: the
-// brand block, then two columns; tablets three; desktops one row.
+/** How many categories go in "Shop" (after All products); the rest go in "More categories". */
+const SHOP_COLUMN_CATEGORIES = 4;
+
+// Brand and About on the left, then Shop and More categories (the category list split in two so neither
+// column runs long), Customer support, Policies and Grow with us. Phones: the brand block, then two
+// columns; tablets three; desktops one row. Then the bottom bar: copyright and the preview notices, centred
+// and wrapping naturally on small screens. Last, on its own full-width line (so it is centred on the
+// viewport, not beside other text), the "Powered by Shri Pro Craft" credit. It is the one link that leaves
+// the site, so it opens in a new tab (noopener noreferrer) and says so.
 export function SiteFooter({ categories }: { categories: Category[] }) {
-  const shopLinks = [
-    { href: "/products", label: "All products" },
-    ...categories.map((category) => ({ href: shopHref(category.slug), label: category.name })),
-    { href: "/#bundles", label: "Combo boxes" },
-  ];
+  const categoryLinks = categories.map((category) => ({ href: shopHref(category.slug), label: category.name }));
+  const shopLinks = [{ href: "/products", label: "All products" }, ...categoryLinks.slice(0, SHOP_COLUMN_CATEGORIES)];
+  const moreLinks = [...categoryLinks.slice(SHOP_COLUMN_CATEGORIES), { href: "/#combo-offers", label: "Combo offers" }];
 
   return (
     <footer className="mt-12 border-t border-border bg-card">
-      <Container className="grid grid-cols-2 gap-x-6 gap-y-8 py-10 sm:grid-cols-3 sm:py-12 lg:grid-cols-[1.5fr_repeat(4,minmax(0,1fr))] lg:gap-x-8">
+      <Container className="grid grid-cols-2 gap-x-6 gap-y-8 py-10 sm:grid-cols-3 sm:py-12 lg:grid-cols-[1.35fr_repeat(5,minmax(0,1fr))] lg:gap-x-7">
         <div className="col-span-2 space-y-4 sm:col-span-3 lg:col-span-1 lg:pr-6">
           <BrandMark className="h-14" />
           <div>
@@ -67,6 +72,7 @@ export function SiteFooter({ categories }: { categories: Category[] }) {
           </Link>
         </div>
         <Column id="footer-shop" title="Shop" links={shopLinks} />
+        <Column id="footer-more" title="More categories" links={moreLinks} />
         <Column id="footer-support" title="Customer support" links={supportLinks} />
         <Column id="footer-policies" title="Policies" links={policyLinks} />
         <div className="space-y-5">
@@ -75,10 +81,26 @@ export function SiteFooter({ categories }: { categories: Category[] }) {
         </div>
       </Container>
       <div className="border-t border-border bg-band">
-        <Container className="flex flex-col gap-1 py-4 text-xs text-secondary-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>© {siteConfig.legalName}. All rights reserved.</p>
-          <p>Preview storefront · listings, prices and sellers are sample data · policies are drafts under legal review</p>
+        <Container className="py-4 text-center text-[0.8125rem] leading-relaxed sm:text-sm text-pretty text-secondary-foreground">
+          <p>
+            © {siteConfig.legalName} All rights reserved. · Preview storefront · Listings, prices and sellers are sample data · Policies are drafts
+            under legal review
+          </p>
         </Container>
+      </div>
+      <div className="border-t border-border px-4 py-4 text-center text-sm sm:text-[0.9375rem]">
+        <p className="text-muted-foreground">
+          Powered by{" "}
+          <a
+            href="https://shriprocraft.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Shri Pro Craft (opens in a new tab)"
+            className="rounded font-semibold text-foreground underline-offset-4 transition-colors outline-none hover:text-brand hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Shri Pro Craft
+          </a>
+        </p>
       </div>
     </footer>
   );

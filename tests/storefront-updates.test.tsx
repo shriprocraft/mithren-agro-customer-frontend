@@ -57,10 +57,10 @@ describe("Investor Opportunities page", () => {
   it("shows a safe unavailable state when the Investor Portal URL is not configured", async () => {
     vi.resetModules();
     const { default: Page } = await import("@/app/investors/page");
-    render(<Page />);
-    expect(screen.getByRole("heading", { level: 1, name: "Investor Opportunities at Mithren Agro" })).toBeInTheDocument();
+    render(await Page());
+    expect(screen.getByRole("heading", { level: 1, name: "Investor Opportunities" })).toBeInTheDocument();
     const unavailable = screen.getAllByRole("button", { name: /Investor Portal: coming soon/ });
-    expect(unavailable).toHaveLength(2);
+    expect(unavailable).toHaveLength(1);
     unavailable.forEach((button) => expect(button).toBeDisabled());
     expect(screen.queryByRole("link", { name: /Access Investor Portal/ })).toBeNull();
     expect(screen.getByRole("heading", { name: "Risks and disclosures" })).toBeInTheDocument();
@@ -71,9 +71,9 @@ describe("Investor Opportunities page", () => {
     vi.stubEnv("NEXT_PUBLIC_INVESTOR_PORTAL_URL", "https://portal.example.com/");
     vi.resetModules();
     const { default: Page } = await import("@/app/investors/page");
-    render(<Page />);
+    render(await Page());
     const links = screen.getAllByRole("link", { name: /Access Investor Portal/ });
-    expect(links).toHaveLength(2);
+    expect(links).toHaveLength(1);
     links.forEach((link) => expect(link).toHaveAttribute("href", "https://portal.example.com/"));
     const first = links[0]!;
     act(() => { first.addEventListener("click", (e) => e.preventDefault()); fireEvent.click(first); });

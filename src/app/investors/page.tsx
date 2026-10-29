@@ -1,63 +1,42 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ArrowRight,
-  BarChart3,
-  CircleCheck,
-  FileSearch,
-  FileText,
-  LockKeyhole,
-  Megaphone,
-  MonitorSmartphone,
-  MessagesSquare,
-  ShieldAlert,
-  Sprout,
-  Store,
-  Truck,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowRight, CalendarClock, CircleCheck, MessagesSquare, ShieldAlert } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { ExternalCta } from "@/components/opportunities/ExternalCta";
 import { FaqList, type Faq } from "@/components/opportunities/FaqList";
+import { DomainCard, PlanCard } from "@/components/opportunities/InvestmentCards";
 import { OpportunityHero } from "@/components/opportunities/OpportunityHero";
 import { ProvisionalNotice } from "@/components/opportunities/ProvisionalNotice";
 import { SectionTitle } from "@/components/opportunities/SectionTitle";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/typography";
 import { externalLinks } from "@/config/external-links";
+import { brochureDurationStages } from "@/data/investments";
+import { projectsByDomain, selectionHref } from "@/lib/investments";
+import { getInvestmentDomains, getInvestmentPlans, getInvestmentProjects } from "@/services/investments";
 
 export const metadata: Metadata = {
   title: "Investor Opportunities",
-  description: "Learn about Mithren Agro and how prospective investors can review opportunities. Not an offer of securities.",
+  description: "Mithren Agro's 12 agricultural projects across six domains, and the contribution amounts investors can choose. Information only, not an offer.",
 };
 
 // Information only: no return, profit, dividend, capital protection or acceptance is promised, and
-// nothing here is an offer. Eligibility, rights, returns, risks and terms depend on official
-// documents. "Access Investor Portal" links to the separate Investor Portal application
-// (NEXT_PUBLIC_INVESTOR_PORTAL_URL); when that is not configured the button says it is unavailable.
+// nothing here is an offer. Mithren Agro runs 12 agricultural projects, two in each of six domains,
+// and investors choose a contribution amount and a project. Projects, amounts and every unconfirmed
+// detail come from data/investments.ts (durations, eligibility and allocation rules are not confirmed
+// yet, so they read "awaiting confirmation"). This page introduces the concept; /investors/projects
+// lists the projects and /investors/plan lets a visitor choose and review a plan and a project. The
+// next step is the separate Investor Portal application (NEXT_PUBLIC_INVESTOR_PORTAL_URL); when that
+// is not configured the buttons say it is unavailable. No investment is made on this site.
 
 const portalNote = "The Investor Portal link has not been configured for this site yet.";
 
-const business: { Icon: LucideIcon; title: string; text: string }[] = [
-  { Icon: Store, title: "A multi-seller marketplace", text: "Independent farmers, stores and brands list produce, pantry staples, farm supplies and apparel in one storefront." },
-  { Icon: Sprout, title: "Local agriculture first", text: "The marketplace is built around local agricultural sellers and the customers near them." },
-  { Icon: Truck, title: "Sellers, agents and delivery", text: "Seller and delivery agents are planned to support onboarding and local delivery." },
-  { Icon: MonitorSmartphone, title: "Technology at the centre", text: "A customer storefront alongside separate applications for sellers, delivery and investors, built around one marketplace." },
-];
-
-const benefits: { Icon: LucideIcon; text: string }[] = [
-  { Icon: BarChart3, text: "Visibility into relevant business performance information, where authorised." },
-  { Icon: Megaphone, text: "Access to investor communications and updates, if provided." },
-  { Icon: FileSearch, text: "A structured process for reviewing investment opportunities." },
-  { Icon: LockKeyhole, text: "A dedicated portal for eligible investors." },
-  { Icon: FileText, text: "Access to relevant business documents, subject to authorisation." },
-];
-
 const process: { title: string; text: string }[] = [
-  { title: "Learn about the business", text: "Read this page and any information Mithren Agro publishes for prospective investors." },
-  { title: "Express interest", text: "Use the Investor Portal, once available to you, to register interest and see what you are authorised to view." },
-  { title: "Review the official documents", text: "Eligible investors receive the documents that set out the opportunity, its terms and its risks." },
-  { title: "Decide, with independent advice", text: "Any participation follows the official documentation and the applicable eligibility checks." },
+  { title: "Learn about the domains", text: "Crop production, dairy, fish and poultry farming, biogas and composting, and agri forestry." },
+  { title: "Explore the 12 projects", text: "Two projects in each domain, with the details Mithren Agro has confirmed so far." },
+  { title: "Choose an amount and a project", text: "Pick one of the five contribution amounts and the project you are interested in." },
+  { title: "Review your selection", text: "See your choice in one place. Nothing is submitted and no payment is taken here." },
+  { title: "Continue through the Investor Portal", text: "Eligibility checks, official documents and any agreement happen there, not on this site." },
 ];
 
 const eligibility = [
@@ -76,90 +55,84 @@ const risks = [
 ];
 
 const faqs: Faq[] = [
-  { q: "Is this page an offer to invest?", a: "No. It is general information about Mithren Agro. Any opportunity is governed only by the official documentation provided to eligible investors." },
-  { q: "What returns can I expect?", a: "No return, profit or dividend is promised. Returns, rights and risks depend entirely on the terms in the official documents." },
+  { q: "Is this page an offer to invest?", a: "No. It is general information about Mithren Agro's agricultural projects. Any opportunity is governed only by the official documentation provided to eligible investors." },
+  { q: "What returns can I expect?", a: "No return, profit or dividend is promised, and none is shown on this site. Returns, rights and risks depend entirely on the terms in the official documents." },
+  { q: "How long does each plan run?", a: `Not confirmed yet. The plan brochure lists stages of ${brochureDurationStages.join(", ")}, but which applies to each amount is still to be confirmed. Each plan's duration will appear here once Mithren Agro confirms it.` },
+  { q: "Can one plan fund more than one project, or can I combine plans?", a: "Not confirmed yet. This will be set out in the official documentation. Until then, the selection page lets you choose one amount and one project." },
+  { q: "What happens when I review a selection?", a: "Nothing is submitted, saved or charged. The review summarises your choice so you can continue through the Investor Portal, where eligibility checks and the official documents apply." },
   { q: "Who is eligible to invest?", a: "Eligibility is defined in the official documentation and may depend on verification checks and applicable regulations." },
-  { q: "What is the Investor Portal?", a: "A separate Mithren Agro application for eligible investors, with its own sign-in. This storefront only links to it and never asks for investor credentials." },
+  { q: "What is the Investor Portal?", a: "A separate Mithren Agro application for eligible investors, with its own sign-in. This storefront only links to it and never asks for investor credentials or payment." },
   { q: "How can I contact Mithren Agro about investing?", a: <>Through the Investor Portal once it is available to you. Official contact details for investor enquiries will be published here and on the <Link href="/support#contact" className="font-medium text-primary underline-offset-4 hover:underline">Help &amp; support</Link> page; none has been published yet.</> },
   { q: "Is the Investor Portal related to my shopping account?", a: "No. Shopping, the demo customer account and the Investor Portal are separate. Signing in to one does not sign you in to another." },
 ];
 
-export default function InvestorsPage() {
+export default async function InvestorsPage() {
+  const [domains, projects, plans] = await Promise.all([getInvestmentDomains(), getInvestmentProjects(), getInvestmentPlans()]);
+  const groups = projectsByDomain(projects, domains);
+
   return (
     <main id="main-content" className="flex-1">
       <OpportunityHero
         breadcrumb="Investor Opportunities"
         eyebrow="For investors"
-        title="Investor Opportunities at Mithren Agro"
-        image={{ src: "/images/home/hero-pantry.jpg", alt: "Pulses and grains arranged in a flower pattern" }}
+        title="Investor Opportunities"
+        image={{ src: "/images/home/farm-essentials.jpg", alt: "Young green seedlings growing in rows of soil" }}
         actions={
           <>
-            <ExternalCta
-              id="portal-hero"
-              href={externalLinks.investorPortal}
-              label="Access Investor Portal"
-              unavailableLabel="Investor Portal: coming soon"
-              unavailableNote={portalNote}
-              className="px-6"
-            />
+            <Button asChild className="px-6">
+              <Link href="/investors/projects">Explore the {projects.length} projects<ArrowRight aria-hidden="true" /></Link>
+            </Button>
             <Button asChild variant="outline" className="px-6">
-              <Link href="#risks">Read the risk disclosure<ArrowRight aria-hidden="true" /></Link>
+              <Link href={selectionHref()}>Choose a plan</Link>
             </Button>
           </>
         }
       >
         <p>
-          Mithren Agro is building a farm-to-home marketplace for independent agricultural sellers. This page introduces the business and explains how
-          prospective investors can learn more. It is information, not an offer.
+          Mithren Agro runs {projects.length} agricultural projects across {domains.length} domains: crop production, dairy farming, fish farming,
+          poultry farming, biogas and composting, and agri forestry. Choose a contribution amount and a project to support. This is information,
+          not an offer.
         </p>
       </OpportunityHero>
 
       <Container className="space-y-12 py-8 sm:space-y-16 sm:py-12">
         <ProvisionalNotice title="Proposed information — subject to official documentation">
-          Investor eligibility, rights, returns, risks and terms depend on official documents, which are provided only to eligible investors. Nothing on
-          this page is a guarantee, a recommendation or a legally binding commitment.
+          Project details, plan durations, which plans apply to which projects, eligibility, rights, risks and terms are still being confirmed and
+          will be set out only in official documents provided to eligible investors. Nothing on this page is a guarantee, a recommendation or a
+          legally binding commitment, and no investment can be made on this site.
         </ProvisionalNotice>
 
-        <section aria-labelledby="business-title">
-          <SectionTitle id="business-title" eyebrow="The business">An agricultural marketplace</SectionTitle>
-          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {business.map(({ Icon, title, text }) => (
-              <li key={title} className="surface-card rounded-3xl p-5 sm:p-6">
-                <span className="grid size-12 place-items-center rounded-2xl bg-secondary text-primary"><Icon className="size-6" aria-hidden="true" /></span>
-                <h3 className="mt-4 font-heading text-base font-semibold">{title}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{text}</p>
-              </li>
+        <section aria-labelledby="domains-title">
+          <SectionTitle id="domains-title" eyebrow="Six domains · 12 projects">Agricultural domains</SectionTitle>
+          <p className="mt-2 max-w-2xl text-muted-foreground">Each domain has two projects. Open a domain to see its projects and what has been confirmed about them.</p>
+          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {groups.map(({ domain, projects: list }) => (
+              <li key={domain.id}><DomainCard domain={domain} projects={list} /></li>
             ))}
           </ul>
         </section>
 
-        <section aria-labelledby="opportunity-title" className="grid gap-6 lg:grid-cols-2 lg:gap-12">
-          <div>
-            <SectionTitle id="opportunity-title" eyebrow="The opportunity">Why investors may be interested</SectionTitle>
-            <p className="mt-3 text-muted-foreground">
-              Mithren Agro may offer eligible investors the chance to review opportunities to participate in the business as it grows. The scope,
-              structure and timing of any opportunity will be set out only in the official documents.
-            </p>
-          </div>
-          <div className="surface-card rounded-3xl p-5 sm:p-6">
-            <h3 className="flex flex-wrap items-center gap-2 font-heading text-base font-semibold">
-              Proposed investor benefits
-              <span className="rounded-full bg-highlight/40 px-2.5 py-0.5 text-xs font-medium text-foreground">Subject to official documentation</span>
-            </h3>
-            <ul className="mt-4 grid gap-3">
-              {benefits.map(({ Icon, text }) => (
-                <li key={text} className="flex gap-3 text-sm leading-relaxed">
-                  <Icon className="mt-0.5 size-4.5 shrink-0 text-primary" aria-hidden="true" />
-                  {text}
-                </li>
-              ))}
-            </ul>
-          </div>
+        <section id="plans" aria-labelledby="plans-title" className="scroll-mt-6 lg:scroll-mt-36">
+          <SectionTitle id="plans-title" eyebrow="Investment plans">Contribution amounts</SectionTitle>
+          <p className="mt-2 max-w-2xl text-muted-foreground">
+            Five amounts to choose from. Each plan&apos;s duration, and which projects it applies to, are awaiting confirmation; no rate, return or
+            payout is offered here.
+          </p>
+          <ul className="mt-6 grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+            {plans.map((plan) => (
+              <li key={plan.id}><PlanCard plan={plan} /></li>
+            ))}
+          </ul>
+          <p className="mt-4 flex max-w-3xl gap-2 text-xs leading-relaxed text-muted-foreground">
+            <CalendarClock className="mt-px size-3.5 shrink-0 text-brand" aria-hidden="true" />
+            The plan brochure lists stages of {brochureDurationStages.join(", ")}. Which stage applies to each amount will be shown once Mithren Agro
+            confirms it.
+          </p>
         </section>
 
         <section aria-labelledby="process-title">
-          <SectionTitle id="process-title" eyebrow="The process">How the investment process is planned to work</SectionTitle>
-          <ol className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <SectionTitle id="process-title" eyebrow="How it works">From exploring to the Investor Portal</SectionTitle>
+          <ol className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {process.map(({ title, text }, index) => (
               <li key={title} className="surface-card rounded-3xl p-5">
                 <span className="grid size-10 place-items-center rounded-full bg-primary font-heading text-sm font-semibold text-primary-foreground" aria-hidden="true">{index + 1}</span>
@@ -168,6 +141,9 @@ export default function InvestorsPage() {
               </li>
             ))}
           </ol>
+          <Button asChild className="mt-6">
+            <Link href={selectionHref()}>Choose a plan and a project<ArrowRight aria-hidden="true" /></Link>
+          </Button>
         </section>
 
         <section aria-labelledby="eligibility-title" className="rounded-3xl bg-soft p-5 ring-1 ring-border sm:p-8">

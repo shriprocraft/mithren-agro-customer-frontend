@@ -1,7 +1,13 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import Home from "@/app/page";
 import { AppProviders } from "@/context/AppProviders";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 describe("homepage", () => {
   it("renders one h1 and the sections in the required order, without the removed ones", async () => {
@@ -9,13 +15,15 @@ describe("homepage", () => {
 
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     // Top-level sections, in page order, by the id of the heading that labels them.
-    const order = ["hero-title", "about-title", "videos-title", "categories-title", "seasonal-title", "bundles-title", "banner-title"];
-    const sections = [...document.querySelectorAll("main > section")].map((section) => section.getAttribute("aria-labelledby"));
+    const order = ["hero-title", "about-title", "videos-title", "home-search", "categories-title", "combo-offers-title", "investor-opportunities-title", "banner-title"];
+    const sections = [...document.querySelectorAll("main > section")].map((section) => section.getAttribute("aria-labelledby") ?? section.id);
     expect(sections).toEqual(order);
     for (const removed of ["Fresh picks", "Pantry staples, sold by the pack", "Supplies for gardens and fields", "Everyday ethnic wear and easy dresses"]) {
       expect(screen.queryByRole("heading", { name: removed })).toBeNull();
     }
     expect(screen.queryByRole("region", { name: "Featured collections" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Seasonal picks" })).toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Product categories" })).toBeNull();
   });
 
   it("hero is the static original: one image, Investor Opportunities and Agent Benefits, no slider", async () => {
@@ -23,7 +31,7 @@ describe("homepage", () => {
     const hero = document.querySelector<HTMLElement>('section[aria-labelledby="hero-title"]')!;
     expect(hero.querySelector("#hero-title")).toHaveTextContent("Good FoodGrows a BetterTomorrow");
     expect(hero.querySelectorAll("img")).toHaveLength(1);
-    expect(hero.querySelector("img")!.getAttribute("src")).toContain("mithren-hero-produce");
+    expect(hero.querySelector("img")!.getAttribute("src")).toContain("mithren-hero-crate");
     expect(within(hero).getByRole("link", { name: /Investor Opportunities/ })).toHaveAttribute("href", "/investors");
     expect(within(hero).getByRole("link", { name: /Agent Benefits/ })).toHaveAttribute("href", "/agent-benefits");
     expect(hero.querySelector('[aria-roledescription="carousel"], [aria-roledescription="slide"]')).toBeNull();
@@ -33,7 +41,7 @@ describe("homepage", () => {
     expect(hero.querySelector("ul")!.className).not.toMatch(/glass/);
   });
 
-  it("About Mithren Agro follows the hero with three highlights and Learn More", async () => {
+  it("About Mithren Agro shows three highlights and Learn More", async () => {
     render(<AppProviders>{await Home()}</AppProviders>);
     const about = document.querySelector<HTMLElement>('section[aria-labelledby="about-title"]')!;
     expect(within(about).getByRole("heading", { name: "About Mithren Agro" })).toBeInTheDocument();
@@ -49,20 +57,69 @@ describe("homepage", () => {
     expect(within(videos).getAllByText("Video coming soon")).toHaveLength(2);
     expect(within(videos).queryByRole("button", { name: /Play video/ })).toBeNull();
     const sections = [...document.querySelectorAll("main > section")];
-    expect(sections[2]).toBe(videos);
+    const about = document.querySelector('section[aria-labelledby="about-title"]');
+    expect(sections[sections.indexOf(about!) + 1]).toBe(videos);
   });
 
   it("shows each product in one section only, every card linking to its details page", async () => {
     render(<AppProviders>{await Home()}</AppProviders>);
-    const hrefs = [...document.querySelectorAll('main a[href^="/products/"]')].map((a) => a.getAttribute("href"));
-    expect(hrefs.length).toBeGreaterThan(5);
-    expect(new Set(hrefs).size).toBe(hrefs.length);
+    // A card may link to its product twice (name and "Details"), but no product appears in two cards.
+    const perCard = [...document.querySelectorAll("main article")]
+      .map((card) => [...new Set([...card.querySelectorAll('a[href^="/products/"]')].map((a) => a.getAttribute("href")))])
+      .filter((hrefs) => hrefs.length > 0);
+    expect(perCard.length).toBeGreaterThanOrEqual(3);
+    for (const hrefs of perCard) expect(hrefs).toHaveLength(1);
+    const all = perCard.flat();
+    expect(new Set(all).size).toBe(all.length);
   });
 
-  it("links to all five categories from the category grid", async () => {
+  it("shows exactly the nine categories, in order, each linking to its own filtered listing", async () => {
     render(<AppProviders>{await Home()}</AppProviders>);
-    for (const slug of ["fruits", "vegetables", "organic-groceries", "fertilizers", "womens-apparel"]) {
-      expect(document.querySelector(`#categories a[href="/products?category=${slug}"]`)).not.toBeNull();
-    }
+    const links = [...document.querySelectorAll<HTMLAnchorElement>("#categories ul a")];
+    expect(links.map((a) => a.textContent?.split(",")[0]?.trim())).toEqual([
+      "Spinach", "Vegetables", "Fruits", "Organic Groceries", "Oil", "Cosmetics", "Fancy Items", "Women Apparels", "Fertilizers",
+    ]);
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(
+      ["spinach", "vegetables", "fruits", "organic-groceries", "oil", "cosmetics", "fancy-items", "womens-apparel", "fertilizers"].map((s) => `/products?category=${s}`),
+    );
+  });
+
+  it("puts the search directly above Shop by category, and the hero has no delivery card", async () => {
+    render(<AppProviders>{await Home()}</AppProviders>);
+    const search = document.getElementById("home-search")!;
+    expect(search.nextElementSibling?.id).toBe("categories");
+    expect(within(search).getByRole("searchbox", { name: "What are you looking for today?" })).toHaveAttribute("placeholder", "Search fruits, vegetables, organic products and more…");
+    expect(within(search).getByRole("button", { name: "Search" })).toHaveAttribute("type", "submit");
+    const hero = document.querySelector<HTMLElement>('section[aria-labelledby="hero-title"]')!;
+    expect(within(hero).queryByText("Delivery by area")).toBeNull();
+    expect(within(hero).queryByRole("search")).toBeNull();
+  });
+
+  it("shows COMBO OFFERS as the ₹1,000, ₹5,000 and ₹10,000 boxes only, in one section", async () => {
+    render(<AppProviders>{await Home()}</AppProviders>);
+    const offers = screen.getByRole("region", { name: "Combo Offers" });
+    expect(within(offers).getByRole("heading", { level: 2 })).toHaveClass("uppercase");
+    const cards = within(offers).getAllByRole("article");
+    expect(cards).toHaveLength(3);
+    expect(cards.slice(0, 3).map((card) => card.textContent?.match(/₹[0-9,]+/)?.[0])).toEqual(["₹1,000", "₹5,000", "₹10,000"]);
+    for (const card of cards.slice(0, 3)) expect(within(card).getAllByRole("listitem").length).toBeGreaterThan(5);
+    for (const card of cards) expect(within(card).getByRole("button", { name: /Add to cart/ })).toBeInTheDocument();
+    expect(screen.queryByText("Smaller everyday packs")).toBeNull();
+    // The separate "Combo boxes" section is gone.
+    expect(screen.queryByRole("heading", { name: "Combo boxes" })).toBeNull();
+    expect(document.getElementById("bundles")).toBeNull();
+  });
+
+  it("introduces Investor Opportunities: six domains of two projects, five amounts, no returns", async () => {
+    render(<AppProviders>{await Home()}</AppProviders>);
+    const section = screen.getByRole("region", { name: "Investor Opportunities" });
+    const domains = within(section).getAllByRole("link").filter((a) => a.getAttribute("href")?.startsWith("/investors/projects#"));
+    expect(domains.map((a) => a.textContent?.replace(/2 projects$/, ""))).toEqual([
+      "Crop Production", "Dairy Farming", "Fish Farming", "Poultry Farming", "Biogas & Composting", "Agri Forestry",
+    ]);
+    for (const a of domains) expect(a).toHaveTextContent("2 projects");
+    expect(within(section).getByRole("list", { name: "Contribution amounts" }).textContent).toBe("₹1,000₹10,000₹25,000₹50,000₹1,00,000");
+    expect(within(section).getByRole("link", { name: /Explore Investment Opportunities/ })).toHaveAttribute("href", "/investors");
+    expect(section.textContent).not.toMatch(/%|custom plan|guarantee(?!d)|returns? of/i);
   });
 });

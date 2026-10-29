@@ -89,7 +89,7 @@ describe("mock data integrity", () => {
     expect(new Set(products.map((p) => p.id)).size).toBe(products.length);
   });
 
-  it("covers all five categories", () => {
+  it("has products in every category", () => {
     for (const category of categories) {
       expect(products.some((p) => p.category_id === category.id)).toBe(true);
     }

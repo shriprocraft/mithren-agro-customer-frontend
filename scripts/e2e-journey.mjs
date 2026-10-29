@@ -73,8 +73,8 @@ await go("/"); await js("localStorage.clear(); sessionStorage.clear(); true"); a
 
 await step(1, "Open the homepage", async () => { expect((await js("__t.text()")).includes("Good Food"), "hero missing"); return "hero headline present"; });
 await step(2, "Navigate to the marketplace", async () => {
-  await js(`__t.click('header nav a', 'All products')`); await waitFor("location.pathname === '/products'");
-  await waitFor("__t.text().includes('Showing 26 of 26 products')"); return "header nav → /products, 26 of 26";
+  await js(`__t.click('footer nav a', 'All products')`); await waitFor("location.pathname === '/products'");
+  await waitFor("__t.text().includes('Showing 39 of 39 products')"); return "footer Shop → /products, 39 of 39";
 });
 await step(3, "Open a product", async () => {
   await js(`__t.click('main a[href="/products/p-tomatoes"]')`); await waitFor("location.pathname === '/products/p-tomatoes'");
@@ -95,7 +95,7 @@ await step(6, "Add it to the cart", async () => {
   await js(`__t.click('main button', 'Add to cart')`); await waitFor("__t.cartLabel() === 'Cart, 3 items'"); return "header: Cart, 3 items";
 });
 await step("6b", "Add a second product from the marketplace", async () => {
-  await go("/products?q=papaya"); await waitFor("__t.text().includes('Showing 1 of 26')");
+  await go("/products?q=papaya"); await waitFor("__t.text().includes('Showing 1 of 39')");
   await js(`__t.click('main article button', 'Add to cart')`); await waitFor("__t.cartLabel() === 'Cart, 4 items'"); return "papaya added; Cart, 4 items";
 });
 await step(7, "Open the cart", async () => {
@@ -230,9 +230,9 @@ await step(26, "Open the Filter button", async () => {
 await step(27, "Filter by category", async () => {
   await js(`__t.click('[role=dialog] label', 'Fruits')`); await js(`__t.click('[role=dialog] button', 'Apply filters')`);
   await waitFor("location.search === '?category=fruits'");
-  await waitFor("__t.text().includes('Showing 5 of 26 products')");
+  await waitFor("__t.text().includes('Showing 6 of 39 products')");
   const badge = await js(`__t.byText('main button', 'Filter').textContent`);
-  expect(badge.includes("1"), "active count badge"); return "5 fruit items (4 products + Fruit Basket); badge 1; chip shown";
+  expect(badge.includes("1"), "active count badge"); return "6 fruit items (4 products + 2 fruit combos); badge 1; chip shown";
 });
 await step(28, "Filter by minimum and maximum price", async () => {
   await js(`__t.click('main button', 'Filter')`); await waitFor("document.querySelector('[role=dialog]')");
@@ -247,7 +247,7 @@ await step(29, "Combine search and filters", async () => {
   await js(`__t.type('#marketplace-search', 'mango')`); await js(`__t.click('main form button[type=submit]')`);
   await waitFor("location.search.includes('q=mango') && location.search.includes('category=fruits')");
   await sleep(400); const t = await js("__t.text()");
-  expect(t.includes("Showing 1 of 26") && t.includes("Banganapalli Mangoes"), t.slice(0, 200)); return "q=mango + fruits + price → 1 result";
+  expect(t.includes("Showing 1 of 39") && t.includes("Banganapalli Mangoes"), t.slice(0, 200)); return "q=mango + fruits + price → 1 result";
 });
 await step(30, "Sorting", async () => {
   await go("/products"); await choose("Sort products", "Price: Low to High"); await waitFor("location.search === '?sort=price-asc'");
@@ -261,15 +261,15 @@ await step(30, "Sorting", async () => {
 await step(31, "Clear all filters", async () => {
   await go("/products?category=fruits,vegetables&stock=in_stock&seasonal=1");
   await waitFor("document.querySelector('[aria-label=\"Active filters\"]')");
-  const before = await js("__t.text().match(/Showing (\\d+) of 26/)[1]");
+  const before = await js("__t.text().match(/Showing (\\d+) of 39/)[1]");
   await js(`__t.click('[aria-label="Active filters"] button', 'Clear all')`); await waitFor("location.search === ''");
-  await waitFor("__t.text().includes('Showing 26 of 26')"); return `${before} → 26 after Clear all`;
+  await waitFor("__t.text().includes('Showing 39 of 39')"); return `${before} → 39 after Clear all`;
 });
 await step(32, "Counts and empty results", async () => {
   await go("/products?q=zzzz&category=fruits"); await waitFor("__t.text().includes('No products match')");
-  expect((await js("__t.text()")).includes("Showing 0 of 26"), "count 0");
+  expect((await js("__t.text()")).includes("Showing 0 of 39"), "count 0");
   await js(`__t.click('main button', 'Clear filters')`); await waitFor("location.search === '?q=zzzz'");
-  await js(`__t.click('main button', 'Clear search')`); await waitFor("location.search === '' && __t.text().includes('Showing 26 of 26')");
+  await js(`__t.click('main button', 'Clear search')`); await waitFor("location.search === '' && __t.text().includes('Showing 39 of 39')");
   return "0 results state → Clear filters → Clear search → 26";
 });
 await step(33, "Wishlist and cart still work from the marketplace", async () => {
@@ -488,8 +488,8 @@ await step(51, "Help & support is honest and reachable", async () => {
 // ---- Homepage, opportunity pages, loading and feedback (phase 6) ----
 await step(52, "Homepage order; static hero; no liquid glass on the hero strip", async () => {
   await viewport(1440, 900); await go("/");
-  const order = await js("[...document.querySelectorAll('main > section')].map(s => s.getAttribute('aria-labelledby')).join()");
-  expect(order === "hero-title,about-title,videos-title,categories-title,seasonal-title,bundles-title,banner-title", order);
+  const order = await js("[...document.querySelectorAll('main > section')].map(s => s.getAttribute('aria-labelledby') ?? s.id).join()");
+  expect(order === "hero-title,about-title,videos-title,home-search,categories-title,combo-offers-title,investor-opportunities-title,banner-title", order);
   const t = await js("__t.text()");
   expect(!t.includes("Fresh picks") && !t.includes("Pantry staples, sold by the pack") && !t.includes("Meet Our Farmers"), "removed content still present");
   // Static hero (no slider) and no liquid glass on the benefits strip along its bottom.
@@ -511,11 +511,11 @@ await step(53, "Agent Benefits: hero link, sections, direct open", async () => {
   return `hero → /agent-benefits; anchor scrolls to Delivery Agent (top ${top}px); applications disabled; direct load OK`;
 });
 await step(54, "Investor Opportunities: hero link, risk section, portal fallback, footer links", async () => {
-  await go("/"); await js("__t.click('main a', 'Investor Opportunities')"); await waitFor("location.pathname === '/investors' && __t.text().includes('Investor Opportunities at Mithren Agro')");
+  await go("/"); await js("__t.click('section[aria-labelledby=hero-title] a', 'Investor Opportunities')"); await waitFor("location.pathname === '/investors' && document.querySelector('h1')?.textContent === 'Investor Opportunities'");
   const t = await js("__t.text()");
   expect(t.includes("Risks and disclosures") && t.includes("no guarantee of returns") && !/guaranteed returns/i.test(t), "disclosure");
   const portal = await js("[...document.querySelectorAll('main button, main a')].filter(e => /Investor Portal/.test(e.textContent)).map(e => e.tagName + ':' + e.disabled).join()");
-  expect(!portal.includes("A:") && portal.split(",").length === 2, "no link without a configured URL: " + portal);
+  expect(!portal.includes("A:") && portal.split(",").length === 1, "no link without a configured URL: " + portal);
   const footer = await js("[...document.querySelectorAll('footer a')].map(a => a.getAttribute('href')).join()");
   expect(footer.includes("/agent-benefits") && footer.includes("/investors"), footer);
   await shot("54-investors"); return `portal unconfigured → ${portal}; footer links to both pages`;
@@ -551,13 +551,13 @@ await step(57, "Buy now is logo gold with dark text", async () => {
 });
 await step(58, "Category dropdown switches results; combines with sort", async () => {
   await go("/products"); await choose("Category", "Vegetables");
-  await waitFor("location.search === '?category=vegetables' && /Showing \\d+ of 26/.test(__t.text())");
-  const veg = await js("__t.text().match(/Showing (\\d+) of 26/)[1]");
+  await waitFor("location.search === '?category=vegetables' && /Showing \\d+ of 39/.test(__t.text())");
+  const veg = await js("__t.text().match(/Showing (\\d+) of 39/)[1]");
   await choose("Sort products", "Price: Low to High"); await waitFor("location.search === '?category=vegetables&sort=price-asc'");
   await sleep(300); const p = await js("__t.prices()"); expect(p.length === Number(veg) && p.join() === [...p].sort((a, b) => a - b).join(), "sorted veg " + p);
   await choose("Category", "Fruits"); await waitFor("location.search === '?category=fruits&sort=price-asc'");
-  await choose("Category", "All products"); await waitFor("location.search === '?sort=price-asc' && __t.text().includes('Showing 26 of 26')");
-  await shot("58-category"); return `Vegetables ${veg} (sorted by price) → Fruits → All products 26`;
+  await choose("Category", "All products"); await waitFor("location.search === '?sort=price-asc' && __t.text().includes('Showing 39 of 39')");
+  await shot("58-category"); return `Vegetables ${veg} (sorted by price) → Fruits → All products 39`;
 });
 await step(59, "Account menu: My Orders opens the order history", async () => {
   await go("/"); await js("__t.click('header button[aria-label^=Account]')"); await waitFor("__t.byText('[data-slot=popover-content] a', 'My Orders')");
@@ -581,7 +581,7 @@ await step(61, "Form placeholders with visible labels", async () => {
 });
 
 // ---- Hero slider, About, policies and product options (phase 7) ----
-await step(62, "Static hero buttons open the opportunity pages; About sits right below", async () => {
+await step(62, "Static hero buttons open the opportunity pages; About follows the hero", async () => {
   await viewport(1440, 900); await go("/");
   const info = await js("(() => { const h = document.querySelector('section[aria-labelledby=hero-title]'); const a = document.querySelector('section[aria-labelledby=about-title]'); return [h.querySelectorAll('img').length, h.nextElementSibling === a, Math.round(a.getBoundingClientRect().height)].join('|'); })()");
   const [imgs, next, aboutHeight] = info.split("|");
