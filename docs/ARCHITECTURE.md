@@ -208,6 +208,35 @@ Supersedes the homepage order, header and combo rows of the section above.
 | Unconfirmed investment facts are `null` and shown as "Awaiting confirmation": every plan duration, project location, plan-to-project eligibility, and whether a plan can be split or plans combined. Project names are labelled placeholders ("Crop Production Project 1"). No rate, return, payout or guarantee exists in the data (`tests/investments.test.tsx`). The brochure's Special Custom Plan is excluded | The brochure is not legible enough to map durations to amounts; nothing may be invented |
 | The review step submits nothing: it states that no payment was taken and no investment made, and its next action is the separate Investor Portal (`NEXT_PUBLIC_INVESTOR_PORTAL_URL`, disabled "coming soon" when unset) | There is no investment backend in this repository |
 
+## Investor journey, location and sign-in (2 Nov 2026)
+
+Supersedes the homepage order and the Investor Opportunities section above. Contracts: `docs/BACKEND_CONTRACTS.md`. Portal: `docs/INVESTOR_PORTAL_INTEGRATION.md`.
+
+| Decision | Reason |
+|---|---|
+| Homepage: hero → About → videos → search → Shop by category → Combo Offers → banner. `InvestorOpportunitiesSection` removed; routes, data and shared cards kept. The hero and footer link to `/investors` | Requested: keep the homepage about shopping |
+| `/investors/plan`: amount required, project optional; Continue → review → portal `/projects`. The selection stays in the URL | The portal can't receive an amount, and its code reads only `?project=` and `?next=`. Project ids don't match, so nothing is sent until `portal_project_id` is confirmed |
+| Shop by category has no pause control. Hover, focus and touch still hold the row; reduced motion stops it and shows the arrows, by CSS alone | Owner decision. Note: without a visible control, keyboard and touch users can pause only by focusing or pressing the row, which is a WCAG 2.2.2 risk to review before launch |
+| Header "Delivering to": device location, saved addresses or district. One `getCurrentPosition` per press, never a watch. Coordinates are stored only on an address the customer saves | A position isn't an address, and permission doesn't mean an address is deliverable |
+| `services/geocoding.ts` returns `found`, `not_found`, `unavailable` or `error`. Without a service, the panel says the position was found but not the address, and the form stays blank | An unavailable lookup must never look like a found address |
+| Active address under `mithren.delivery-address.active`; checkout preselects: this checkout's choice → active → default → first | Extends the one address book, with no second model |
+| `AuthService` has three adapters (`backend`, `development_mock`, `unavailable`). `resolveAuthMode` fails closed: `mock` is refused in production builds, and a failed session check counts as signed out | The UI doesn't change when the backend arrives, and mock sign-in can't reach production |
+| Session is the backend's HTTP-only cookie. Nothing stores a token or code. The mock's code is random, in memory, and its marker holds neither | Requested. Google is never simulated: only a session response from the backend signs a customer in |
+| Ordering is enforced twice: `CheckoutAuthGate` on both checkout routes, and `canPlaceOrder` inside `OrdersContext.placeOrder` | Every entry point (cart, mini cart, Buy now, typed URL, Back) meets the same check. A frontend check isn't security: the order API must enforce it (`docs/BACKEND_CONTRACTS.md`) |
+| Sign-in is separate from the demo account; the marker never allows ordering. `/account` stays a demo | `docs/DEMO_ACCOUNT.md`. Real accounts need the backend |
+| **Consequence:** a production build without a backend can't take orders; `/login` and checkout say so | Requested: no unauthenticated orders and no mock in production |
+
+## Investor Opportunities: coming soon (2 Nov 2026, later)
+
+Supersedes the `/investors/plan` row above, and every Investor Portal link in this document.
+
+| Decision | Reason |
+|---|---|
+| `/investors` is a Coming Soon page: the six domains, no amounts, plans, projects, forms or investment actions. The hero and footer entries stay | Owner decision: customers can't invest yet and nothing may imply they can |
+| The portal integration is removed: its URL, `NEXT_PUBLIC_INVESTOR_PORTAL_URL`, `investorPortalDestination`, `portal_project_id` and every link. `tests/storefront-updates.test.tsx` fails if the URL returns to `src/` | Owner decision: the two applications aren't connected |
+| The earlier overview, plan and project pages are kept in `src/app/_investor-journey/`, which Next.js does not route. `InvestmentSelector`, the cards, data and services stay. To reuse them, move the pages back under `app/investors` and remove the redirect | Keeps the work without connecting it to the customer journey |
+| `next.config.ts` temporarily redirects `/investors/:path+` to `/investors` | Old links and bookmarks can't reach a selection flow |
+
 ## Conflicts between the references (open)
 
 The development guide states that **the scope wins** where the two disagree. The project owner's instructions take precedence over both.
@@ -220,7 +249,7 @@ The development guide states that **the scope wins** where the two disagree. The
 | 4 | Palette | Bright white/light background, forest green, emerald, sparing lime | Pending image | Modern Sage palette (owner decision) | **Resolved:** Modern Sage, primary `#2E7D32` / hover `#1B5E20`; see `docs/DESIGN_SYSTEM.md` |
 | 5 | Routes | `/products/[slug]`, `/account/orders`, `/checkout/success` | `/products/[productId]`, `/orders`, `/order-confirmation` | — | Scope routes (guide defers to scope) |
 | 6 | Forms/validation | Zod + React Hook Form recommended | No form libraries | — | **To decide** before checkout work |
-| 7 | Login | Required for checkout | Guest checkout assumed; mock Google sign-in proposed | — | Scope wins: login required for checkout (mocked) |
+| 7 | Login | Required for checkout | Guest checkout assumed; mock Google sign-in proposed | Required before ordering | **Resolved:** sign-in required before ordering; Google is never mocked |
 | 8 | Reference image content | No unsupported claims; never fabricate ratings/reviews/certification | Same | Image shows "100% honestly-labelled", "Organic Certified", "10,000+ happy families", "12-hour freshness guarantee", star ratings and named testimonials | Reproduce the layout, but treat these as content slots that need verified data or clear demo labelling — **to confirm** |
 | 9 | Payment logos | Razorpay when configured | Payment UI simulated | Image footer shows Razorpay, UPI, Visa, Mastercard, RuPay | Show only as "accepted methods" once confirmed; no real payment |
 

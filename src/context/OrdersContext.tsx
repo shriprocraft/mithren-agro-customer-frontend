@@ -1,8 +1,10 @@
 "use client";
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { usePersistentState } from "@/hooks/usePersistentState";
 import type { CartLine } from "@/lib/cart";
+import { canPlaceOrder } from "@/lib/checkout-auth";
 import { advanceOrder, buildOrder, generateOrderId, parseOrders } from "@/lib/orders";
 import type { Address, Order } from "@/types/order";
 
@@ -13,7 +15,7 @@ interface OrdersValue {
   orders: Order[];
   hydrated: boolean;
   getOrder: (id: string) => Order | undefined;
-  /** Creates and saves an order. Throws if it is invalid or could not be saved, so no false success. */
+  /** Creates and saves an order. Throws if the customer isn't signed in, or it is invalid or could not be saved. */
   placeOrder: (lines: CartLine[], address: Address) => Order;
   /** Demo-only: moves an order to its next tracking stage. */
   advance: (id: string) => void;
@@ -27,9 +29,11 @@ const OrdersContext = createContext<OrdersValue | null>(null);
 const EMPTY: Order[] = [];
 
 export class OrderSaveError extends Error {}
+export class OrderAuthError extends Error {}
 
 export function OrdersProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders, hydrated] = usePersistentState("mithren.orders", EMPTY, parseOrders);
+  const { session } = useAuth();
 
   const value = useMemo<OrdersValue>(
     () => ({
@@ -37,6 +41,8 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       hydrated,
       getOrder: (id) => orders.find((order) => order.id === id),
       placeOrder: (lines, address) => {
+        // The last check before an order exists, whichever screen called this.
+        if (!canPlaceOrder(session)) throw new OrderAuthError("Please sign in before placing your order.");
         const now = new Date();
         const order = buildOrder(lines, address, generateOrderId(now, new Set(orders.map((o) => o.id))), now);
         const saved = setOrders((current) => [order, ...current]);
@@ -53,7 +59,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         setOrders((current) => [...current, ...samples].sort((a, b) => b.created_at.localeCompare(a.created_at))),
       removeSamples: () => setOrders((current) => current.filter((order) => !order.is_sample)),
     }),
-    [orders, hydrated, setOrders],
+    [orders, hydrated, setOrders, session],
   );
 
   return <OrdersContext.Provider value={value}>{children}</OrdersContext.Provider>;

@@ -29,8 +29,6 @@ export function safeMediaUrl(value: string | undefined): string | null {
 }
 
 export const externalLinks = {
-  /** The separate Investor Portal application (its own sign-in; nothing of it is rebuilt here). */
-  investorPortal: safeExternalUrl(process.env.NEXT_PUBLIC_INVESTOR_PORTAL_URL),
   /** Agent application forms, once they exist. Until then the Agent Benefits page says "coming soon". */
   sellerAgentApplication: safeExternalUrl(process.env.NEXT_PUBLIC_SELLER_AGENT_APPLY_URL),
   deliveryAgentApplication: safeExternalUrl(process.env.NEXT_PUBLIC_DELIVERY_AGENT_APPLY_URL),

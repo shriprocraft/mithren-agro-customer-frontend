@@ -12,18 +12,20 @@ import { formatPrice } from "@/lib/formatters";
 import { getDomain, PENDING, planEligibility, projectHref, selectionHref } from "@/lib/investments";
 import { getInvestmentPlans, getInvestmentProject, getInvestmentProjects } from "@/services/investments";
 
-// Every project is prerendered; other ids render at request time and call notFound() (same pattern
+type ProjectPageProps = { params: Promise<{ projectId: string }> };
+
+// NOT ROUTED (the folder starts with an underscore): kept for when investing opens. Every project is prerendered; other ids render at request time and call notFound() (same pattern
 // as the product page: params are awaited inside Suspense).
 export async function generateStaticParams() {
   return (await getInvestmentProjects()).map((p) => ({ projectId: p.id }));
 }
 
-export async function generateMetadata({ params }: PageProps<"/investors/projects/[projectId]">): Promise<Metadata> {
+export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
   const project = await getInvestmentProject((await params).projectId);
   return { title: project ? project.name : "Project not found" };
 }
 
-export default function InvestmentProjectPage({ params }: PageProps<"/investors/projects/[projectId]">) {
+export default function InvestmentProjectPage({ params }: ProjectPageProps) {
   return (
     <main id="main-content" className="flex-1">
       <Container className="min-h-[70svh] pt-4 pb-10 sm:pt-6 lg:pt-8">
@@ -35,7 +37,7 @@ export default function InvestmentProjectPage({ params }: PageProps<"/investors/
   );
 }
 
-async function ProjectContent({ params }: Pick<PageProps<"/investors/projects/[projectId]">, "params">) {
+async function ProjectContent({ params }: Pick<ProjectPageProps, "params">) {
   const { projectId } = await params;
   const project = await getInvestmentProject(projectId);
   const domain = project && getDomain(project.domain_id);

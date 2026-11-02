@@ -2,14 +2,22 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
-import { CircleAlert, ClipboardCheck, Info, Pencil } from "lucide-react";
+import { ArrowRight, CircleAlert, Info, Pencil } from "lucide-react";
 import { domainIcons } from "@/components/opportunities/investment-icons";
-import { ExternalCta } from "@/components/opportunities/ExternalCta";
 import { Button } from "@/components/ui/button";
 import { useAnnounce } from "@/context/AnnouncerContext";
 import { useToast } from "@/context/ToastContext";
 import { formatPrice } from "@/lib/formatters";
-import { PENDING, planEligibility, projectsByDomain, selectionHref, validateSelection, type SelectionErrors } from "@/lib/investments";
+import {
+  AWAITING_CONFIRMATION,
+  PENDING,
+  planEligibility,
+  projectsByDomain,
+  RETURNS_DISCLAIMER,
+  selectionHref,
+  validateSelection,
+  type SelectionErrors,
+} from "@/lib/investments";
 import { cn } from "@/lib/utils";
 import type { AllocationRules, InvestmentDomain, InvestmentPlan, InvestmentProject } from "@/types/investment";
 
@@ -18,17 +26,13 @@ interface InvestmentSelectorProps {
   projects: InvestmentProject[];
   plans: InvestmentPlan[];
   rules: AllocationRules;
-  /** The configured Investor Portal URL, or null (config/external-links.ts). */
-  portalHref: string | null;
 }
 
-// Choose one contribution amount and one project, then review. ?plan= and ?project= preselect (the
-// plan and project cards link here with them) and are kept in step with the choice, so a selection
-// can be shared. Nothing is submitted: this storefront has no investment backend, so the review says
-// plainly that no money moves and sends the investor on to the separate Investor Portal, the only
-// supported next step. One plan and one project per selection, because whether a plan can be split
-// or combined has not been confirmed (AllocationRules); the review says so.
-export function InvestmentSelector({ domains, projects, plans, rules, portalHref }: InvestmentSelectorProps) {
+// NOT ROUTED: investing isn't available, so no page renders this (docs/ARCHITECTURE.md). Choose a
+// contribution amount and, if the customer wishes, one project, then review. ?plan= and ?project=
+// preselect and stay in step with the choice. Nothing is submitted and nothing leaves this app. At most
+// one project, because whether a plan can be split or combined has not been confirmed (AllocationRules).
+export function InvestmentSelector({ domains, projects, plans, rules }: InvestmentSelectorProps) {
   const params = useSearchParams();
   const initialPlan = plans.some((p) => p.id === params.get("plan")) ? params.get("plan") : null;
   const initialProject = projects.some((p) => p.id === params.get("project")) ? params.get("project") : null;
@@ -46,23 +50,22 @@ export function InvestmentSelector({ domains, projects, plans, rules, portalHref
   const domain = project && domains.find((d) => d.id === project.domain_id);
   const groups = projectsByDomain(projects, domains);
 
-  const syncUrl = (next: { plan?: string | null; project?: string | null }) => {
-    const href = selectionHref({ plan: (next.plan ?? planId) || undefined, project: (next.project ?? projectId) || undefined });
-    window.history.replaceState(window.history.state, "", href);
+  const syncUrl = (next: { plan: string | null; project: string | null }) => {
+    window.history.replaceState(window.history.state, "", selectionHref({ plan: next.plan ?? undefined, project: next.project ?? undefined }));
   };
 
   const choosePlan = (id: string) => {
     setPlanId(id);
     setReviewing(false);
     setErrors((e) => ({ ...e, plan: undefined }));
-    syncUrl({ plan: id });
+    syncUrl({ plan: id, project: projectId });
   };
 
-  const chooseProject = (id: string) => {
+  const chooseProject = (id: string | null) => {
     setProjectId(id);
     setReviewing(false);
     setErrors((e) => ({ ...e, project: undefined }));
-    syncUrl({ project: id });
+    syncUrl({ plan: planId, project: id });
   };
 
   const review = (event: FormEvent<HTMLFormElement>) => {
@@ -70,7 +73,7 @@ export function InvestmentSelector({ domains, projects, plans, rules, portalHref
     const found = validateSelection(planId, projectId);
     setErrors(found);
     if (found.plan || found.project) {
-      toast.error("Your selection isn’t complete", { id: "investment-selection", description: [found.plan, found.project].filter(Boolean).join(" ") });
+      toast.error("Check your selection", { id: "investment-selection", description: [found.plan, found.project].filter(Boolean).join(" ") });
       const first = found.plan ? "plan" : "project";
       formRef.current?.querySelector<HTMLInputElement>(`input[name="${first}"]`)?.focus();
       return;
@@ -94,11 +97,11 @@ export function InvestmentSelector({ domains, projects, plans, rules, portalHref
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-8">
-      <form ref={formRef} onSubmit={review} noValidate aria-label="Choose a plan and a project" className="grid gap-6">
+      <form ref={formRef} onSubmit={review} noValidate aria-label="Choose a contribution amount" className="grid gap-6">
         <fieldset aria-describedby={errors.plan ? "plan-error" : "plan-hint"} className="surface-card rounded-3xl p-4 sm:p-6">
           <legend className="sr-only">Step 1: contribution amount</legend>
           <StepTitle step={1} title="Contribution amount" />
-          <p id="plan-hint" className="mt-1 text-sm text-muted-foreground">Durations for each amount are awaiting confirmation.</p>
+          <p id="plan-hint" className="mt-1 text-sm text-muted-foreground">Choosing an amount tells us how much you’re interested in contributing. It isn’t a payment or a commitment. Durations are awaiting confirmation.</p>
           <div role="radiogroup" aria-label="Contribution amount" className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5">
             {plans.map((p) => (
               <label
@@ -118,11 +121,14 @@ export function InvestmentSelector({ domains, projects, plans, rules, portalHref
         </fieldset>
 
         <fieldset aria-describedby={errors.project ? "project-error" : "project-hint"} className="surface-card rounded-3xl p-4 sm:p-6">
-          <legend className="sr-only">Step 2: project</legend>
-          <StepTitle step={2} title="Project" />
+          <legend className="sr-only">Step 2: project (optional)</legend>
+          <StepTitle step={2} title="Project (optional)" />
           <p id="project-hint" className="mt-1 text-sm text-muted-foreground">
-            {projects.length} projects in {domains.length} domains. Project names are placeholders until Mithren Agro publishes approved details.
+            {projects.length} projects in {domains.length} domains, if you already have one in mind. Project names are placeholders until Mithren Agro publishes approved details.
           </p>
+          {project && (
+            <Button type="button" variant="ghost" onClick={() => chooseProject(null)} className="mt-1 -ml-2 h-9 px-2 text-xs">Clear project</Button>
+          )}
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {groups.map(({ domain: d, projects: list }) => {
               const Icon = domainIcons[d.slug];
@@ -156,10 +162,10 @@ export function InvestmentSelector({ domains, projects, plans, rules, portalHref
         </fieldset>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-muted-foreground">Reviewing doesn’t submit anything or take any payment.</p>
+          <p className="text-xs text-muted-foreground">Continuing doesn’t submit anything or take any payment.</p>
           <Button type="submit" size="lg" className="w-full sm:w-auto">
-            <ClipboardCheck aria-hidden="true" />
-            Review selection
+            Continue
+            <ArrowRight aria-hidden="true" />
           </Button>
         </div>
       </form>
@@ -172,7 +178,7 @@ export function InvestmentSelector({ domains, projects, plans, rules, portalHref
           <dl className="mt-4 grid gap-3 text-sm">
             <SummaryRow label="Contribution amount" value={plan ? formatPrice(plan.amount) : "Not chosen yet"} muted={!plan} />
             <SummaryRow label="Duration" value={plan ? (plan.duration ?? PENDING) : "—"} muted={!plan?.duration} />
-            <SummaryRow label="Project" value={project ? project.name : "Not chosen yet"} muted={!project} />
+            <SummaryRow label="Project" value={project ? project.name : "None chosen (optional)"} muted={!project} />
             <SummaryRow label="Domain" value={domain ? domain.name : "—"} muted={!domain} />
             <SummaryRow label="Location" value={project ? (project.location ?? PENDING) : "—"} muted={!project?.location} />
             <SummaryRow
@@ -191,24 +197,18 @@ export function InvestmentSelector({ domains, projects, plans, rules, portalHref
             <div className="mt-5 grid gap-3">
               <p role="note" className="flex gap-2 rounded-2xl border border-highlight bg-highlight/25 p-3 text-xs leading-relaxed text-foreground/85">
                 <Info className="mt-px size-3.5 shrink-0 text-warning" aria-hidden="true" />
-                Preview only. Nothing has been submitted, no payment has been taken and no investment has been made. Durations, eligibility
-                and terms are set only by Mithren Agro’s official documents.
+                <span>
+                  Preview only. Nothing has been submitted, no payment has been taken and no investment has been made. Still awaiting
+                  confirmation: {AWAITING_CONFIRMATION.join(", ").toLowerCase()}. {RETURNS_DISCLAIMER}
+                </span>
               </p>
-              <ExternalCta
-                id="selection-portal"
-                href={portalHref}
-                label="Continue to Investor Portal"
-                unavailableLabel="Investor Portal: coming soon"
-                unavailableNote="The Investor Portal link hasn’t been configured for this site yet. Your selection isn’t saved anywhere."
-                className="w-full"
-              />
               <Button type="button" variant="outline" onClick={edit} className="w-full">
                 <Pencil aria-hidden="true" />
                 Change selection
               </Button>
             </div>
           ) : (
-            <p className="mt-5 text-xs leading-relaxed text-muted-foreground">Choose an amount and a project, then review your selection.</p>
+            <p className="mt-5 text-xs leading-relaxed text-muted-foreground">{plan ? "You can change your amount at any time. Press Continue when you’re ready." : "Choose an amount to continue. You can change it at any time."}</p>
           )}
         </div>
       </aside>

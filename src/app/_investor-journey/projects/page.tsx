@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   description: "Mithren Agro's 12 agricultural projects: two in each of six domains. Information only, not an offer.",
 };
 
-// All 12 projects, grouped by domain (each group has the domain's slug as its id, so the domain cards
+// NOT ROUTED (the folder starts with an underscore): kept for when investing opens. All 12 projects, grouped by domain (each group has the domain's slug as its id, so the domain cards
 // link straight to it). Names and summaries are labelled placeholders until approved details are
 // added to data/investments.ts.
 export default async function InvestmentProjectsPage() {

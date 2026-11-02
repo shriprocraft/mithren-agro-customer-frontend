@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import Home from "@/app/page";
 import { AppProviders } from "@/context/AppProviders";
@@ -15,7 +15,7 @@ describe("homepage", () => {
 
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     // Top-level sections, in page order, by the id of the heading that labels them.
-    const order = ["hero-title", "about-title", "videos-title", "home-search", "categories-title", "combo-offers-title", "investor-opportunities-title", "banner-title"];
+    const order = ["hero-title", "about-title", "videos-title", "home-search", "categories-title", "combo-offers-title", "banner-title"];
     const sections = [...document.querySelectorAll("main > section")].map((section) => section.getAttribute("aria-labelledby") ?? section.id);
     expect(sections).toEqual(order);
     for (const removed of ["Fresh picks", "Pantry staples, sold by the pack", "Supplies for gardens and fields", "Everyday ethnic wear and easy dresses"]) {
@@ -96,15 +96,13 @@ describe("homepage", () => {
     expect(copy!.innerHTML).toBe(original!.innerHTML);
     // Only the nine real links are reachable.
     expect(within(screen.getByRole("region", { name: "Shop by category" })).getAllByRole("link").filter((a) => a.getAttribute("href")?.startsWith("/products?category="))).toHaveLength(9);
-    const toggle = screen.getByRole("button", { name: "Pause category animation" });
-    expect(toggle).toHaveAttribute("title", "Pause category animation");
-    expect(document.getElementById("categories-row")).not.toHaveAttribute("data-paused");
-    fireEvent.click(toggle);
-    expect(toggle).toHaveAccessibleName("Resume category animation");
-    expect(document.getElementById("categories-row")).toHaveAttribute("data-paused");
-    fireEvent.click(toggle);
-    expect(toggle).toHaveAccessibleName("Pause category animation");
-    expect(document.getElementById("categories-row")).not.toHaveAttribute("data-paused");
+    // No visible animation control. Hovering, focus and touch still hold the row.
+    expect(screen.queryByRole("button", { name: /pause|resume|play/i })).toBeNull();
+    expect(track).toHaveClass("group-hover/marquee:[animation-play-state:paused]", "group-focus-within/marquee:[animation-play-state:paused]");
+    // Reduced motion: the row stops, the copy goes, and it can be swiped or paged by arrows.
+    expect(copy).toHaveClass("motion-reduce:hidden");
+    expect(document.getElementById("categories-row")).toHaveClass("overflow-hidden", "motion-reduce:overflow-x-auto");
+    expect(document.querySelector('#categories [class*="motion-reduce:block"]')).toHaveClass("hidden");
   });
 
   it("puts the search directly above Shop by category, and the hero has no delivery card", async () => {
@@ -133,16 +131,12 @@ describe("homepage", () => {
     expect(document.getElementById("bundles")).toBeNull();
   });
 
-  it("introduces Investor Opportunities: six domains of two projects, five amounts, no returns", async () => {
+  it("keeps investment content off the homepage, reachable through one hero link", async () => {
     render(<AppProviders>{await Home()}</AppProviders>);
-    const section = screen.getByRole("region", { name: "Investor Opportunities" });
-    const domains = within(section).getAllByRole("link").filter((a) => a.getAttribute("href")?.startsWith("/investors/projects#"));
-    expect(domains.map((a) => a.textContent?.replace(/2 projects$/, ""))).toEqual([
-      "Crop Production", "Dairy Farming", "Fish Farming", "Poultry Farming", "Biogas & Composting", "Agri Forestry",
-    ]);
-    for (const a of domains) expect(a).toHaveTextContent("2 projects");
-    expect(within(section).getByRole("list", { name: "Contribution amounts" }).textContent).toBe("₹1,000₹10,000₹25,000₹50,000₹1,00,000");
-    expect(within(section).getByRole("link", { name: /Explore Investment Opportunities/ })).toHaveAttribute("href", "/investors");
-    expect(section.textContent).not.toMatch(/%|custom plan|guarantee(?!d)|returns? of/i);
+    expect(screen.queryByRole("region", { name: "Investor Opportunities" })).toBeNull();
+    expect(document.getElementById("investor-opportunities")).toBeNull();
+    expect(document.querySelector("main")!.textContent).not.toMatch(/Contribution amounts|₹25,000|₹50,000|Explore Investment Opportunities/);
+    const links = [...document.querySelectorAll("main a")].filter((a) => a.getAttribute("href")?.startsWith("/investors"));
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/investors"]);
   });
 });

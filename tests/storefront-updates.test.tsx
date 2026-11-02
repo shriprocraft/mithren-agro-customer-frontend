@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
@@ -54,30 +54,42 @@ describe("external link configuration", () => {
 });
 
 describe("Investor Opportunities page", () => {
-  it("shows a safe unavailable state when the Investor Portal URL is not configured", async () => {
+  const openPage = async () => {
     vi.resetModules();
     const { default: Page } = await import("@/app/investors/page");
     render(await Page());
+  };
+
+  it("says coming soon and introduces the six domains", async () => {
+    await openPage();
     expect(screen.getByRole("heading", { level: 1, name: "Investor Opportunities" })).toBeInTheDocument();
-    const unavailable = screen.getAllByRole("button", { name: /Investor Portal: coming soon/ });
-    expect(unavailable).toHaveLength(1);
-    unavailable.forEach((button) => expect(button).toBeDisabled());
-    expect(screen.queryByRole("link", { name: /Access Investor Portal/ })).toBeNull();
-    expect(screen.getByRole("heading", { name: "Risks and disclosures" })).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/guaranteed returns|risk-free/i);
+    expect(screen.getByText("Coming soon")).toBeInTheDocument();
+    expect(screen.getByText(/investment opportunities are being prepared and will be available soon/)).toBeInTheDocument();
+    for (const name of ["Crop Production", "Dairy Farming", "Fish Farming", "Poultry Farming", "Biogas & Composting", "Agri Forestry"]) {
+      expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+    }
   });
 
-  it("links to the configured Investor Portal", async () => {
-    vi.stubEnv("NEXT_PUBLIC_INVESTOR_PORTAL_URL", "https://portal.example.com/");
-    vi.resetModules();
-    const { default: Page } = await import("@/app/investors/page");
-    render(await Page());
-    const links = screen.getAllByRole("link", { name: /Access Investor Portal/ });
-    expect(links).toHaveLength(1);
-    links.forEach((link) => expect(link).toHaveAttribute("href", "https://portal.example.com/"));
-    const first = links[0]!;
-    act(() => { first.addEventListener("click", (e) => e.preventDefault()); fireEvent.click(first); });
-    expect(first).toHaveTextContent("Opening…");
+  it("offers no amounts, plans, portal or way to invest", async () => {
+    await openPage();
+    const text = document.querySelector("main")!.textContent!;
+    expect(text).not.toMatch(/₹|contribution|choose a plan|portal|\d+(\.\d+)?\s*%|guaranteed/i);
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(document.querySelector("form, input")).toBeNull();
+    const hrefs = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
+    expect(hrefs.every((href) => href?.startsWith("/") && !href.startsWith("//"))).toBe(true);
+    expect(hrefs.some((href) => href?.startsWith("/investors/"))).toBe(false);
+  });
+
+  it("sends the old plan and project URLs to the Coming Soon page", async () => {
+    const { default: config } = await import("../next.config");
+    await expect(config.redirects!()).resolves.toEqual([{ source: "/investors/:path+", destination: "/investors", permanent: false }]);
+  });
+
+  it("has no route or link to the Investor Portal anywhere in the app", () => {
+    const files = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e): string[] => (e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)]));
+    const hits = files("src").filter((f) => /investor-frontend|investorPortal|INVESTOR_PORTAL/.test(readFileSync(f, "latin1")));
+    expect(hits).toEqual([]);
   });
 });
 

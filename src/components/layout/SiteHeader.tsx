@@ -13,7 +13,7 @@ interface SiteHeaderProps {
 
 // The logo on the left, on its own (no chip or capsule behind it), centred against the two rows of
 // controls on the right, laid out as one grid column: wishlist, cart and account on top (three separate
-// 44px glass chips in a flex row, no divider), "Delivery by area" below. The delivery control stretches
+// 44px glass chips in a flex row, no divider), "Delivering to" below. The delivery control stretches
 // to the column width, so both rows share the same right (and left) edge. Other pages put
 // the store search between the two (below them on phones). Category browsing lives in the homepage
 // "Shop by category" row, the marketplace filters and the footer.

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CheckoutAuthGate } from "@/components/auth/CheckoutAuthGate";
 import { AddressStep } from "@/components/checkout/AddressStep";
 import { CheckoutSteps } from "@/components/checkout/CheckoutSteps";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -19,7 +20,9 @@ export default async function AddressPage() {
           <CheckoutSteps current="Address" />
         </div>
         <div className="mt-6">
-          <AddressStep catalog={catalog} />
+          <CheckoutAuthGate next="/checkout/address">
+            <AddressStep catalog={catalog} />
+          </CheckoutAuthGate>
         </div>
       </Container>
     </main>

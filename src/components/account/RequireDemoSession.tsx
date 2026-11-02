@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { LockKeyhole } from "lucide-react";
 import { ExploreDemoButton } from "@/components/account/ExploreDemoButton";
 import { LoadingState } from "@/components/checkout/PageState";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useDemoAccount } from "@/context/DemoAccountContext";
 
@@ -16,6 +17,7 @@ import { useDemoAccount } from "@/context/DemoAccountContext";
 export function RequireDemoSession({ children }: { children: ReactNode }) {
   const { hydrated, isActive } = useDemoAccount();
   const pathname = usePathname();
+  const { session } = useAuth();
 
   if (!hydrated) return <LoadingState label="Loading your account…" fullHeight />;
 
@@ -31,9 +33,12 @@ export function RequireDemoSession({ children }: { children: ReactNode }) {
         </p>
         <div className="mt-6 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
           <ExploreDemoButton />
-          <Button asChild size="lg" variant="outline">
-            <Link href={`/login?next=${encodeURIComponent(pathname)}`}>Go to sign in</Link>
-          </Button>
+          {/* Customer sign-in doesn't open this sample account yet, so a signed-in customer isn't sent in a circle. */}
+          {!session && (
+            <Button asChild size="lg" variant="outline">
+              <Link href={`/login?next=${encodeURIComponent(pathname)}`}>Go to sign in</Link>
+            </Button>
+          )}
         </div>
         <Link href="/products" className="mt-5 inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">
           Continue shopping as a guest

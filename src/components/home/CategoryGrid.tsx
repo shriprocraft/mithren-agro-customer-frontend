@@ -1,5 +1,5 @@
 import { CategoryCard } from "@/components/home/CategoryCard";
-import { MarqueeControls } from "@/components/home/MarqueeControls";
+import { ScrollArrows } from "@/components/home/ScrollArrows";
 import { SectionHeading } from "@/components/home/SectionHeading";
 import { Container } from "@/components/layout/Container";
 import { shopLinks } from "@/lib/navigation";
@@ -17,9 +17,8 @@ interface CategoryGridProps {
 // readers meet each category once. Animating the track by -50% (globals.css, animate-marquee) brings
 // the copy exactly to where the original started, so the loop never jumps or leaves a gap: each list
 // ends with its own gap-sized padding, and is always wider than the row, so the copy fills the space.
-// The row pauses while hovered, while a card has keyboard focus, while pressed on touch screens and
-// while the Pause button (next to "Browse all products", at every width) is on; an explicit pause
-// holds through hover and focus. Durations follow the copy's width at each breakpoint (nine cards
+// The row pauses while hovered, while a card has keyboard focus and while pressed on touch screens;
+// there is deliberately no visible pause control (owner decision, docs/ARCHITECTURE.md). Durations follow the copy's width at each breakpoint (nine cards
 // plus gaps), so the speed stays about 32px/s everywhere. Cards keep a fixed, readable
 // width at every size; on phones the row runs edge to edge, from sm it fades out at both ends.
 // The viewport clips the moving track, so the page never scrolls sideways.
@@ -58,14 +57,17 @@ export function CategoryGrid({ categories, productCounts }: CategoryGridProps) {
           title="Shop by category"
           description="From the field and the pantry to skincare, crafts and the wardrobe."
           action={{ href: "/products", label: "Browse all products" }}
-          controls={<MarqueeControls targetId="categories-row" label="categories" itemLabel="category" />}
-          controlsOnMobile
+          controls={
+            <div className="hidden motion-reduce:block">
+              <ScrollArrows targetId="categories-row" label="categories" />
+            </div>
+          }
         />
         <div
           id="categories-row"
           className="group/marquee -mx-4 overflow-hidden pt-1 pb-3 sm:mx-0 motion-safe:sm:[mask-image:linear-gradient(90deg,transparent,black_2rem,black_calc(100%-2rem),transparent)] motion-reduce:snap-x motion-reduce:snap-mandatory motion-reduce:scroll-px-4 motion-reduce:overflow-x-auto motion-reduce:px-4 motion-reduce:scrollbar-none sm:motion-reduce:-mx-1 sm:motion-reduce:scroll-px-1 sm:motion-reduce:px-1"
         >
-          <div className="flex w-max animate-marquee [--marquee-duration:47s] min-[480px]:[--marquee-duration:50s] sm:[--marquee-duration:52s] md:[--marquee-duration:53s] lg:[--marquee-duration:55s] xl:[--marquee-duration:58s] group-hover/marquee:[animation-play-state:paused] group-focus-within/marquee:[animation-play-state:paused] group-active/marquee:[animation-play-state:paused] group-data-paused/marquee:[animation-play-state:paused] motion-reduce:animate-none">
+          <div className="flex w-max animate-marquee [--marquee-duration:47s] min-[480px]:[--marquee-duration:50s] sm:[--marquee-duration:52s] md:[--marquee-duration:53s] lg:[--marquee-duration:55s] xl:[--marquee-duration:58s] group-hover/marquee:[animation-play-state:paused] group-focus-within/marquee:[animation-play-state:paused] group-active/marquee:[animation-play-state:paused] motion-reduce:animate-none">
             {list(false)}
             {list(true)}
           </div>

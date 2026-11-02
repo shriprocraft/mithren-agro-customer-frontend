@@ -1,10 +1,12 @@
 # Demo customer account
 
+> **Separate from customer sign-in.** Google, phone and email sign-in (`AuthContext`, `docs/BACKEND_CONTRACTS.md`) is the only thing that allows ordering. The demo marker below never counts as signed in, and signing in doesn't open this sample account.
+
 The customer account in this repository is a **demo**. It shows how sign-in, profile, orders, tracking, addresses, wishlist and settings will work, using sample data in the visitor's own browser. **It is not authentication and provides no security.** Nothing is sent to a server, because there is no account backend yet.
 
 ## What "demo authentication" means here
 
-- There are **no credentials**: no password, PIN, one-time code or token is asked for, stored or checked anywhere (not in localStorage, sessionStorage, cookies or source code).
+- The demo uses **no credentials**: no password, PIN, one-time code or token is asked for, stored or checked to enter it (not in localStorage, sessionStorage, cookies or source code).
 - "Signing in" means choosing **Explore Demo Account**. That writes a small marker to `localStorage` (`mithren.demo-session` = `{ "kind": "demo", "started_at": "<ISO time>" }`). The marker proves nothing about who the visitor is, and anyone can set or clear it.
 - The `/account` pages check the marker only to decide what to *show* (account or an entry screen). That is a user-experience gate, **not access control**. Never rely on it to protect data.
 - The registration page is a **preview**: it validates the form and then states that no account was created. What was typed is discarded; nothing is stored or sent.
@@ -30,7 +32,7 @@ The customer account in this repository is a **demo**. It shows how sign-in, pro
 | My Wishlist | `/account/wishlist` (same list as `/wishlist` and the header) | Browser-only | Existing `WishlistContext` |
 | Account Settings | `/account/settings` | Yes: no messages are sent | Two local notification toggles, session details, reset, logout |
 | Help & Support | `/support` (public) | — | FAQs about what the preview does; no contact details exist yet, so none are shown |
-| Sign in | `/login` | Yes | No password form (see "Decisions") |
+| Sign in | `/login` | The demo entry is simulated; customer sign-in above it needs a backend | No password form (see "Decisions") |
 | Register | `/register` | Preview only | Name, email, optional mobile, preview acknowledgement |
 
 Sample data is fictional: the names say "Demo", the email uses the reserved `example.com` domain, and the street is "Sample Street". The sample address needs a mobile number to pass the checkout validation, so it uses `9000000001`; it is not anyone's known number, but it is a valid-looking Indian number, so replace it if the owner prefers another value.
@@ -49,11 +51,11 @@ All in this browser's `localStorage` (checkout uses `sessionStorage`), through `
 | `mithren.wishlist`, `mithren.cart` | existing contexts | Unchanged by the demo | Kept |
 | `mithren.checkout` (session) | `CheckoutContext` | Current checkout | Kept |
 
-Cart, wishlist, the visitor's own orders and addresses belong to **this browser**, not to the demo account (guest checkout uses them too), so leaving the demo keeps them. To remove everything, clear this site's data in the browser.
+Cart, wishlist, the visitor's own orders and addresses belong to **this browser**, not to the demo account, so leaving the demo keeps them. To remove everything, clear this site's data in the browser.
 
 ## Integration with shopping and checkout
 
-- Guest browsing, cart, wishlist, Buy now and guest checkout work exactly as before; no step requires the demo account.
+- Guest browsing, search, cart and wishlist work exactly as before. Checkout and placing an order need customer sign-in; the demo account can't place orders by itself.
 - There is **one** address book: checkout and My Addresses edit the same `AddressBookContext` with the same form and validation. A new checkout preselects the **default** address (or the first saved one); a choice made during that checkout is kept until the order is placed.
 - Orders placed while in the demo account are ordinary checkout orders (not labelled as samples). They stay after Logout, like any order placed in this browser.
 - No price, charge, tax or payment rule changed.

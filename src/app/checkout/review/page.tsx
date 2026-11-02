@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CheckoutAuthGate } from "@/components/auth/CheckoutAuthGate";
 import { CheckoutSteps } from "@/components/checkout/CheckoutSteps";
 import { ReviewStep } from "@/components/checkout/ReviewStep";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -19,7 +20,9 @@ export default async function ReviewPage() {
           <CheckoutSteps current="Review" />
         </div>
         <div className="mt-6">
-          <ReviewStep catalog={catalog} />
+          <CheckoutAuthGate next="/checkout/review">
+            <ReviewStep catalog={catalog} />
+          </CheckoutAuthGate>
         </div>
       </Container>
     </main>

@@ -48,8 +48,9 @@ describe("investment data", () => {
   });
 
   it("validates a selection", () => {
-    expect(validateSelection(null, null)).toEqual({ plan: "Choose a contribution amount.", project: "Choose a project." });
-    expect(validateSelection("plan-1000", "nope")).toEqual({ project: "Choose a project." });
+    expect(validateSelection(null, null)).toEqual({ plan: "Choose a contribution amount." });
+    expect(validateSelection("plan-1000", null)).toEqual({});
+    expect(validateSelection("plan-1000", "nope").project).toMatch(/isn’t available/);
     expect(validateSelection("plan-1000", "crop-production-1")).toEqual({});
     expect(selectionHref({ plan: "plan-1000", project: "crop-production-1" })).toBe("/investors/plan?plan=plan-1000&project=crop-production-1");
   });
@@ -58,7 +59,7 @@ describe("investment data", () => {
 function renderSelector() {
   return render(
     <AppProviders>
-      <InvestmentSelector domains={investmentDomains} projects={investmentProjects} plans={investmentPlans} rules={allocationRules} portalHref={null} />
+      <InvestmentSelector domains={investmentDomains} projects={investmentProjects} plans={investmentPlans} rules={allocationRules} />
     </AppProviders>,
   );
 }
@@ -67,10 +68,9 @@ describe("plan and project selection", () => {
   it("shows field errors and a toast when the selection is incomplete", () => {
     search = new URLSearchParams();
     renderSelector();
-    fireEvent.click(screen.getByRole("button", { name: /Review selection/ }));
-    expect(screen.getByText("Choose a contribution amount.")).toBeInTheDocument();
-    expect(screen.getByText("Choose a project.")).toBeInTheDocument();
-    expect(screen.getByText("Your selection isn’t complete")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(screen.getAllByText("Choose a contribution amount.").length).toBeGreaterThan(0);
+    expect(screen.getByText("Check your selection")).toBeInTheDocument();
     expect(screen.queryByText(/Preview only/)).toBeNull();
   });
 
@@ -79,14 +79,45 @@ describe("plan and project selection", () => {
     renderSelector();
     expect(screen.getByRole("radio", { name: /₹25,000/ })).toBeChecked();
     expect(screen.getByRole("radio", { name: "Fish Farming Project 2" })).toBeChecked();
-    fireEvent.click(screen.getByRole("button", { name: /Review selection/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     const summary = screen.getByRole("complementary", { name: "Review your selection" });
     expect(within(summary).getByText("₹25,000")).toBeInTheDocument();
     expect(within(summary).getByText("Fish Farming Project 2")).toBeInTheDocument();
     expect(within(summary).getAllByText("Awaiting confirmation").length).toBeGreaterThanOrEqual(3);
     expect(within(summary).getByText(/Nothing has been submitted, no payment has been taken and no investment has been made/)).toBeInTheDocument();
-    expect(within(summary).getByRole("button", { name: /Investor Portal: coming soon/ })).toBeDisabled();
+    expect(within(summary).queryByRole("link")).toBeNull();
     expect(document.body.textContent).not.toMatch(/invested successfully|confirmed investment|investment successful/i);
+  });
+
+  it("shows all five amounts, reflects and changes the choice, and links nowhere", () => {
+    search = new URLSearchParams();
+    renderSelector();
+    const radios = screen.getAllByRole("radio").filter((r) => r.getAttribute("name") === "plan");
+    expect(radios).toHaveLength(5);
+    for (const amount of ["₹1,000", "₹10,000", "₹25,000", "₹50,000", "₹1,00,000"]) expect(screen.getByRole("radio", { name: new RegExp(`^${amount}\\D*Duration`) })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("radio", { name: /^₹10,000\D/ }));
+    const chosen = screen.getByRole("radio", { name: /^₹10,000\D/ }).closest("label")!;
+    expect(chosen).toHaveClass("border-primary", "bg-soft");
+    const summary = screen.getByRole("complementary");
+    expect(within(summary).getByText("₹10,000")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: /^₹50,000\D/ }));
+    expect(chosen).not.toHaveClass("bg-soft");
+    expect(within(summary).getByText("₹50,000")).toBeInTheDocument();
+    expect(window.location.search).toBe("?plan=plan-50000");
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(within(summary).queryByRole("link")).toBeNull();
+    expect(summary.textContent).toMatch(/not the same as investor returns. No return is currently promised/);
+    fireEvent.click(within(summary).getByRole("button", { name: /Change selection/ }));
+  });
+
+  it("lets a chosen project be cleared", () => {
+    search = new URLSearchParams("plan=plan-1000&project=dairy-farming-1");
+    renderSelector();
+    fireEvent.click(screen.getByRole("button", { name: "Clear project" }));
+    expect(screen.getByRole("radio", { name: "Dairy Farming Project 1" })).not.toBeChecked();
+    expect(window.location.search).toBe("?plan=plan-1000");
   });
 
   it("ignores unknown ids in the URL", () => {

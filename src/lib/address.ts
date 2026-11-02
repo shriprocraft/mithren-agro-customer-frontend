@@ -73,7 +73,13 @@ export function cleanAddress(input: AddressInput): AddressInput {
     pincode: input.pincode.trim(),
     landmark: input.landmark?.trim() || undefined,
     type: input.type,
+    ...(Number.isFinite(input.latitude) && Number.isFinite(input.longitude) && { latitude: input.latitude, longitude: input.longitude }),
   };
+}
+
+/** Short text for the header's location control: "Home, 4B Green Residency, Chennai". */
+export function addressShortLabel(address: Pick<Address, "type" | "house" | "city">): string {
+  return `${addressTypeLabels[address.type]}, ${address.house}, ${address.city}`;
 }
 
 /** One line for summaries: "12B, MG Road, Near the park, Bengaluru, Karnataka 560001". */

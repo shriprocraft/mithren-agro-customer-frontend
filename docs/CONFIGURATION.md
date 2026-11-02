@@ -6,12 +6,17 @@ Nothing here has a default production value: no URL was invented. When a value i
 
 | Variable | Used by | When empty or invalid |
 |---|---|---|
-| `NEXT_PUBLIC_INVESTOR_PORTAL_URL` | "Access Investor Portal" on `/investors` (hero and closing panel). Opens the separate Investor Portal application in the same tab; this storefront does not handle investor sign-in | Disabled "Investor Portal: coming soon" button with a note |
+| `NEXT_PUBLIC_API_BASE_URL` | The customer backend (`src/config/api.ts`): sign-in in `backend` mode and address lookup | Sign-in can't use `backend` mode; a detected position shows "no address" and the customer types it |
+| `NEXT_PUBLIC_AUTH_MODE` | Sign-in adapter: `backend` (needs the URL above) or `mock` (development mock: nothing is verified, ignored in production builds) | Sign-in is unavailable and **no order can be placed** |
 | `NEXT_PUBLIC_SELLER_AGENT_APPLY_URL` | "Apply as a Seller Agent" on `/agent-benefits` | Disabled "Seller Agent applications: coming soon" |
 | `NEXT_PUBLIC_DELIVERY_AGENT_APPLY_URL` | "Apply as a Delivery Agent" on `/agent-benefits` | Disabled "Delivery Agent applications: coming soon" |
 | `NEXT_PUBLIC_VIDEO_FARM_TO_HOME_URL` | Homepage video card "From Farm to Your Home" | Poster image with "Video coming soon"; no play button, nothing downloaded |
 | `NEXT_PUBLIC_VIDEO_GROW_WITH_US_URL` | Homepage video card "Grow With Mithren Agro" | Same |
 | `NEXT_PUBLIC_DEMO_TOOLS` | `true` shows the demo tracking controls in a production build (development always shows them) | Hidden in production |
+
+## Running sign-in locally
+
+Until a backend exists, put `NEXT_PUBLIC_AUTH_MODE=mock` in `.env.local` and run `npm run dev`, or the browser journey test can't reach checkout. The screen shows a random code to type; it sends nothing, verifies nobody and never simulates Google. **Production builds ignore `mock`, so a deployment without a backend can't take orders.** Backend, Google and provider settings: `docs/BACKEND_CONTRACTS.md`.
 
 ## Accepted values
 
@@ -38,5 +43,5 @@ Options (weights, packs, sizes) are sample data in `src/data/products.ts` (`prod
 ## Changing the copy
 
 - Video titles, descriptions and poster images: `homeVideos` in `src/config/external-links.ts`.
-- Agent Benefits content: `src/app/agent-benefits/page.tsx` (data arrays at the top). Investor content: `src/app/investors/page.tsx`.
-- Both pages describe **proposed** terms. Replace the provisional notices and the "Not yet published" policy list once official documents exist, and have the investor wording reviewed by a qualified adviser before launch.
+- Agent Benefits content: `src/app/agent-benefits/page.tsx` (data arrays at the top). Investor Coming Soon page: `src/app/investors/page.tsx`.
+- The Agent Benefits page describes **proposed** terms. Replace its provisional notices and "Not yet published" list once official documents exist. Have any future investor wording reviewed by a qualified adviser before launch.

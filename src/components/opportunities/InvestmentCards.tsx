@@ -8,7 +8,7 @@ import { PENDING, projectHref, selectionHref } from "@/lib/investments";
 import { cn } from "@/lib/utils";
 import type { InvestmentDomain, InvestmentPlan, InvestmentProject } from "@/types/investment";
 
-// Cards shared by the homepage section and the Investor Opportunities pages. Every value comes from
+// Domain visual for the Coming Soon page; the other cards belong to the unrouted journey (app/_investor-journey). Every value comes from
 // data/investments.ts; unconfirmed values read "Awaiting confirmation" and placeholders say so.
 
 /**

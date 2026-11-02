@@ -16,6 +16,9 @@ export interface Address {
   pincode: string;
   landmark?: string;
   type: AddressType;
+  /** From the customer's device, saved only if they confirm an address started from "Use my current location". */
+  latitude?: number;
+  longitude?: number;
   /** Fictional sample address added by the demo account; removed when the demo ends. */
   is_sample?: boolean;
 }

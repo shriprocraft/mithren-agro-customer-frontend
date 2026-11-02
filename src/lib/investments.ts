@@ -44,19 +44,26 @@ export function selectionHref(selection: { plan?: string; project?: string } = {
   return `/investors/plan${query ? `?${query}` : ""}`;
 }
 
+/** Shown wherever the plans are explained. */
+export const RETURNS_DISCLAIMER =
+  "Project economics, such as a project’s costs, output or revenue, are not the same as investor returns. No return is currently promised.";
+
+/** Details the business has not confirmed yet, for any plan. */
+export const AWAITING_CONFIRMATION = ["Investment duration", "Eligibility", "Contractual terms", "Investor outcomes"] as const;
+
 export interface SelectionErrors {
   plan?: string;
   project?: string;
 }
 
-/** Checks a plan-and-project selection before the review step. */
+/** Checks a selection before the review step. The amount is required; a project is optional. */
 export function validateSelection(planId: string | null, projectId: string | null): SelectionErrors {
   const errors: SelectionErrors = {};
   const plan = planId ? getPlan(planId) : undefined;
   const project = projectId ? getProject(projectId) : undefined;
   if (!plan) errors.plan = "Choose a contribution amount.";
-  if (!project) errors.project = "Choose a project.";
-  else if (plan && planEligibility(project, plan.id) === "not_eligible") {
+  if (projectId && !project) errors.project = "That project isn’t available. Choose another, or none.";
+  else if (project && plan && planEligibility(project, plan.id) === "not_eligible") {
     errors.project = `${project.name} isn’t open to the ${formatPrice(plan.amount)} plan. Choose another project or amount.`;
   }
   return errors;

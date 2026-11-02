@@ -11,6 +11,7 @@ import { useAddressBook } from "@/context/AddressBookContext";
 import { useCheckout } from "@/context/CheckoutContext";
 import { useToast } from "@/context/ToastContext";
 import { useCheckoutLines } from "@/hooks/useCheckoutLines";
+import { useDeliveryAddress } from "@/hooks/useDeliveryAddress";
 import { addressTypeLabels, formatAddressLine, isValidAddress } from "@/lib/address";
 import { checkoutBlocker } from "@/lib/cart";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ export function AddressStep({ catalog }: { catalog: Product[] }) {
   const book = useAddressBook();
   const { session, selectAddress } = useCheckout();
   const { lines, isBuyNow, ready } = useCheckoutLines(catalog);
+  const { activeAddress } = useDeliveryAddress();
   const [mode, setMode] = useState<Mode | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,8 +44,8 @@ export function AddressStep({ catalog }: { catalog: Product[] }) {
   }
 
   const { addresses } = book;
-  // With no explicit choice, the default address (set in My addresses) or else the first is preselected.
-  const selected = addresses.find((a) => a.id === session.address_id) ?? addresses.find((a) => a.id === book.defaultId) ?? addresses[0];
+  // With no choice in this checkout: the address chosen in the header, then the default, then the first.
+  const selected = addresses.find((a) => a.id === session.address_id) ?? activeAddress ?? addresses.find((a) => a.id === book.defaultId) ?? addresses[0];
   const current: Mode = mode ?? (addresses.length === 0 ? { kind: "add" } : { kind: "list" });
 
   const continueToReview = () => {

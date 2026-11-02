@@ -17,7 +17,7 @@ interface ExternalCtaProps {
   className?: string;
 }
 
-// A call to action that leaves this storefront (Investor Portal, agent applications). With a
+// A call to action that leaves this storefront (agent applications). With a
 // destination it is a real link that shows "Opening…" until the browser navigates; without one it
 // is a disabled button plus a note, so it never looks like a working application form.
 export function ExternalCta({ href, label, unavailableLabel, unavailableNote, id, variant = "default", className }: ExternalCtaProps) {

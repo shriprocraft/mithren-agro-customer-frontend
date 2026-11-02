@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { ChevronDown, ChevronRight, CircleHelp, Heart, LayoutDashboard, LogIn, LogOut, MapPin, Package, UserRound, type LucideIcon } from "lucide-react";
 import { DemoBadge } from "@/components/account/DemoBadge";
+import { DevelopmentAuthNotice } from "@/components/auth/DevelopmentAuthNotice";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAnnounce } from "@/context/AnnouncerContext";
+import { useAuth } from "@/context/AuthContext";
 import { useDemoAccount } from "@/context/DemoAccountContext";
 import { useOrders } from "@/context/OrdersContext";
 import { useEndDemoSession } from "@/hooks/useEndDemoSession";
@@ -23,13 +25,15 @@ const rowClass = "flex min-h-11 items-center gap-2.5 rounded-lg px-2 text-sm fon
 
 // The header's single account control. Signed out (the default): sign in, the demo account, a
 // registration preview, My Orders and the latest orders saved in this browser, so guests can still
-// get back to them. In a demo session: account links and Logout. Real authentication does not exist yet
-// (docs/DEMO_ACCOUNT.md). The trigger follows the reference: tinted avatar circle, label, chevron.
+// get back to them. In a demo session: account links and Logout. A signed-in customer (AuthContext,
+// separate from the demo) sees who they are and Sign out at the top. The trigger follows the reference: tinted avatar circle, label, chevron.
 export function AccountMenu() {
   const { hydrated, isActive, profile, startDemoSession } = useDemoAccount();
   const { orders, hydrated: ordersReady } = useOrders();
   const endSession = useEndDemoSession();
   const announce = useAnnounce();
+  const auth = useAuth();
+  const customer = auth.session?.customer;
   const signedIn = hydrated && isActive;
   const recent = orders.slice(0, 3);
 
@@ -48,6 +52,18 @@ export function AccountMenu() {
         <ChevronDown className="hidden size-4 text-muted-foreground sm:block" aria-hidden="true" />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[min(20rem,calc(100vw-2rem))] gap-3 p-4">
+        {customer && (
+          <div className="border-b border-border pb-3">
+            <p className="text-xs text-muted-foreground">Signed in as</p>
+            <p className="truncate font-heading text-base font-medium">{customer.full_name ?? customer.email ?? customer.phone}</p>
+            {auth.session?.source === "development_mock" && <DevelopmentAuthNotice className="mt-2" />}
+            <PopoverClose asChild>
+              <Button type="button" variant="outline" className="mt-2 w-full" onClick={() => void auth.signOut()}>
+                <LogOut aria-hidden="true" />Sign out
+              </Button>
+            </PopoverClose>
+          </div>
+        )}
         {signedIn ? (
           <>
             <div>
@@ -75,17 +91,19 @@ export function AccountMenu() {
         ) : (
           <>
             <div>
-              <p className="font-heading text-base font-medium">You’re shopping as a guest</p>
-              <p className="mt-1 text-sm text-muted-foreground">Customer accounts aren’t live yet. Explore the demo account, or keep shopping without one.</p>
+              <p className="font-heading text-base font-medium">{customer ? "Your account" : "You’re shopping as a guest"}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{customer ? "Order history and saved details in My Account are still sample data for now." : "Browse and fill your cart freely. Sign in before placing an order."}</p>
             </div>
             <div className="grid gap-2">
+              {!customer && (
+                <PopoverClose asChild>
+                  <Button asChild><Link href="/login"><LogIn aria-hidden="true" />Sign in</Link></Button>
+                </PopoverClose>
+              )}
               <PopoverClose asChild>
-                <Button asChild>
+                <Button asChild variant="outline">
                   <Link href="/account" onClick={() => { startDemoSession(); announce("Demo account opened. This is sample data."); }}>Explore Demo Account</Link>
                 </Button>
-              </PopoverClose>
-              <PopoverClose asChild>
-                <Button asChild variant="outline"><Link href="/login"><LogIn aria-hidden="true" />Sign in</Link></Button>
               </PopoverClose>
             </div>
             <PopoverClose asChild>

@@ -1,6 +1,7 @@
 // End-to-end customer journey through the real UI in headless Chrome, driven over the DevTools
-// protocol (no extra dependencies). Start the app first (npm run dev, so the demo tracking tools are
-// available), then: npm run test:e2e [-- <baseUrl> <outDir>]. Writes screenshots and results.json to
+// protocol (no extra dependencies). Start the app first with the development mock sign-in, which the
+// checkout steps need (NEXT_PUBLIC_AUTH_MODE=mock npm run dev; dev mode also gives the demo tracking
+// tools), then: npm run test:e2e [-- <baseUrl> <outDir>]. Writes screenshots and results.json to
 // <outDir> (default e2e-results/). Set CHROME_PATH if Chrome is not at the Windows default location.
 // It clears this site's localStorage/sessionStorage in its own temporary browser profile only.
 import { spawn } from "node:child_process";
@@ -60,6 +61,19 @@ async function choose(label, option) {
 }
 async function shot(name) { const r = await send("Page.captureScreenshot", { format: "png" }); writeFileSync(`${OUT}/${name}.png`, Buffer.from(r.result.data, "base64")); }
 
+// Signs in through the real screen with the development mock (it shows a random code), starting from
+// /login. Afterwards the page returns to wherever ?next= pointed.
+async function signIn() {
+  await waitFor("location.pathname === '/login' && document.querySelector('#sign-in-destination')");
+  await js("__t.type('#sign-in-destination', '9876543210')");
+  await js("__t.click('main form button[type=submit]', 'Send code')");
+  await waitFor("document.querySelector('[data-testid=development-code]')");
+  const code = await js("document.querySelector('[data-testid=development-code]').textContent");
+  await js(`__t.type('#sign-in-code', ${JSON.stringify(code)})`);
+  await sleep(100);
+  await js("__t.click('main form button[type=submit]', 'Verify and continue')");
+}
+
 const results = [];
 async function step(n, title, fn) {
   try { const detail = await fn(); results.push({ n, title, result: "PASS", detail: detail ?? "" }); }
@@ -117,9 +131,23 @@ await step(8, "Verify quantity and totals; edit and remove", async () => {
 await step("8b", "Cart survives a refresh", async () => {
   await go("/cart"); await waitFor("__t.text().includes('Subtotal (3 items) ₹120')"); return "still 3 × Tomatoes after reload";
 });
-await step(9, "Proceed to checkout", async () => {
-  await js(`__t.click('main button', 'Proceed to checkout')`); await waitFor("location.pathname === '/checkout/address'");
-  await waitFor("document.querySelector('#address-full_name')"); return "→ /checkout/address, add-address form shown (no saved addresses)";
+await step("9a", "A guest can't reach any checkout step or order", async () => {
+  await go("/checkout/review"); await waitFor("location.pathname === '/login' && location.search.includes('checkout%2Freview')");
+  await go("/checkout/address"); await waitFor("location.pathname === '/login' && location.search.includes('checkout%2Faddress')");
+  await waitFor("__t.text().includes('Sign in to place your order')");
+  expect(!(await js("!!document.querySelector('input[type=password]')")), "no password field");
+  await js("__t.click('main button', 'Continue with Google')"); await waitFor("__t.text().includes('You have not been signed in')");
+  expect(await js("location.pathname === '/login' && !sessionStorage.getItem('mithren.dev-mock-auth-session')"), "Google did not sign anyone in");
+  await shot("09a-sign-in"); await go("/cart"); await waitFor("__t.text().includes('Subtotal (3 items) ₹120')");
+  return "both steps redirect with the right return path; Google reports not signed in; cart intact";
+});
+await step(9, "Proceed to checkout: sign in, return with the cart", async () => {
+  await js(`__t.click('main button', 'Proceed to checkout')`); await waitFor("location.pathname === '/login'");
+  await signIn(); await waitFor("location.pathname === '/checkout/address'");
+  await waitFor("document.querySelector('#address-full_name')");
+  expect(await js("__t.text().includes('Development sign-in')"), "mock is labelled");
+  expect(await js("__t.cartLabel() === 'Cart, 3 items'"), "cart kept");
+  return "→ /login → OTP → /checkout/address; add-address form shown; cart kept; mock labelled";
 });
 await step(11, "Invalid address data is rejected", async () => {
   await js(`__t.click('main form button[type=submit]')`);
@@ -366,6 +394,7 @@ await step(39, "Buy now orders only that product and leaves the cart unchanged",
 
 // ---- Demo customer account (docs/DEMO_ACCOUNT.md) ----
 await step(40, "Account pages are gated without a demo session", async () => {
+  await js("sessionStorage.removeItem('mithren.dev-mock-auth-session'); true"); // Signed out for the demo steps; step 46 signs in again.
   await viewport(1440, 900); await go("/account/orders");
   await waitFor("__t.text().includes('Sign in to see your account')");
   expect(!(await js("__t.text()")).includes("Sample order"), "account content leaked");
@@ -427,7 +456,9 @@ await step(45, "Add, edit, set default and delete an address (with confirmation)
 await step(46, "Checkout as the demo account uses the default address", async () => {
   await js("(() => { const li = [...document.querySelectorAll('main li')].find(l => l.textContent.includes('Sample Street')); const b = li && [...li.querySelectorAll('button')].find(b => b.textContent.includes('Set as default')); if (b) b.click(); return true; })()");
   await go("/products/p-papaya"); await js("__t.click('main button', 'Add to cart')"); await waitFor("__t.cartLabel() === 'Cart, 2 items'");
-  await go("/cart"); await js("__t.click('main button', 'Proceed to checkout')"); await waitFor("location.pathname === '/checkout/address' && document.querySelector('input[name=delivery-address]')");
+  await go("/cart"); await js("__t.click('main button', 'Proceed to checkout')"); await waitFor("location.pathname === '/login'");
+  expect((await js("__t.text()")).includes("Sign in to place your order"), "the demo account doesn't count as signed in");
+  await signIn(); await waitFor("location.pathname === '/checkout/address' && document.querySelector('input[name=delivery-address]')");
   const checked = await js("document.querySelector('input[name=delivery-address]:checked').closest('li').textContent");
   expect(checked.includes("Sample Street") && checked.includes("Default"), checked.slice(0, 120));
   await js("__t.click('main button', 'Continue to review')"); await waitFor("location.pathname === '/checkout/review' && __t.text().includes('Place order')");
@@ -465,7 +496,7 @@ await step(49, "Logout ends the demo and keeps guest shopping working", async ()
   const orders = await js("JSON.parse(localStorage.getItem('mithren.orders'))");
   expect(orders.every((o) => !o.is_sample) && orders.length >= 1, "samples removed, own orders kept: " + orders.length);
   expect((await js("JSON.parse(localStorage.getItem('mithren.addresses'))")).every((a) => !a.is_sample), "sample address removed");
-  await js("__t.click('header button[aria-label^=Account]')"); await waitFor("__t.byText('[data-slot=popover-content] a', 'Sign in')");
+  await js("__t.click('header button[aria-label^=Account]')"); await waitFor("__t.byText('[data-slot=popover-content] a', 'Explore Demo Account')");
   await go("/products"); await js("__t.click('main article button', 'Add to cart')"); await waitFor("__t.cartLabel() === 'Cart, 1 item'");
   return "signed-out notice; account gated again; samples gone; own orders kept; guest add-to-cart works";
 });
@@ -489,7 +520,7 @@ await step(51, "Help & support is honest and reachable", async () => {
 await step(52, "Homepage order; static hero; no liquid glass on the hero strip", async () => {
   await viewport(1440, 900); await go("/");
   const order = await js("[...document.querySelectorAll('main > section')].map(s => s.getAttribute('aria-labelledby') ?? s.id).join()");
-  expect(order === "hero-title,about-title,videos-title,home-search,categories-title,combo-offers-title,investor-opportunities-title,banner-title", order);
+  expect(order === "hero-title,about-title,videos-title,home-search,categories-title,combo-offers-title,banner-title", order);
   const t = await js("__t.text()");
   expect(!t.includes("Fresh picks") && !t.includes("Pantry staples, sold by the pack") && !t.includes("Meet Our Farmers"), "removed content still present");
   // Static hero (no slider) and no liquid glass on the benefits strip along its bottom.
@@ -497,6 +528,50 @@ await step(52, "Homepage order; static hero; no liquid glass on the hero strip",
   const strip = await js("(() => { const ul = [...document.querySelectorAll('main section[aria-labelledby=hero-title] ul')].pop(); const outer = ul.parentElement; return [ul.className.includes('glass'), getComputedStyle(outer).backdropFilter, getComputedStyle(outer).backgroundColor].join('|'); })()");
   expect(strip === "false|none|rgba(0, 0, 0, 0)", strip);
   await shot("52-home-1440"); return `sections ${order}; strip: ${strip}`;
+});
+await step("52a", "Shop by category: no pause button, moves, reduced motion stops it", async () => {
+  await go("/");
+  expect(await js("!document.querySelector('#categories button[aria-label*=animation]')"), "pause button still there");
+  expect(await js("getComputedStyle(document.querySelector('#categories-row > div')).animationName !== 'none'"), "row should move");
+  expect(await js("document.documentElement.scrollWidth <= window.innerWidth"), "no sideways scroll");
+  await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+  await sleep(200);
+  expect(await js("getComputedStyle(document.querySelector('#categories-row > div')).animationName === 'none'"), "reduced motion should stop it");
+  await send("Emulation.setEmulatedMedia", { features: [] });
+  await js("document.querySelector('#categories-row a[href^=\"/products?category=\"]').click()"); await waitFor("location.pathname === '/products' && location.search.includes('category=')");
+  return "no control; animated; still with reduced motion; card opens filtered products";
+});
+await step("52b", "Investor Opportunities is coming soon, with no way to invest", async () => {
+  await go("/investors"); await waitFor("__t.text().includes('being prepared and will be available soon')");
+  const t = await js("__t.text()");
+  expect(/coming soon/i.test(t), "missing coming soon"); for (const s of ["Crop Production", "Dairy Farming", "Fish Farming", "Poultry Farming", "Biogas & Composting", "Agri Forestry"]) expect(t.includes(s), "missing " + s);
+  expect(!/₹|contribution|portal/i.test(t), "amounts or portal on the page");
+  expect(await js("!document.querySelector('main button, main form, main input')"), "no action or form");
+  expect(await js("[...document.querySelectorAll('main a, footer a, header a')].every(a => !/investor-frontend/.test(a.href))"), "portal link");
+  await shot("52b-investors-coming-soon");
+  for (const old of ["/investors/plan?plan=plan-25000", "/investors/projects", "/investors/projects/dairy-farming-1"]) { await go(old); await waitFor("location.pathname === '/investors' && __t.text().includes('being prepared')"); }
+  return "coming soon; six domains; no amounts, forms or portal; old plan and project URLs land here";
+});
+await step("52c", "Location: address saved from the header and preselected at checkout", async () => {
+  await send("Browser.grantPermissions", { permissions: ["geolocation"] }).catch(() => {});
+  await send("Emulation.setGeolocationOverride", { latitude: 13.06, longitude: 80.25, accuracy: 50 });
+  await go("/products");
+  await js("__t.click('header button', 'Delivering to')"); await waitFor("__t.byText('[data-slot=popover-content] button', 'Use my current location')");
+  await js("__t.click('[data-slot=popover-content] button', 'Use my current location')");
+  await waitFor("__t.byText('[data-slot=popover-content] p', 'Position detected, but no address')");
+  await shot("52c-location");
+  await js("__t.click('[data-slot=popover-content] button', 'Enter my address')"); await waitFor("document.querySelector('#address-city')");
+  expect(await js("document.querySelector('#address-city').value === ''"), "must not invent an address");
+  await js("__t.type('#address-full_name', 'Header Address'); __t.type('#address-mobile', '9876500000'); __t.type('#address-house', '7C'); __t.type('#address-street', 'Beach Road'); __t.type('#address-city', 'Chennai'); __t.type('#address-state', 'Tamil Nadu'); __t.type('#address-pincode', '600001'); true");
+  await sleep(100); await js("__t.click('[data-slot=popover-content] button[type=submit]', 'Save and deliver here')");
+  await waitFor("__t.byText('header button', 'Home, 7C, Chennai')");
+  await go("/products/p-papaya"); await js("__t.click('main button', 'Buy now')"); await waitFor("location.pathname === '/checkout/address' && document.querySelector('input[name=delivery-address]:checked')");
+  const checked = await js("document.querySelector('input[name=delivery-address]:checked').closest('li').textContent");
+  expect(checked.includes("7C"), checked.slice(0, 100));
+  const overflow = []; for (const [w, h] of [[375, 700], [768, 900], [1440, 900]]) { await viewport(w, h); await go("/login"); if (await js("document.documentElement.scrollWidth > window.innerWidth")) overflow.push(w); await go("/investors/plan"); if (await js("document.documentElement.scrollWidth > window.innerWidth")) overflow.push(w); }
+  expect(overflow.length === 0, "overflow at " + overflow);
+  await go("/");
+  return "position only; form blank; saved; shown in header; preselected at checkout; no overflow at 375/768/1440";
 });
 await step(53, "Agent Benefits: hero link, sections, direct open", async () => {
   await js("__t.click('main a', 'Agent Benefits')"); await waitFor("location.pathname === '/agent-benefits' && __t.text().includes('Grow local agriculture')");
@@ -510,15 +585,11 @@ await step(53, "Agent Benefits: hero link, sections, direct open", async () => {
   await go("/agent-benefits"); await waitFor("__t.text().includes('Seller Agent')"); await shot("53-agents");
   return `hero → /agent-benefits; anchor scrolls to Delivery Agent (top ${top}px); applications disabled; direct load OK`;
 });
-await step(54, "Investor Opportunities: hero link, risk section, portal fallback, footer links", async () => {
+await step(54, "Investor Opportunities: hero link and footer links", async () => {
   await go("/"); await js("__t.click('section[aria-labelledby=hero-title] a', 'Investor Opportunities')"); await waitFor("location.pathname === '/investors' && document.querySelector('h1')?.textContent === 'Investor Opportunities'");
-  const t = await js("__t.text()");
-  expect(t.includes("Risks and disclosures") && t.includes("no guarantee of returns") && !/guaranteed returns/i.test(t), "disclosure");
-  const portal = await js("[...document.querySelectorAll('main button, main a')].filter(e => /Investor Portal/.test(e.textContent)).map(e => e.tagName + ':' + e.disabled).join()");
-  expect(!portal.includes("A:") && portal.split(",").length === 1, "no link without a configured URL: " + portal);
   const footer = await js("[...document.querySelectorAll('footer a')].map(a => a.getAttribute('href')).join()");
   expect(footer.includes("/agent-benefits") && footer.includes("/investors"), footer);
-  await shot("54-investors"); return `portal unconfigured → ${portal}; footer links to both pages`;
+  await shot("54-investors"); return "hero → Coming Soon; footer links to both pages";
 });
 await step(55, "Video cards: two, after the hero, safe without a source", async () => {
   await go("/"); const info = await js("(() => { const s = document.querySelector('section[aria-labelledby=videos-title]'); return [s.querySelectorAll('article').length, s.querySelectorAll('video').length, s.textContent.includes('Video coming soon'), s.previousElementSibling.getAttribute('aria-labelledby')].join('|'); })()");

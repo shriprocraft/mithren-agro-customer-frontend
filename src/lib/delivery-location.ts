@@ -3,9 +3,29 @@ import { tamilNaduDistricts, type District } from "@/data/tamil-nadu-districts";
 // Delivery location: the customer's Tamil Nadu district, saved in this browser. Choosing a district
 // records where the customer wants delivery; it does not mean delivery is available there, because
 // no serviceability rules are configured yet (docs/REQUIREMENTS_REGISTER.md). Coordinates from
-// "Use my current location" are used once to suggest a district and are never stored.
+// "Use my current location" are read once, never tracked, and stored only on an address the customer
+// reviews and saves.
 
 export const DELIVERY_LOCATION_KEY = "mithren.delivery-location";
+/** The saved address in use, when the customer chose an address rather than a district. */
+export const ACTIVE_ADDRESS_KEY = "mithren.delivery-address.active";
+
+export const parseActiveAddressId = (value: unknown): string | null => (typeof value === "string" ? value : null);
+
+export type GeolocationFailure = number | "unsupported" | "insecure";
+
+/** One position lookup (never a watch), rejecting with a code geolocationErrorMessage understands. */
+export function getCurrentCoordinates(): Promise<{ latitude: number; longitude: number }> {
+  return new Promise((resolve, reject) => {
+    if (!("geolocation" in navigator)) return reject("unsupported" satisfies GeolocationFailure);
+    if (!window.isSecureContext) return reject("insecure" satisfies GeolocationFailure);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude }),
+      (error) => reject(error.code),
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 5 * 60 * 1000 },
+    );
+  });
+}
 
 export interface DeliveryLocation {
   district: string;
@@ -57,7 +77,7 @@ export function nearestDistrict(point: { lat: number; lng: number }, districts: 
 }
 
 /** GeolocationPositionError codes: 1 permission denied, 2 position unavailable, 3 timeout. */
-export function geolocationErrorMessage(code: number | "unsupported" | "insecure"): string {
+export function geolocationErrorMessage(code: GeolocationFailure): string {
   switch (code) {
     case "unsupported":
       return "This browser can’t share your location. Please choose your district from the list.";
@@ -74,5 +94,5 @@ export function geolocationErrorMessage(code: number | "unsupported" | "insecure
 
 /** What we can honestly say about delivery to a district today. */
 export function serviceabilityNote(district: string): string {
-  return `Delivery coverage for ${district} hasn’t been confirmed yet. We’ll use this district when delivery areas are set up.`;
+  return `Delivery coverage for ${district} hasn’t been confirmed yet. We’ll use this when delivery areas are set up.`;
 }

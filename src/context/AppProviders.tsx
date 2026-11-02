@@ -4,16 +4,18 @@ import type { ReactNode } from "react";
 import { MotionConfig } from "framer-motion";
 import { AddressBookProvider } from "@/context/AddressBookContext";
 import { AnnouncerProvider } from "@/context/AnnouncerContext";
+import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { CheckoutProvider } from "@/context/CheckoutContext";
 import { DemoAccountProvider } from "@/context/DemoAccountContext";
 import { OrdersProvider } from "@/context/OrdersContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import type { AuthService } from "@/types/auth";
 
 // Mounted once in the root layout (guide, Section J). MotionConfig honours the OS reduced-motion setting.
 // Each provider owns one kind of client state (docs/ARCHITECTURE.md, "State and persistence").
-export function AppProviders({ children }: { children: ReactNode }) {
+export function AppProviders({ children, authService }: { children: ReactNode; authService?: AuthService }) {
   return (
     <MotionConfig reducedMotion="user">
       <AnnouncerProvider>
@@ -22,10 +24,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
             <WishlistProvider>
               <AddressBookProvider>
                 <CheckoutProvider>
-                  <OrdersProvider>
-                    {/* Inside the order and address stores: the demo account adds its samples to them. */}
-                    <DemoAccountProvider>{children}</DemoAccountProvider>
-                  </OrdersProvider>
+                  <AuthProvider service={authService}>
+                    <OrdersProvider>
+                      {/* Inside the order and address stores: the demo account adds its samples to them. */}
+                      <DemoAccountProvider>{children}</DemoAccountProvider>
+                    </OrdersProvider>
+                  </AuthProvider>
                 </CheckoutProvider>
               </AddressBookProvider>
             </WishlistProvider>

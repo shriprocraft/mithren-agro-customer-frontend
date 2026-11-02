@@ -122,7 +122,7 @@ export default async function AboutPage() {
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {[
               { href: "/agent-benefits", Icon: Handshake, title: "Agent Benefits", text: "How Seller Agents and Delivery Agents could take part in the marketplace." },
-              { href: "/investors", Icon: TrendingUp, title: "Investor Opportunities", text: "Learn about the business and how prospective investors can find out more." },
+              { href: "/investors", Icon: TrendingUp, title: "Investor Opportunities", text: "Investment opportunities are being prepared. Coming soon." },
             ].map(({ href, Icon, title, text }) => (
               <Link key={href} href={href} className="group surface-card flex items-start gap-4 rounded-3xl p-5 outline-none hover:shadow-[var(--elevation-overlay)] focus-visible:ring-2 focus-visible:ring-ring sm:p-6">
                 <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-secondary text-primary"><Icon className="size-6" aria-hidden="true" /></span>

@@ -17,7 +17,9 @@ This repository contains the **customer app only**. Seller, admin, delivery and 
 npm install
 ```
 
-No environment variables are needed at this stage, so there is no `.env.example`. Add one, with placeholder values only, when the first variable is introduced.
+Configuration is optional and public-only: copy `.env.example` to `.env.local` (see `docs/CONFIGURATION.md`). Until a backend exists, set `NEXT_PUBLIC_AUTH_MODE=mock` for local development to reach checkout. Run the browser journey with `npm run test:e2e` against that dev server.
+
+Sign-in, addresses and other API contracts: `docs/BACKEND_CONTRACTS.md`.
 
 ## Scripts
 
