@@ -9,6 +9,7 @@ import { ExploreDemoButton } from "@/components/account/ExploreDemoButton";
 import { TextField } from "@/components/account/TextField";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/typography";
+import { useAuth } from "@/context/AuthContext";
 import { safeNextPath, validateRegistration, type RegistrationInput } from "@/lib/demo-account";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ const EMPTY: RegistrationInput = { full_name: "", email: "", mobile: "", acknowl
 export function RegisterView() {
   const params = useSearchParams();
   const next = safeNextPath(params.get("next"));
+  const auth = useAuth();
   const [values, setValues] = useState<RegistrationInput>(EMPTY);
   const [submitted, setSubmitted] = useState(false);
   const [done, setDone] = useState(false);
@@ -37,6 +39,21 @@ export function RegisterView() {
     setValues(EMPTY); // discard what was typed
     setDone(true);
   };
+
+  // With the real backend there is no separate sign-up: the first phone sign-in creates the account.
+  if (auth.mode === "backend") {
+    return (
+      <div>
+        <Heading as="h1" variant="h1" className="text-[1.75rem] sm:text-4xl">Create your account</Heading>
+        <p className="mt-2 text-muted-foreground">
+          There’s no separate sign-up. Sign in with your mobile number and a one-time code: if you’re new, your account is created then, and we’ll ask for your name.
+        </p>
+        <div className="mt-6">
+          <Button asChild size="lg" className="w-full sm:w-auto"><Link href={next === "/account" ? "/login" : `/login?next=${encodeURIComponent(next)}`}>Sign in with your mobile number</Link></Button>
+        </div>
+      </div>
+    );
+  }
 
   if (done) {
     return (

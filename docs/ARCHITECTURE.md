@@ -52,7 +52,7 @@ Further feature folders from the development guide (`components/filters`, `cart`
 | ~~Category links and search target an on-page browser via `#shop-<slug>` anchors~~ **Superseded in phase 3:** they open `/products` with URL filters | `BrowseContext` was removed; the homepage keeps a small category preview |
 | ~~Product names open a quick-view dialog~~ **Superseded in phase 3:** product names link to `/products/[productId]`; quick view moved to an eye button on product cards | Product details pages now exist |
 | ~~Cart, wishlist and location are in-memory React state~~ **Superseded in phase 3:** cart and wishlist persist in localStorage (location is still per page) | See "State and persistence" below |
-| Account menu explains sign-in is coming, rather than linking to `/login` | Authentication is out of scope for this phase |
+| ~~Account menu explains sign-in is coming, rather than linking to `/login`~~ **Superseded (7 Nov 2026):** it links to `/login`; see "Phone sign-in and live account pages" | Authentication is out of scope for this phase |
 | Footer support/policy items are plain text marked "coming soon" | No destination pages exist; no contact details, social profiles or policies are invented |
 | Server components by default; client components only for interactive pieces | `ProductCard` itself has no `"use client"`; only its cart, wishlist and quick-view controls do |
 | Helpers shared by server and client code live in `lib/` and `components/products/category-icons.ts`, not in `"use client"` modules | Exports of a client module become client references and cannot be called during server rendering |
@@ -223,7 +223,7 @@ Supersedes the homepage order and the Investor Opportunities section above. Cont
 | `AuthService` has three adapters (`backend`, `development_mock`, `unavailable`). `resolveAuthMode` fails closed: `mock` is refused in production builds, and a failed session check counts as signed out | The UI doesn't change when the backend arrives, and mock sign-in can't reach production |
 | Session is the backend's HTTP-only cookie. Nothing stores a token or code. The mock's code is random, in memory, and its marker holds neither | Requested. Google is never simulated: only a session response from the backend signs a customer in |
 | Ordering is enforced twice: `CheckoutAuthGate` on both checkout routes, and `canPlaceOrder` inside `OrdersContext.placeOrder` | Every entry point (cart, mini cart, Buy now, typed URL, Back) meets the same check. A frontend check isn't security: the order API must enforce it (`docs/BACKEND_CONTRACTS.md`) |
-| Sign-in is separate from the demo account; the marker never allows ordering. `/account` stays a demo | `docs/DEMO_ACCOUNT.md`. Real accounts need the backend |
+| Sign-in is separate from the demo account; the marker never allows ordering. `/account` stays a demo (**updated 7 Nov 2026:** My Profile and My Addresses use the real account for a backend customer) | `docs/DEMO_ACCOUNT.md`. Real accounts need the backend |
 | **Consequence:** a production build without a backend can't take orders; `/login` and checkout say so | Requested: no unauthenticated orders and no mock in production |
 
 ## Investor Opportunities: coming soon (2 Nov 2026, later)
@@ -236,6 +236,19 @@ Supersedes the `/investors/plan` row above, and every Investor Portal link in th
 | The portal integration is removed: its URL, `NEXT_PUBLIC_INVESTOR_PORTAL_URL`, `investorPortalDestination`, `portal_project_id` and every link. `tests/storefront-updates.test.tsx` fails if the URL returns to `src/` | Owner decision: the two applications aren't connected |
 | The earlier overview, plan and project pages are kept in `src/app/_investor-journey/`, which Next.js does not route. `InvestmentSelector`, the cards, data and services stay. To reuse them, move the pages back under `app/investors` and remove the redirect | Keeps the work without connecting it to the customer journey |
 | `next.config.ts` temporarily redirects `/investors/:path+` to `/investors` | Old links and bookmarks can't reach a selection flow |
+
+## Phone sign-in and live account pages (7 Nov 2026)
+
+Contracts: `docs/BACKEND_CONTRACTS.md`. Supersedes the account-menu and `/account` rows above where they differ.
+
+| Decision | Reason |
+|---|---|
+| Sign-in is by mobile number and a one-time code only. The Email tab is hidden in every mode and Google is a disabled "Coming soon" button with no handler (`src/config/auth.ts`) | Only phone OTP exists on the backend; nothing on screen may look usable before it is connected |
+| After a verified code, the frontend calls `GET /auth/session` and signs the customer in only if it returns them | Proves the browser kept the HTTP-only cookie; a verify response alone never signs anyone in |
+| A first sign-in without a name asks for one (`NameStep`, `PATCH /customer/profile`), with "Skip for now"; a skipped customer is asked again at the next sign-in. The session is read again after saving or skipping | Decision A6; names are used for orders and deliveries |
+| The account menu shows a backend customer's name or number, links to My Profile and My Addresses, and Sign out. Guests in backend mode are told that signing in creates the account; `/register` then points to sign-in instead of the preview form | No separate sign-up exists: the first phone sign-in creates the account |
+| My Profile and My Addresses open for a backend customer (`RequireDemoSession allowSignedIn`); the overview, orders, wishlist, settings and tracking stay demo-only and say so | Only the profile and address book APIs exist; nothing unfinished opens for a real customer |
+| The development mock still shows its code on screen, is labelled, never asks for a name, and is refused in production builds | Lets the browser journey test (`npm run test:e2e`) run without a backend |
 
 ## Conflicts between the references (open)
 

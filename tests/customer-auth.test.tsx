@@ -127,15 +127,13 @@ describe("sign-in screens with the development mock", () => {
     fireEvent.click(screen.getByRole("button", { name: "Verify and continue" }));
   };
 
-  it("validates the phone number and email before sending anything", async () => {
+  it("validates the phone number before sending anything, and offers no email option", async () => {
     view();
     fireEvent.change(await screen.findByLabelText("Mobile number"), { target: { value: "12345" } });
     fireEvent.click(screen.getByRole("button", { name: "Send code" }));
     expect(screen.getByText(/valid 10-digit Indian mobile number/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("radio", { name: "Email" }));
-    fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "nope" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send code" }));
-    expect(screen.getByText(/email address like/)).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Email" })).toBeNull();
+    expect(screen.queryByLabelText("Email address")).toBeNull();
   });
 
   it("returns to the checkout step after signing in, with the cart intact and no code stored", async () => {
@@ -148,6 +146,7 @@ describe("sign-in screens with the development mock", () => {
     expect(screen.getByRole("button", { name: /Resend code in \d+s/ })).toBeDisabled();
     submitCode(code);
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/checkout/address"));
+    expect(screen.queryByText("What should we call you?")).toBeNull();
     expect(cart.items).toEqual([expect.objectContaining({ product_id: "p-tomatoes", quantity: 2 })]);
     const stored = JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage });
     expect(stored).not.toContain(code);
@@ -189,10 +188,14 @@ describe("sign-in screens with the development mock", () => {
     expect(await screen.findByText(/couldn’t reach the server/)).toBeInTheDocument();
   });
 
-  it("never reports Google success without a real provider", async () => {
-    view();
-    fireEvent.click(await screen.findByRole("button", { name: "Continue with Google" }));
-    expect(await screen.findByText(/Google sign-in isn’t connected yet. You have not been signed in/)).toBeInTheDocument();
+  it("shows Google as coming soon, disabled, and never starts it", async () => {
+    const startGoogleSignIn = vi.fn();
+    view({ ...createDevelopmentMockAuthService("test"), startGoogleSignIn });
+    const google = await screen.findByRole("button", { name: /Continue with Google/ });
+    expect(google).toBeDisabled();
+    expect(google).toHaveTextContent("Coming soon");
+    fireEvent.click(google);
+    expect(startGoogleSignIn).not.toHaveBeenCalled();
     expect(sessionStorage.getItem(MOCK_SESSION_KEY)).toBeNull();
     expect(replace).not.toHaveBeenCalled();
   });
@@ -203,7 +206,7 @@ describe("sign-in screens with the development mock", () => {
     unmount();
     view(unavailableAuthService);
     expect(await screen.findByText(/Sign-in isn’t connected on this site yet/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Continue with Google/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Send code" })).toBeDisabled();
     expect(document.querySelector("input[type=password]")).toBeNull();
     expect(screen.getByRole("button", { name: /Explore Demo Account/ })).toBeInTheDocument();
@@ -228,7 +231,8 @@ describe("backend adapter", () => {
   });
 
   it("sends the documented payloads and maps error codes", async () => {
-    const request = vi.fn().mockResolvedValue({ customer });
+    const challenge = { challenge_id: "c", channel: "phone", destination_hint: "+91 ••••• •3210", expires_in_seconds: 300, resend_after_seconds: 30 };
+    const request = vi.fn().mockResolvedValue({ customer }).mockResolvedValueOnce(challenge).mockResolvedValueOnce({ ...challenge, channel: "email" });
     const service = createHttpAuthService(client(request), "https://api");
     await service.requestOtp({ channel: "phone", destination: "+919876543210" });
     expect(request).toHaveBeenLastCalledWith("/auth/otp/phone/request", { method: "POST", body: { phone: "+919876543210" } });
@@ -240,6 +244,15 @@ describe("backend adapter", () => {
     await expect(service.verifyOtp({ channel: "phone", challenge_id: "c", code: "123456" })).rejects.toMatchObject({ code: "expired_otp" });
     request.mockResolvedValueOnce({});
     await expect(service.verifyOtp({ channel: "phone", challenge_id: "c", code: "123456" })).rejects.toBeInstanceOf(AuthError);
+    request.mockRejectedValueOnce(new ApiError("validation_error", "", 422));
+    await expect(service.requestOtp({ channel: "phone", destination: "+91" })).rejects.toMatchObject({ code: "validation_error" });
+  });
+
+  it("never takes a development code, or any other extra field, from a backend response", async () => {
+    const challenge = { challenge_id: "c", channel: "phone", destination_hint: "+91 ••••• •3210", expires_in_seconds: 300, resend_after_seconds: 30 };
+    const service = createHttpAuthService(client(async () => ({ ...challenge, development_code: "123456", code: "123456" } as never)), "https://api");
+    await expect(service.requestOtp({ channel: "phone", destination: "+919876543210" })).resolves.toEqual(challenge);
+    await expect(createHttpAuthService(client(async () => ({} as never)), "https://api").requestOtp({ channel: "phone", destination: "+919876543210" })).rejects.toBeInstanceOf(AuthError);
   });
 
   it("Google only leaves for the backend's start URL and reports no session itself", async () => {

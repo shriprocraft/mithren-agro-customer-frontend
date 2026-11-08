@@ -136,10 +136,14 @@ await step("9a", "A guest can't reach any checkout step or order", async () => {
   await go("/checkout/address"); await waitFor("location.pathname === '/login' && location.search.includes('checkout%2Faddress')");
   await waitFor("__t.text().includes('Sign in to place your order')");
   expect(!(await js("!!document.querySelector('input[type=password]')")), "no password field");
-  await js("__t.click('main button', 'Continue with Google')"); await waitFor("__t.text().includes('You have not been signed in')");
-  expect(await js("location.pathname === '/login' && !sessionStorage.getItem('mithren.dev-mock-auth-session')"), "Google did not sign anyone in");
+  // Google isn't implemented: its button is shown disabled as "Coming soon" and clicking it does nothing.
+  expect(await js("(() => { const b = __t.byText('main button', 'Continue with Google'); return !!b && b.disabled && b.textContent.includes('Coming soon'); })()"), "Google button must be disabled and marked Coming soon");
+  await js("__t.byText('main button', 'Continue with Google').click(); true"); await sleep(300);
+  expect(await js("location.pathname === '/login' && !sessionStorage.getItem('mithren.dev-mock-auth-session')"), "Google did not sign anyone in or navigate");
+  // Email codes aren't implemented either, so only the mobile number field is offered.
+  expect(await js("!document.querySelector('input[name=otp-channel]') && document.querySelector('#sign-in-destination')?.type === 'tel'"), "no Email option; phone only");
   await shot("09a-sign-in"); await go("/cart"); await waitFor("__t.text().includes('Subtotal (3 items) ₹120')");
-  return "both steps redirect with the right return path; Google reports not signed in; cart intact";
+  return "both steps redirect with the right return path; Google disabled (Coming soon), does nothing; phone only; cart intact";
 });
 await step(9, "Proceed to checkout: sign in, return with the cart", async () => {
   await js(`__t.click('main button', 'Proceed to checkout')`); await waitFor("location.pathname === '/login'");

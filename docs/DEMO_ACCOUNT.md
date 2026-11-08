@@ -1,8 +1,8 @@
 # Demo customer account
 
-> **Separate from customer sign-in.** Google, phone and email sign-in (`AuthContext`, `docs/BACKEND_CONTRACTS.md`) is the only thing that allows ordering. The demo marker below never counts as signed in, and signing in doesn't open this sample account.
+> **Separate from customer sign-in.** Customer sign-in (`AuthContext`, `docs/BACKEND_CONTRACTS.md`) is the only thing that allows ordering. It is by mobile number and a one-time code; Google and email sign-in are not implemented yet. The demo marker below never counts as signed in, and signing in doesn't open this sample account. For a customer signed in through the backend, **My Profile** and **My Addresses** show their real account instead; every other account page stays a demo.
 
-The customer account in this repository is a **demo**. It shows how sign-in, profile, orders, tracking, addresses, wishlist and settings will work, using sample data in the visitor's own browser. **It is not authentication and provides no security.** Nothing is sent to a server, because there is no account backend yet.
+The customer account in this repository is a **demo**. It shows how sign-in, profile, orders, tracking, addresses, wishlist and settings will work, using sample data in the visitor's own browser. **It is not authentication and provides no security.** Demo data is never sent to a server. (The real profile and address book of a signed-in customer come from the backend; see `docs/BACKEND_CONTRACTS.md`.)
 
 ## What "demo authentication" means here
 
@@ -32,8 +32,8 @@ The customer account in this repository is a **demo**. It shows how sign-in, pro
 | My Wishlist | `/account/wishlist` (same list as `/wishlist` and the header) | Browser-only | Existing `WishlistContext` |
 | Account Settings | `/account/settings` | Yes: no messages are sent | Two local notification toggles, session details, reset, logout |
 | Help & Support | `/support` (public) | — | FAQs about what the preview does; no contact details exist yet, so none are shown |
-| Sign in | `/login` | The demo entry is simulated; customer sign-in above it needs a backend | No password form (see "Decisions") |
-| Register | `/register` | Preview only | Name, email, optional mobile, preview acknowledgement |
+| Sign in | `/login` | The demo entry is simulated; customer sign-in above it (phone one-time code) needs the backend | No password form (see "Decisions") |
+| Register | `/register` | Preview only without the backend; with it, the page points to phone sign-in, which creates the account | Name, email, optional mobile, preview acknowledgement |
 
 Sample data is fictional: the names say "Demo", the email uses the reserved `example.com` domain, and the street is "Sample Street". The sample address needs a mobile number to pass the checkout validation, so it uses `9000000001`; it is not anyone's known number, but it is a valid-looking Indian number, so replace it if the owner prefers another value.
 
@@ -71,6 +71,8 @@ Cart, wishlist, the visitor's own orders and addresses belong to **this browser*
 | Registration acknowledgement instead of "I accept the terms" | No terms or privacy policy exist yet; the checkbox says so |
 
 ## Before production: what must replace the demo
+
+**Status (7 Nov 2026):** partly done. Phone one-time-code sign-in, a server-verified HTTP-only session cookie, and the profile and address book APIs exist, and My Profile and My Addresses use them for a signed-in customer. Orders, wishlist, settings, tracking and server-side gating of account routes remain, as do Google and email sign-in.
 
 1. Choose a real authentication provider or a verified backend. Check what the seller and delivery portals use first: shared-backend compatibility has not been investigated, and no provider is assumed.
 2. Replace `DemoAccountContext` with a provider backed by a **server-verified session** (HTTP-only secure cookies or the provider's SDK). Never trust a client-side flag as proof of sign-in.

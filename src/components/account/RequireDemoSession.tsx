@@ -16,6 +16,7 @@ import { useDemoAccount } from "@/context/DemoAccountContext";
 // validation). A user-experience gate only: the demo flag lives in the browser and proves nothing.
 // Pages that work with a real account (`allowSignedIn`: profile and addresses) also open for a customer
 // signed in through the backend, which then takes priority over the demo; the API enforces access.
+// Every other page (overview, orders, wishlist, settings, tracking) stays demo-only, whoever is signed in.
 export function RequireDemoSession({ children, allowSignedIn = false }: { children: ReactNode; allowSignedIn?: boolean }) {
   const { hydrated, isActive } = useDemoAccount();
   const pathname = usePathname();
@@ -27,18 +28,32 @@ export function RequireDemoSession({ children, allowSignedIn = false }: { childr
   if (!hydrated) return <LoadingState label="Loading your account…" fullHeight />;
 
   if (!isActive) {
+    // A customer signed in through the backend, on a page that isn't connected to accounts yet.
+    const liveElsewhere = Boolean(customerId);
     return (
       <section aria-labelledby="gate-title" className="surface-card mx-auto flex max-w-xl flex-col items-center rounded-3xl px-6 py-10 text-center sm:px-10">
         <span className="grid size-14 place-items-center rounded-full bg-secondary text-brand">
           <LockKeyhole className="size-6" aria-hidden="true" />
         </span>
-        <h1 id="gate-title" className="mt-4 font-heading text-2xl font-semibold">Sign in to see your account</h1>
+        <h1 id="gate-title" className="mt-4 font-heading text-2xl font-semibold">
+          {liveElsewhere ? "This part of My Account isn’t available yet" : "Sign in to see your account"}
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Customer accounts are not live yet. Explore the demo account to see orders, addresses and settings with sample data.
+          {liveElsewhere
+            ? "Your profile and saved addresses are live for your account. Orders, wishlist, settings and order tracking here aren’t connected to it yet; you can explore them with sample data in the demo account."
+            : mode === "backend"
+              ? "Signing in gives you your profile and saved addresses. Orders, wishlist, settings and order tracking here aren’t connected to customer accounts yet; you can explore them with sample data in the demo account."
+              : "Customer accounts aren’t connected on this site yet. Explore the demo account to see orders, addresses and settings with sample data."}
         </p>
         <div className="mt-6 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+          {liveElsewhere && (
+            <>
+              <Button asChild size="lg"><Link href="/account/profile">My Profile</Link></Button>
+              <Button asChild size="lg" variant="outline"><Link href="/account/addresses">My Addresses</Link></Button>
+            </>
+          )}
           <ExploreDemoButton />
-          {/* Customer sign-in doesn't open this sample account yet, so a signed-in customer isn't sent in a circle. */}
+          {/* Only offered when nobody is signed in, so a signed-in customer isn't sent in a circle. */}
           {!session && (
             <Button asChild size="lg" variant="outline">
               <Link href={`/login?next=${encodeURIComponent(pathname)}`}>Go to sign in</Link>

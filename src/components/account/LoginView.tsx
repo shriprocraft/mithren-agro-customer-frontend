@@ -7,6 +7,7 @@ import { CircleCheck, Info, ShoppingCart } from "lucide-react";
 import { DemoBadge } from "@/components/account/DemoBadge";
 import { ExploreDemoButton } from "@/components/account/ExploreDemoButton";
 import { DevelopmentAuthNotice } from "@/components/auth/DevelopmentAuthNotice";
+import { NameStep } from "@/components/auth/NameStep";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { LoadingState } from "@/components/checkout/PageState";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ import { toAuthErrorCode } from "@/lib/auth-errors";
 import { canPlaceOrder } from "@/lib/checkout-auth";
 import { safeNextPath } from "@/lib/demo-account";
 
-// The sign-in page. Customer sign-in (Google, phone or email code) comes first; it is the only thing
+// The sign-in page. Customer sign-in (a phone code for now) comes first; it is the only thing
 // that allows ordering. The demo account stays below as a separate way to look around with sample data.
 // ?next= (same-site paths only) is where a signed-in customer returns; ?auth_error= is set by the
 // backend when a Google sign-in fails; ?signed_out=1 confirms that the demo was left.
@@ -37,12 +38,14 @@ export function LoginView() {
   const signedIn = canPlaceOrder(auth.session);
 
   // Only an explicit destination redirects, so opening /login while signed in shows the panel below.
+  // A new customer without a name is asked for one first (NameStep refreshes the session when done).
+  const onboarding = signedIn && auth.needsName;
   useEffect(() => {
-    if (signedIn && rawNext) router.replace(next);
-  }, [signedIn, rawNext, next, router]);
+    if (signedIn && !onboarding && rawNext) router.replace(next);
+  }, [signedIn, onboarding, rawNext, next, router]);
 
   if (auth.status === "loading") return <LoadingState label="Checking your sign-in…" />;
-  if (signedIn && rawNext) return <LoadingState label="Taking you back…" />;
+  if (signedIn && !onboarding && rawNext) return <LoadingState label="Taking you back…" />;
 
   return (
     <div>
@@ -72,7 +75,9 @@ export function LoginView() {
       )}
 
       <div className="mt-6">
-        {signedIn ? (
+        {onboarding ? (
+          <NameStep />
+        ) : signedIn ? (
           <div className="rounded-2xl border border-border p-5">
             <p className="font-medium">You’re signed in as {auth.session?.customer.full_name ?? auth.session?.customer.email ?? auth.session?.customer.phone}.</p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -109,10 +114,14 @@ export function LoginView() {
       </section>
 
       <div className="mt-6 flex flex-col gap-1 border-t border-border pt-5 text-sm sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-muted-foreground">
-          New here?{" "}
-          <Link href={registerHref} className="inline-flex min-h-11 items-center font-medium text-primary underline-offset-4 hover:underline">Create an account (preview)</Link>
-        </p>
+        {auth.mode === "backend" ? (
+          <p className="text-muted-foreground">New here? Signing in with your mobile number creates your account.</p>
+        ) : (
+          <p className="text-muted-foreground">
+            New here?{" "}
+            <Link href={registerHref} className="inline-flex min-h-11 items-center font-medium text-primary underline-offset-4 hover:underline">Create an account (preview)</Link>
+          </p>
+        )}
         <Link href="/products" className="inline-flex min-h-11 items-center font-medium text-primary underline-offset-4 hover:underline">Continue as guest</Link>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { RegisterView } from "@/components/account/RegisterView";
 import { LoadingState } from "@/components/checkout/PageState";
 import { Container } from "@/components/layout/Container";
 
-export const metadata: Metadata = { title: "Create an account (preview)", robots: { index: false } };
+export const metadata: Metadata = { title: "Create an account", robots: { index: false } };
 
 export default function RegisterPage() {
   return (

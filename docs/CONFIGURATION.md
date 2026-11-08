@@ -16,7 +16,10 @@ Nothing here has a default production value: no URL was invented. When a value i
 
 ## Running sign-in locally
 
-Until a backend exists, put `NEXT_PUBLIC_AUTH_MODE=mock` in `.env.local` and run `npm run dev`, or the browser journey test can't reach checkout. The screen shows a random code to type; it sends nothing, verifies nobody and never simulates Google. **Production builds ignore `mock`, so a deployment without a backend can't take orders.** Backend, Google and provider settings: `docs/BACKEND_CONTRACTS.md`.
+- **With the local backend** (phone sign-in): set `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1` and `NEXT_PUBLIC_AUTH_MODE=backend` in `.env.local`, start the backend with its development fake sender (`OTP_SENDER=fake`, see the backend README) and run `npm run dev`. No text message is sent: the backend writes each code to its own git-ignored outbox file (`.local/otp-outbox.jsonl` in the backend repository), and the code never appears in an API response or on screen.
+- **Without a backend** (the development mock): put `NEXT_PUBLIC_AUTH_MODE=mock` in `.env.local` and run `npm run dev`. The browser journey test (`npm run test:e2e`) needs this mode to reach checkout. The screen shows a random code to type; it sends nothing, verifies nobody and never simulates Google.
+
+**Production builds ignore `mock`, so a deployment without a backend can't take orders.** Email and Google sign-in are not implemented yet: the Email tab is hidden and Google is shown disabled (`src/config/auth.ts`). Backend, Google and provider settings: `docs/BACKEND_CONTRACTS.md`.
 
 ## Accepted values
 

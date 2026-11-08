@@ -41,6 +41,10 @@ export const authErrorCodes = [
   "auth_unavailable",
   "provider_not_configured",
   "session_expired",
+  /** The request body was refused (422). */
+  "validation_error",
+  /** Frontend only: verification succeeded but GET /auth/session didn't return the customer (cookie not kept). */
+  "sign_in_not_confirmed",
   "unknown",
 ] as const;
 export type AuthErrorCode = (typeof authErrorCodes)[number];

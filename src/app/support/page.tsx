@@ -25,7 +25,7 @@ const groups: { title: string; faqs: Faq[] }[] = [
   {
     title: "Addresses and checkout",
     faqs: [
-      { q: "Do I need an account to check out?", a: "You can browse, search and fill your cart without one, but you need to sign in with Google, your phone or your email before placing an order. Your cart is kept while you sign in." },
+      { q: "Do I need an account to check out?", a: "You can browse, search and fill your cart without one, but you need to sign in with your mobile number and a one-time code before placing an order. Your cart is kept while you sign in." },
       { q: "How do I change my default address?", a: <>In <Link href="/account/addresses" className="font-medium text-primary underline-offset-4 hover:underline">My Addresses</Link>, choose “Set as default”. Checkout preselects it.</> },
       { q: "Are delivery charges or taxes added?", a: "Not in this preview. No delivery, tax or discount rules are configured, so the total is the sum of the items." },
     ],

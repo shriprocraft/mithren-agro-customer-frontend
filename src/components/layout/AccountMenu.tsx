@@ -23,10 +23,12 @@ const accountLinks: { href: string; label: string; Icon: LucideIcon }[] = [
 
 const rowClass = "flex min-h-11 items-center gap-2.5 rounded-lg px-2 text-sm font-medium outline-none hover:bg-soft focus-visible:ring-2 focus-visible:ring-ring";
 
-// The header's single account control. Signed out (the default): sign in, the demo account, a
-// registration preview, My Orders and the latest orders saved in this browser, so guests can still
-// get back to them. In a demo session: account links and Logout. A signed-in customer (AuthContext,
-// separate from the demo) sees who they are and Sign out at the top. The trigger follows the reference: tinted avatar circle, label, chevron.
+// The header's single account control. Signed out (the default): sign in, the demo account, how to
+// create an account (phone sign-in with the backend; the registration preview otherwise), My Orders and
+// the latest orders saved in this browser, so guests can still get back to them. In a demo session:
+// account links and Logout. A signed-in customer (AuthContext, separate from the demo) sees who they are,
+// links to the parts of My Account that are live for them (Profile and Addresses, backend sessions
+// only) and Sign out at the top. The trigger follows the reference: tinted avatar circle, label, chevron.
 export function AccountMenu() {
   const { hydrated, isActive, profile, startDemoSession } = useDemoAccount();
   const { orders, hydrated: ordersReady } = useOrders();
@@ -34,13 +36,15 @@ export function AccountMenu() {
   const announce = useAnnounce();
   const auth = useAuth();
   const customer = auth.session?.customer;
+  const backendCustomer = auth.session?.source === "backend";
+  const customerName = customer ? (customer.full_name ?? customer.phone ?? customer.email ?? "customer") : null;
   const signedIn = hydrated && isActive;
   const recent = orders.slice(0, 3);
 
   return (
     <Popover>
       <PopoverTrigger
-        aria-label={signedIn ? `Account: ${profile.full_name} (demo)` : "Account: sign in"}
+        aria-label={signedIn ? `Account: ${profile.full_name} (demo)` : customerName ? `Account: signed in as ${customerName}` : "Account: sign in"}
         className="inline-flex h-11 items-center gap-2 rounded-full p-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring sm:pr-3"
       >
         <span className="relative grid size-9 place-items-center rounded-full bg-linear-to-b from-white/70 to-secondary text-brand shadow-[inset_0_0_0_1px_rgb(255_255_255/0.85),0_6px_16px_-10px_rgb(var(--shadow-tint)/0.4)]">
@@ -55,8 +59,22 @@ export function AccountMenu() {
         {customer && (
           <div className="border-b border-border pb-3">
             <p className="text-xs text-muted-foreground">Signed in as</p>
-            <p className="truncate font-heading text-base font-medium">{customer.full_name ?? customer.email ?? customer.phone}</p>
+            <p className="truncate font-heading text-base font-medium">{customerName}</p>
             {auth.session?.source === "development_mock" && <DevelopmentAuthNotice className="mt-2" />}
+            {backendCustomer && (
+              <ul aria-label="Your account" className="-mx-2 mt-2">
+                <li>
+                  <PopoverClose asChild>
+                    <Link href="/account/profile" className={rowClass}><UserRound className="size-4 text-muted-foreground" aria-hidden="true" />My Profile</Link>
+                  </PopoverClose>
+                </li>
+                <li>
+                  <PopoverClose asChild>
+                    <Link href="/account/addresses" className={rowClass}><MapPin className="size-4 text-muted-foreground" aria-hidden="true" />My Addresses</Link>
+                  </PopoverClose>
+                </li>
+              </ul>
+            )}
             <PopoverClose asChild>
               <Button type="button" variant="outline" className="mt-2 w-full" onClick={() => void auth.signOut()}>
                 <LogOut aria-hidden="true" />Sign out
@@ -91,8 +109,14 @@ export function AccountMenu() {
         ) : (
           <>
             <div>
-              <p className="font-heading text-base font-medium">{customer ? "Your account" : "You’re shopping as a guest"}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{customer ? "Order history and saved details in My Account are still sample data for now." : "Browse and fill your cart freely. Sign in before placing an order."}</p>
+              <p className="font-heading text-base font-medium">{customer ? "More of My Account is coming" : "You’re shopping as a guest"}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {!customer
+                  ? "Browse and fill your cart freely. Sign in before placing an order."
+                  : backendCustomer
+                    ? "Order history, wishlist and settings aren’t linked to your account yet. You can try them with sample data in the demo account."
+                    : "This is a development sign-in, so My Account shows sample data only."}
+              </p>
             </div>
             <div className="grid gap-2">
               {!customer && (
@@ -106,9 +130,15 @@ export function AccountMenu() {
                 </Button>
               </PopoverClose>
             </div>
-            <PopoverClose asChild>
-              <Link href="/register" className="inline-flex min-h-9 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">New here? Create an account (preview)</Link>
-            </PopoverClose>
+            {!customer && (
+              <PopoverClose asChild>
+                {auth.mode === "backend" ? (
+                  <Link href="/login" className="inline-flex min-h-9 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">New here? Sign in with your mobile number to create an account</Link>
+                ) : (
+                  <Link href="/register" className="inline-flex min-h-9 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">New here? Create an account (preview)</Link>
+                )}
+              </PopoverClose>
+            )}
             <div className="border-t border-border pt-3">
               {/* The order-history page. Its demo-account gate stays as it is; the latest orders saved
                   in this browser are listed below so guests can still open their tracking pages. */}

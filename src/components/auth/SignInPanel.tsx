@@ -5,6 +5,7 @@ import { ArrowLeft, CircleAlert, Mail, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authFeatures } from "@/config/auth";
 import { useAnnounce } from "@/context/AnnouncerContext";
 import { useAuth } from "@/context/AuthContext";
 import { normalizeMobile } from "@/lib/address";
@@ -14,20 +15,47 @@ import { cn } from "@/lib/utils";
 import type { AuthErrorCode, OtpChallenge, OtpChannel } from "@/types/auth";
 
 const codeOf = (error: unknown): AuthErrorCode => (error instanceof AuthError ? error.code : "unknown");
+const waitOf = (error: unknown): number => (error instanceof AuthError && error.retryAfterSeconds ? error.retryAfterSeconds : 0);
 
-// Google, phone OTP and email OTP. It holds a typed code only in this component's memory until it is
-// submitted, and it never decides that anyone is signed in: AuthContext does, from the adapter's answer.
+/** Channels offered; only the ones whose backend flow exists (config/auth.ts). */
+const CHANNELS = ([["phone", "Phone", Smartphone], ["email", "Email", Mail]] as const).filter(
+  ([value]) => value === "phone" || authFeatures.emailOtp,
+);
+
+/** The current time, updated once a second, and a way to read it again at once (after setting a deadline). */
+function useNow() {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return [now, () => setNow(Date.now())] as const;
+}
+
+/** Whole seconds from `now` until `deadline` (a Date.now() value), never negative. */
+const secondsUntil = (deadline: number, now: number) => Math.max(0, Math.ceil((deadline - now) / 1000));
+
+// Phone one-time code sign-in (email and Google appear only once they exist on the backend). It holds a
+// typed code only in this component's memory until it is submitted, and it never decides that anyone is
+// signed in: AuthContext does, from the backend's session.
 export function SignInPanel({ returnTo, initialError }: { returnTo: string; initialError?: AuthErrorCode }) {
   const auth = useAuth();
   const [channel, setChannel] = useState<OtpChannel>("phone");
   const [destination, setDestination] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
-  const [formError, setFormError] = useState<AuthErrorCode | null>(initialError ?? null);
+  const [formError, setFormError] = useState<{ code: AuthErrorCode; context?: "google" } | null>(
+    initialError ? { code: initialError, context: "google" } : null,
+  );
   const [sending, setSending] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
   const [challenge, setChallenge] = useState<OtpChallenge | null>(null);
   const [sentTo, setSentTo] = useState("");
+  const [waitUntil, setWaitUntil] = useState(0);
+  const [now, refreshNow] = useNow();
+  const wait = secondsUntil(waitUntil, now);
   const unavailable = auth.mode === "unavailable";
+  // A rate limit's message goes once its wait is over.
+  const shownFormError = formError && !(formError.code === "rate_limited" && wait === 0) ? formError : null;
 
   const switchChannel = (next: OtpChannel) => {
     setChannel(next);
@@ -38,6 +66,7 @@ export function SignInPanel({ returnTo, initialError }: { returnTo: string; init
 
   const send = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (wait > 0) return;
     setFormError(null);
     let normalized: string | null;
     if (channel === "phone") {
@@ -54,20 +83,27 @@ export function SignInPanel({ returnTo, initialError }: { returnTo: string; init
       setChallenge(await auth.requestOtp({ channel, destination: normalized }));
       setSentTo(normalized);
     } catch (error) {
-      setFormError(codeOf(error));
+      const code = codeOf(error);
+      if (code === "invalid_destination") setFieldError(authErrorMessage(code));
+      else setFormError({ code });
+      if (code === "rate_limited") {
+        setWaitUntil(Date.now() + (waitOf(error) || 30) * 1000);
+        refreshNow();
+      }
     } finally {
       setSending(false);
     }
   };
 
   const google = async () => {
+    if (!authFeatures.googleSignIn) return;
     setFormError(null);
     setGoogleBusy(true);
     try {
       // On success the browser leaves for Google. Being signed in is decided later, by the session check.
       await auth.startGoogleSignIn(returnTo);
     } catch (error) {
-      setFormError(codeOf(error));
+      setFormError({ code: codeOf(error), context: "google" });
       setGoogleBusy(false);
     }
   };
@@ -78,24 +114,34 @@ export function SignInPanel({ returnTo, initialError }: { returnTo: string; init
 
   return (
     <div className="grid gap-5">
-      <Button type="button" variant="outline" size="lg" className="w-full" disabled={unavailable} loading={googleBusy} onClick={google}>
-        Continue with Google
-      </Button>
+      {authFeatures.googleSignIn ? (
+        <Button type="button" variant="outline" size="lg" className="w-full" disabled={unavailable} loading={googleBusy} onClick={google}>
+          Continue with Google
+        </Button>
+      ) : (
+        // Shown so customers know it's planned; disabled, with no handler, so it can't start anything.
+        <Button type="button" variant="outline" size="lg" className="w-full" disabled aria-describedby="google-coming-soon">
+          Continue with Google
+          <span id="google-coming-soon" className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">Coming soon</span>
+        </Button>
+      )}
 
       <div className="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
         <span className="h-px flex-1 bg-border" />or get a one-time code<span className="h-px flex-1 bg-border" />
       </div>
 
       <form noValidate onSubmit={send} aria-label="Sign in with a one-time code" className="grid gap-4">
-        <div role="radiogroup" aria-label="Where to send your code" className="grid grid-cols-2 gap-1 rounded-full bg-secondary p-1">
-          {([["phone", "Phone", Smartphone], ["email", "Email", Mail]] as const).map(([value, label, Icon]) => (
-            <label key={value} className={cn("flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full text-sm font-medium transition-colors has-focus-visible:ring-2 has-focus-visible:ring-ring", channel === value ? "bg-card text-foreground shadow-[var(--elevation-card)]" : "text-muted-foreground hover:text-foreground")}>
-              <input type="radio" name="otp-channel" value={value} checked={channel === value} disabled={unavailable} onChange={() => switchChannel(value)} className="sr-only" />
-              <Icon className="size-4" aria-hidden="true" />
-              {label}
-            </label>
-          ))}
-        </div>
+        {CHANNELS.length > 1 && (
+          <div role="radiogroup" aria-label="Where to send your code" className="grid grid-cols-2 gap-1 rounded-full bg-secondary p-1">
+            {CHANNELS.map(([value, label, Icon]) => (
+              <label key={value} className={cn("flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full text-sm font-medium transition-colors has-focus-visible:ring-2 has-focus-visible:ring-ring", channel === value ? "bg-card text-foreground shadow-[var(--elevation-card)]" : "text-muted-foreground hover:text-foreground")}>
+                <input type="radio" name="otp-channel" value={value} checked={channel === value} disabled={unavailable} onChange={() => switchChannel(value)} className="sr-only" />
+                <Icon className="size-4" aria-hidden="true" />
+                {label}
+              </label>
+            ))}
+          </div>
+        )}
 
         <div className="grid gap-1.5">
           <Label htmlFor="sign-in-destination">{channel === "phone" ? "Mobile number" : "Email address"}</Label>
@@ -116,9 +162,9 @@ export function SignInPanel({ returnTo, initialError }: { returnTo: string; init
           {fieldError && <p id="sign-in-destination-error" className="text-xs text-destructive">{fieldError}</p>}
         </div>
 
-        {formError && <ErrorLine code={formError} />}
-        <Button type="submit" size="lg" className="w-full" disabled={unavailable} loading={sending}>
-          {sending ? "Sending code…" : "Send code"}
+        {shownFormError && <ErrorLine code={shownFormError.code} context={shownFormError.context} retryAfterSeconds={wait} />}
+        <Button type="submit" size="lg" className="w-full" disabled={unavailable || wait > 0} loading={sending}>
+          {sending ? "Sending code…" : wait > 0 ? `Send code (wait ${wait}s)` : "Send code"}
         </Button>
       </form>
     </div>
@@ -133,27 +179,34 @@ function OtpStep({ challenge, destination, onChallenge, onBack }: { challenge: O
   const [invalidFormat, setInvalidFormat] = useState(false);
   const [busy, setBusy] = useState(false);
   const [resending, setResending] = useState(false);
-  const [cooldown, setCooldown] = useState(challenge.resend_after_seconds);
+  const [now, refreshNow] = useNow();
+  const [cooldownUntil, setCooldownUntil] = useState(() => Date.now() + challenge.resend_after_seconds * 1000);
+  // The server decides expiry; this only stops the customer typing a code that can no longer work.
+  const [expiresAt, setExpiresAt] = useState(() => Date.now() + challenge.expires_in_seconds * 1000);
   const inputRef = useRef<HTMLInputElement>(null);
-  const counting = cooldown > 0;
 
   useEffect(() => {
     inputRef.current?.focus();
   }, [challenge.challenge_id]);
 
-  useEffect(() => {
-    if (!counting) return;
-    const timer = setInterval(() => setCooldown((seconds) => Math.max(0, seconds - 1)), 1000);
-    return () => clearInterval(timer);
-  }, [counting]);
+  const expiresIn = secondsUntil(expiresAt, now);
+  const expiredLocally = expiresIn === 0;
+  // An expired, exhausted or already-used code can't be retried, so a new one may be requested straight away.
+  const needsNewCode = expiredLocally || error === "expired_otp" || error === "too_many_attempts" || error === "sign_in_not_confirmed";
+  const cooldown = needsNewCode && error !== "rate_limited" ? 0 : secondsUntil(cooldownUntil, now);
+  const counting = cooldown > 0;
+  const shownError: AuthErrorCode | null = error ?? (expiredLocally ? "expired_otp" : null);
 
-  // An expired or exhausted code can't be retried, so a new one may be requested straight away.
-  const needsNewCode = error === "expired_otp" || error === "too_many_attempts";
+  const startCooldown = (seconds: number) => {
+    setCooldownUntil(Date.now() + seconds * 1000);
+    refreshNow();
+  };
 
   const verify = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (needsNewCode) return;
     setError(null);
-    if (!/^\d{6}$/.test(code)) {
+    if (!/^[0-9]{6}$/.test(code)) {
       setInvalidFormat(true);
       inputRef.current?.focus();
       return;
@@ -167,7 +220,6 @@ function OtpStep({ challenge, destination, onChallenge, onBack }: { challenge: O
       const failed = codeOf(failure);
       setError(failed);
       setCode("");
-      if (failed === "expired_otp" || failed === "too_many_attempts") setCooldown(0);
       setBusy(false);
       inputRef.current?.focus();
     }
@@ -180,15 +232,20 @@ function OtpStep({ challenge, destination, onChallenge, onBack }: { challenge: O
       const next = await auth.requestOtp({ channel: challenge.channel, destination });
       onChallenge(next);
       setCode("");
-      setCooldown(next.resend_after_seconds);
+      setExpiresAt(Date.now() + next.expires_in_seconds * 1000);
+      startCooldown(next.resend_after_seconds);
       announce("A new code has been sent.");
     } catch (failure) {
       setError(codeOf(failure));
-      if (failure instanceof AuthError && failure.retryAfterSeconds) setCooldown(failure.retryAfterSeconds);
+      const wait = waitOf(failure);
+      if (wait) startCooldown(wait);
     } finally {
       setResending(false);
     }
   };
+
+  const minutes = Math.floor(expiresIn / 60);
+  const seconds = String(expiresIn % 60).padStart(2, "0");
 
   return (
     <form noValidate onSubmit={verify} aria-label="Enter your one-time code" className="grid gap-4">
@@ -197,6 +254,11 @@ function OtpStep({ challenge, destination, onChallenge, onBack }: { challenge: O
         <p className="mt-1 text-sm text-muted-foreground">
           {challenge.development_code ? "Generated for" : "Sent to"} <span className="font-medium text-foreground">{challenge.destination_hint}</span>
         </p>
+        {!expiredLocally && (
+          <p className="mt-1 text-xs text-muted-foreground" data-testid="code-expiry">
+            Code expires in {minutes}:{seconds}
+          </p>
+        )}
       </div>
 
       {challenge.development_code && (
@@ -216,7 +278,7 @@ function OtpStep({ challenge, destination, onChallenge, onBack }: { challenge: O
           value={code}
           disabled={needsNewCode}
           onChange={(event) => {
-            setCode(event.target.value.replace(/\D/g, ""));
+            setCode(event.target.value.replace(/[^0-9]/g, ""));
             setInvalidFormat(false);
           }}
           aria-invalid={invalidFormat || error === "invalid_otp" ? true : undefined}
@@ -226,7 +288,7 @@ function OtpStep({ challenge, destination, onChallenge, onBack }: { challenge: O
         {invalidFormat && <p id="sign-in-code-error" className="text-xs text-destructive">Enter all 6 digits of the code.</p>}
       </div>
 
-      {error && <ErrorLine code={error} />}
+      {shownError && <ErrorLine code={shownError} retryAfterSeconds={cooldown} />}
 
       <Button type="submit" size="lg" className="w-full" disabled={needsNewCode} loading={busy}>
         {busy ? "Verifying…" : "Verify and continue"}
@@ -245,11 +307,11 @@ function OtpStep({ challenge, destination, onChallenge, onBack }: { challenge: O
   );
 }
 
-function ErrorLine({ code }: { code: AuthErrorCode }) {
+function ErrorLine({ code, context, retryAfterSeconds }: { code: AuthErrorCode; context?: "google"; retryAfterSeconds?: number }) {
   return (
     <p role="alert" className="flex gap-2 text-sm font-medium text-destructive">
       <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      {authErrorMessage(code)}
+      {authErrorMessage(code, { context, retryAfterSeconds })}
     </p>
   );
 }

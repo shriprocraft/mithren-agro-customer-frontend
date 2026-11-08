@@ -7,20 +7,11 @@ import { TextField } from "@/components/account/TextField";
 import { LoadingState } from "@/components/checkout/PageState";
 import { Button } from "@/components/ui/button";
 import { useAnnounce } from "@/context/AnnouncerContext";
+import { nameError } from "@/lib/customer-name";
 import { accountProfileService, type AccountProfile, type ProfileService } from "@/services/profile";
 
 type Load = { kind: "loading" } | { kind: "ready"; profile: AccountProfile } | { kind: "error" };
 type Status = { kind: "idle" } | { kind: "saved" } | { kind: "error"; message: string };
-
-const NAME_MAX = 100;
-
-function nameError(name: string): string | undefined {
-  const trimmed = name.trim();
-  if (!trimmed) return "Enter your full name";
-  if (trimmed.length < 2) return "Enter at least 2 characters";
-  if (trimmed.length > NAME_MAX) return `Use at most ${NAME_MAX} characters`;
-  return undefined;
-}
 
 // The signed-in customer's profile, from their account (GET/PATCH /customer/profile). Only the name can
 // be changed here: email and phone are verified sign-in contacts and changing them needs verification.
@@ -84,7 +75,7 @@ export function AccountProfileView({ service = accountProfileService }: { servic
     <div className="space-y-6">
       <AccountPageHeader
         title="My Profile"
-        description="Your account details. Email and mobile are the verified contacts you sign in with."
+        description="Your account details. Your mobile number is the verified contact you sign in with; email and mobile can’t be changed here."
         action={editing === null && <Button variant="outline" onClick={() => { setEditing(profile.full_name ?? ""); setStatus({ kind: "idle" }); }}><Pencil aria-hidden="true" />Edit name</Button>}
       />
       {status.kind === "saved" && (

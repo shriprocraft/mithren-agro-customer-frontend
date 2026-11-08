@@ -2,7 +2,7 @@
 
 What the customer frontend expects from the backend. Endpoint names live only in `src/config/api.ts`, and API calls only in `src/lib/api-client.ts` and `src/services/*`, so UI components don't change when these do.
 
-**Status:** the backend (FastAPI, `mithren-agro-backend`) implements the session endpoints (`GET /auth/session`, `POST /auth/sign-out`), the customer profile and the address book, as documented below. OTP, Google sign-in, orders and reverse geocoding are still proposals.
+**Status:** the backend (FastAPI, `mithren-agro-backend`) implements the session endpoints (`GET /auth/session`, `POST /auth/sign-out`), phone OTP sign-in, the customer profile and the address book, as documented below. No SMS provider is connected yet: phone codes are delivered only by the backend's development fake sender. Email OTP, Google sign-in, orders and reverse geocoding are still proposals.
 
 ## Conventions
 
@@ -45,11 +45,11 @@ The frontend adds `network_error` and `timeout` itself. Any other code shows a g
 | Method | Path | Request | Success |
 |---|---|---|---|
 | GET | `/auth/session` | none | `200 { "customer": Customer }`; `200 { "customer": null }` with no cookie; `401 session_expired` (cookie cleared) when the cookie is no longer valid. **Implemented** |
-| POST | `/auth/otp/phone/request` | `{ "phone": "+919876543210" }` | `200 OtpChallenge` |
-| POST | `/auth/otp/phone/verify` | `{ "challenge_id", "code" }` | `200 { "customer": Customer }` and sets the cookie |
-| POST | `/auth/otp/email/request` | `{ "email": "name@example.com" }` | `200 OtpChallenge` |
-| POST | `/auth/otp/email/verify` | `{ "challenge_id", "code" }` | `200 { "customer": Customer }` and sets the cookie |
-| GET | `/auth/google/start?return_to=<same-site path>` | Browser navigation | Redirects to Google |
+| POST | `/auth/otp/phone/request` | `{ "phone": "+919876543210" }` | `200 OtpChallenge`, the same whether or not the number has an account. **Implemented** |
+| POST | `/auth/otp/phone/verify` | `{ "challenge_id", "code" }` | `200 { "customer": Customer }` and sets the cookie; the first sign-in of a new number creates the account. **Implemented** |
+| POST | `/auth/otp/email/request` | `{ "email": "name@example.com" }` | `200 OtpChallenge`. Not implemented; the Email tab is hidden (`src/config/auth.ts`) |
+| POST | `/auth/otp/email/verify` | `{ "challenge_id", "code" }` | `200 { "customer": Customer }` and sets the cookie. Not implemented |
+| GET | `/auth/google/start?return_to=<same-site path>` | Browser navigation | Redirects to Google. Not implemented; the button is disabled as "Coming soon" |
 | POST | `/auth/sign-out` | none | `204` and clears the cookie. **Implemented** |
 
 ```ts
@@ -57,6 +57,10 @@ Customer     { id: string; full_name: string | null; email: string | null; phone
 OtpChallenge { challenge_id: string; channel: "phone" | "email"; destination_hint: string; // masked
                expires_in_seconds: number; resend_after_seconds: number }
 ```
+
+After a successful verify the frontend calls `GET /auth/session` and treats the customer as signed in only if that returns them (so the browser really kept the cookie). A customer whose `full_name` is `null` is asked for a name right after signing in, saved with `PATCH /customer/profile`; they can skip it and are asked again at their next sign-in. The session is read again after saving or skipping.
+
+Phone OTP limits (backend `OTP_*` settings, enforced on the server): 6-digit codes valid for 5 minutes, 5 attempts, 30-second resend cooldown, 5 requests per number and 20 per IP address per hour. Phone input is ASCII digits, spaces and hyphens, at most 20 characters; codes are exactly 6 ASCII digits.
 
 The account profile has its own endpoints (see "Customer profile"). Sessions refresh on the server with a sliding idle expiry; the frontend doesn't call a refresh endpoint, and treats a `401` as signed out.
 
