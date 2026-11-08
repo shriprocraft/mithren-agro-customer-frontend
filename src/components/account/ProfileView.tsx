@@ -3,9 +3,11 @@
 import { useState, type FormEvent } from "react";
 import { CircleCheck, Pencil } from "lucide-react";
 import { AccountPageHeader } from "@/components/account/AccountPageHeader";
+import { AccountProfileView } from "@/components/account/AccountProfileView";
 import { TextField } from "@/components/account/TextField";
 import { Button } from "@/components/ui/button";
 import { useAnnounce } from "@/context/AnnouncerContext";
+import { useBackendCustomerId } from "@/context/AuthContext";
 import { useDemoAccount } from "@/context/DemoAccountContext";
 import { demoProfile } from "@/data/demo-account";
 import { validateProfile } from "@/lib/demo-account";
@@ -13,9 +15,14 @@ import type { CustomerProfile } from "@/types/account";
 
 type Status = { kind: "idle" } | { kind: "saved" } | { kind: "error"; message: string };
 
+// A customer signed in through the backend sees their account profile; it takes priority over the demo.
+export function ProfileView() {
+  return useBackendCustomerId() ? <AccountProfileView /> : <DemoProfileView />;
+}
+
 // View and edit the demo profile. Changes stay in this browser and are reset when the demo ends;
 // nothing is sent to an account service.
-export function ProfileView() {
+function DemoProfileView() {
   const { profile, updateProfile } = useDemoAccount();
   const announce = useAnnounce();
   const [editing, setEditing] = useState<CustomerProfile | null>(null);

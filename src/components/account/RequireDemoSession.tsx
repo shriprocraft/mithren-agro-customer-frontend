@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { LockKeyhole } from "lucide-react";
 import { ExploreDemoButton } from "@/components/account/ExploreDemoButton";
 import { LoadingState } from "@/components/checkout/PageState";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, useBackendCustomerId } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useDemoAccount } from "@/context/DemoAccountContext";
 
@@ -14,11 +14,16 @@ import { useDemoAccount } from "@/context/DemoAccountContext";
 // of the account (no redirect, so no loops, and the address bar keeps the destination). It sits in
 // each page rather than the layout so the page segment always renders (Next.js instant-navigation
 // validation). A user-experience gate only: the demo flag lives in the browser and proves nothing.
-export function RequireDemoSession({ children }: { children: ReactNode }) {
+// Pages that work with a real account (`allowSignedIn`: profile and addresses) also open for a customer
+// signed in through the backend, which then takes priority over the demo; the API enforces access.
+export function RequireDemoSession({ children, allowSignedIn = false }: { children: ReactNode; allowSignedIn?: boolean }) {
   const { hydrated, isActive } = useDemoAccount();
   const pathname = usePathname();
-  const { session } = useAuth();
+  const { session, status, mode } = useAuth();
+  const customerId = useBackendCustomerId();
 
+  if (allowSignedIn && customerId) return <>{children}</>;
+  if (allowSignedIn && mode === "backend" && status === "loading") return <LoadingState label="Loading your account…" fullHeight />;
   if (!hydrated) return <LoadingState label="Loading your account…" fullHeight />;
 
   if (!isActive) {

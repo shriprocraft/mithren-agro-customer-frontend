@@ -14,11 +14,12 @@ export interface Address {
   city: string;
   state: string;
   pincode: string;
-  landmark?: string;
+  /** Absent or null when not given (the account API returns null). */
+  landmark?: string | null;
   type: AddressType;
   /** From the customer's device, saved only if they confirm an address started from "Use my current location". */
-  latitude?: number;
-  longitude?: number;
+  latitude?: number | null;
+  longitude?: number | null;
   /** Fictional sample address added by the demo account; removed when the demo ends. */
   is_sample?: boolean;
 }

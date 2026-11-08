@@ -22,16 +22,17 @@ export function AppProviders({ children, authService }: { children: ReactNode; a
         <ToastProvider>
           <CartProvider>
             <WishlistProvider>
-              <AddressBookProvider>
-                <CheckoutProvider>
-                  <AuthProvider service={authService}>
+              {/* Outside the address book: a signed-in customer's addresses come from their account. */}
+              <AuthProvider service={authService}>
+                <AddressBookProvider>
+                  <CheckoutProvider>
                     <OrdersProvider>
                       {/* Inside the order and address stores: the demo account adds its samples to them. */}
                       <DemoAccountProvider>{children}</DemoAccountProvider>
                     </OrdersProvider>
-                  </AuthProvider>
-                </CheckoutProvider>
-              </AddressBookProvider>
+                  </CheckoutProvider>
+                </AddressBookProvider>
+              </AuthProvider>
             </WishlistProvider>
           </CartProvider>
         </ToastProvider>

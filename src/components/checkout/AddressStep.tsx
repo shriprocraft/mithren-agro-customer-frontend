@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, MapPin, Pencil, Plus, ShoppingCart, Trash2 } from "lucide-react";
@@ -30,6 +30,21 @@ export function AddressStep({ catalog }: { catalog: Product[] }) {
   const { activeAddress } = useDeliveryAddress();
   const [mode, setMode] = useState<Mode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // One change at a time, so a double click can't save an address twice.
+  const busy = useRef(false);
+  const once = async (change: () => Promise<void>) => {
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      await change();
+    } finally {
+      busy.current = false;
+    }
+  };
+  const notSavedHelp =
+    book.storage === "account"
+      ? "Your account couldn’t be updated. Check your connection and try again."
+      : "It applies for this visit only: this browser isn’t letting the site store data.";
 
   if (!ready || !book.hydrated) return <LoadingState label="Loading your details…" />;
 
@@ -62,24 +77,33 @@ export function AddressStep({ catalog }: { catalog: Product[] }) {
     return (
       <section aria-labelledby="address-form-title" className="surface-card rounded-3xl p-5 sm:p-6">
         <h2 id="address-form-title" className="font-heading text-lg font-semibold">{editing ? "Edit address" : "Add a delivery address"}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Saved in this browser only, for this demo.</p>
+        <p className="mt-1 text-sm text-muted-foreground">{book.storage === "account" ? "Saved to your account." : "Saved in this browser only, for this demo."}</p>
         <div className="mt-5">
           <AddressForm
             initial={editing}
             submitLabel={editing ? "Save changes" : "Save and use this address"}
-            onSubmit={(input) => {
-              if (editing) {
-                if (book.update(editing.id, input)) toast.success("Address updated", { id: "address" });
-                else toast.error("Change not saved", { id: "address", description: "It applies for this visit only: this browser isn’t letting the site store data." });
-              } else {
-                const { address, saved } = book.add(input);
-                selectAddress(address.id);
-                if (saved) toast.success("Address saved and selected", { id: "address" });
-                else toast.info("Address selected for this order", { id: "address", description: "This browser isn’t letting the site keep it for next time." });
-              }
-              setError(null);
-              setMode({ kind: "list" });
-            }}
+            onSubmit={(input) =>
+              void once(async () => {
+                if (editing) {
+                  const saved = await book.update(editing.id, input);
+                  if (saved) toast.success("Address updated", { id: "address" });
+                  else toast.error("Change not saved", { id: "address", description: notSavedHelp });
+                  // An account change that failed keeps the form open so nothing typed is lost.
+                  if (!saved && book.storage === "account") return;
+                } else {
+                  const { address, saved } = await book.add(input);
+                  if (!address) {
+                    toast.error("Address not saved", { id: "address", description: notSavedHelp });
+                    return;
+                  }
+                  selectAddress(address.id);
+                  if (saved) toast.success("Address saved and selected", { id: "address" });
+                  else toast.info("Address selected for this order", { id: "address", description: "This browser isn’t letting the site keep it for next time." });
+                }
+                setError(null);
+                setMode({ kind: "list" });
+              })
+            }
             onCancel={addresses.length > 0 ? () => setMode({ kind: "list" }) : undefined}
           />
         </div>
@@ -119,12 +143,12 @@ export function AddressStep({ catalog }: { catalog: Product[] }) {
                     <Pencil aria-hidden="true" />
                   </Button>
                   <Button variant="ghost" size="icon" aria-label={`Remove address for ${address.full_name}`}
-                    onClick={() => {
-                      const saved = book.remove(address.id);
-                      if (session.address_id === address.id) selectAddress(null);
+                    onClick={() => void once(async () => {
+                      const saved = await book.remove(address.id);
+                      if (saved && session.address_id === address.id) selectAddress(null);
                       if (saved) toast.success("Address removed", { id: "address" });
-                      else toast.error("Change not saved", { id: "address", description: "It applies for this visit only: this browser isn’t letting the site store data." });
-                    }}>
+                      else toast.error("Change not saved", { id: "address", description: notSavedHelp });
+                    })}>
                     <Trash2 aria-hidden="true" />
                   </Button>
                 </div>

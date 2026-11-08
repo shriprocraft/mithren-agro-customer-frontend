@@ -52,7 +52,8 @@ export function DemoAccountProvider({ children }: { children: ReactNode }) {
       const address = book.addSample(demoAddress);
       // Becomes the default unless the visitor already chose one of their own addresses.
       const currentDefault = book.addresses.find((a) => a.id === book.defaultId);
-      if (!currentDefault || currentDefault.is_sample) book.setDefault(address.id);
+      // Sample data lives in browser storage only, never in a signed-in customer's account.
+      if (book.storage === "browser" && (!currentDefault || currentDefault.is_sample)) void book.setDefault(address.id);
       orders.addSamples(buildSampleOrders(catalog, address, new Date(), new Set(orders.orders.map((o) => o.id))));
     };
     const clearDemo = () => {

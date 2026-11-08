@@ -72,3 +72,14 @@ export function useAuth() {
   if (!auth) throw new Error("useAuth must be used inside AuthProvider");
   return auth;
 }
+
+/** The sign-in state, or null outside AuthProvider (stores that also work without sign-in use this). */
+export function useOptionalAuth() {
+  return useContext(AuthContext);
+}
+
+/** The signed-in customer's id when the session comes from the real backend (never the development mock). */
+export function useBackendCustomerId(): string | null {
+  const auth = useOptionalAuth();
+  return auth?.status === "authenticated" && auth.session?.source === "backend" ? auth.session.customer.id : null;
+}

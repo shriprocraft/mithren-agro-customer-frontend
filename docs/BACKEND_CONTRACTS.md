@@ -1,19 +1,26 @@
 # Backend contracts
 
-What the customer frontend expects from the backend. These are proposals for the backend team to confirm; no backend exists yet. Endpoint names live only in `src/config/api.ts`, and API calls only in `src/lib/api-client.ts` and `src/services/*`, so UI components don't change when these do.
+What the customer frontend expects from the backend. Endpoint names live only in `src/config/api.ts`, and API calls only in `src/lib/api-client.ts` and `src/services/*`, so UI components don't change when these do.
+
+**Status:** the backend (FastAPI, `mithren-agro-backend`) implements the session endpoints (`GET /auth/session`, `POST /auth/sign-out`), the customer profile and the address book, as documented below. OTP, Google sign-in, orders and reverse geocoding are still proposals.
 
 ## Conventions
 
-- **Base URL:** `NEXT_PUBLIC_API_BASE_URL` (https).
+- **Base URL:** `NEXT_PUBLIC_API_BASE_URL`, which includes the API prefix, e.g. `http://localhost:8000/api/v1` locally. Paths below are relative to it.
 - **Format:** JSON with `snake_case` fields. Money in paise, timestamps in ISO 8601, phone numbers in E.164.
-- **Session:** an HTTP-only, `Secure`, `SameSite` cookie set by the backend. The frontend never sees a token. Every request uses `credentials: "include"`, so the backend needs a CORS allow-list with credentials enabled, plus CSRF protection on `POST`.
+- **Session:** an HTTP-only, `Secure`, `SameSite` cookie set by the backend. The frontend never sees a token. Every request uses `credentials: "include"`, so the backend needs a CORS allow-list with credentials enabled. `POST`, `PATCH` and `DELETE` must come from an allowed `Origin` (the interim CSRF protection; a session-tied CSRF token is planned).
+- **Methods:** the API client sends `GET`, `POST`, `PATCH` and `DELETE`.
 - **Errors:** any non-2xx status with:
 
 ```json
 { "error": { "code": "invalid_otp", "message": "Readable text", "retry_after_seconds": 30 } }
 ```
 
-`retry_after_seconds` is optional.
+`retry_after_seconds` is optional. A `422 validation_error` also carries `fields`, one message per invalid field (`body` for the request as a whole); submitted values are never echoed:
+
+```json
+{ "error": { "code": "validation_error", "message": "Some details need correcting.", "fields": { "pincode": "Enter a valid 6-digit PIN code" } } }
+```
 
 | `code` | Typical status | Meaning |
 |---|---|---|
@@ -22,9 +29,14 @@ What the customer frontend expects from the backend. These are proposals for the
 | `too_many_attempts` | 429 | Code locked; a new one is needed |
 | `rate_limited` | 429 | Too many requests; send `retry_after_seconds` |
 | `invalid_destination` | 400 | Phone or email can't be used |
-| `session_expired` | 401 | The session ended |
+| `session_expired` | 401 | The session ended, or there is none |
+| `origin_not_allowed` | 403 | A change was sent from an origin the backend doesn't allow |
+| `address_not_found` | 404 | No such address for this customer (also for another customer's address) |
+| `conflict` | 409 | A concurrent change prevented saving; trying again is safe |
+| `validation_error` | 422 | Invalid fields, listed in `fields` |
 | `provider_not_configured` | 503 | Provider isn't set up |
 | `auth_unavailable` | 503 | Sign-in is down |
+| `service_unavailable` | 503 | The account service is down |
 
 The frontend adds `network_error` and `timeout` itself. Any other code shows a generic message.
 
@@ -32,13 +44,13 @@ The frontend adds `network_error` and `timeout` itself. Any other code shows a g
 
 | Method | Path | Request | Success |
 |---|---|---|---|
-| GET | `/auth/session` | none | `200 { "customer": Customer \| null }`, or `401` when signed out |
+| GET | `/auth/session` | none | `200 { "customer": Customer }`; `200 { "customer": null }` with no cookie; `401 session_expired` (cookie cleared) when the cookie is no longer valid. **Implemented** |
 | POST | `/auth/otp/phone/request` | `{ "phone": "+919876543210" }` | `200 OtpChallenge` |
 | POST | `/auth/otp/phone/verify` | `{ "challenge_id", "code" }` | `200 { "customer": Customer }` and sets the cookie |
 | POST | `/auth/otp/email/request` | `{ "email": "name@example.com" }` | `200 OtpChallenge` |
 | POST | `/auth/otp/email/verify` | `{ "challenge_id", "code" }` | `200 { "customer": Customer }` and sets the cookie |
 | GET | `/auth/google/start?return_to=<same-site path>` | Browser navigation | Redirects to Google |
-| POST | `/auth/sign-out` | none | `204` and clears the cookie |
+| POST | `/auth/sign-out` | none | `204` and clears the cookie. **Implemented** |
 
 ```ts
 Customer     { id: string; full_name: string | null; email: string | null; phone: string | null }
@@ -46,7 +58,7 @@ OtpChallenge { challenge_id: string; channel: "phone" | "email"; destination_hin
                expires_in_seconds: number; resend_after_seconds: number }
 ```
 
-The session endpoint doubles as the customer profile. Sessions should refresh on the server, for example with a sliding cookie; the frontend doesn't call a refresh endpoint, and treats a `401` as signed out.
+The account profile has its own endpoints (see "Customer profile"). Sessions refresh on the server with a sliding idle expiry; the frontend doesn't call a refresh endpoint, and treats a `401` as signed out.
 
 **Backend responsibilities:**
 - Generate, hash, expire and rate-limit codes (per destination and per IP), with a limit on attempts.
@@ -81,15 +93,28 @@ Orders are still saved in the browser (`OrdersContext`). `POST /orders` must:
 
 **The frontend's checkout gate and `placeOrder` check protect the customer journey only. Real enforcement must be on this endpoint.** Replace the body of `placeOrder` with the API call and keep the frontend check.
 
-## Addresses (`Address` in `src/types/order.ts`; no endpoint yet)
+## Customer profile (`src/services/profile.ts`; implemented)
 
 | Method | Path | Request | Success |
 |---|---|---|---|
-| GET | `/customers/me/addresses` | none | `200 { "addresses": Address[], "default_address_id": string \| null }` |
-| POST | `/customers/me/addresses` | `AddressInput` | `201 Address` |
-| PUT | `/customers/me/addresses/:id` | `AddressInput` | `200 Address` |
-| DELETE | `/customers/me/addresses/:id` | none | `204` |
-| POST | `/customers/me/addresses/:id/default` | none | `204` |
+| GET | `/customer/profile` | none | `200 { "id", "full_name", "email", "phone" }` |
+| PATCH | `/customer/profile` | `{ "full_name": "Asha R" }` | `200`, the profile |
+
+Only the name can change (2 to 100 characters after trimming); any other field is a `422`. Email and phone are the verified sign-in contacts and are read-only. Used by Account → Profile for a customer signed in through the backend; the demo profile stays in browser storage.
+
+## Addresses (`Address` in `src/types/order.ts`, `src/services/addresses.ts`; implemented)
+
+| Method | Path | Request | Success |
+|---|---|---|---|
+| GET | `/customer/addresses` | none | `200 { "addresses": Address[], "default_address_id": string \| null }`, newest first |
+| POST | `/customer/addresses` | `AddressInput` | `201 Address`; the customer's first address becomes the default |
+| PATCH | `/customer/addresses/:id` | any subset of `AddressInput` (the frontend sends the whole form) | `200 Address` |
+| DELETE | `/customer/addresses/:id` | none | `204`; deleting the default leaves no default |
+| PATCH | `/customer/addresses/:id/default` | none | `200 { "default_address_id": string }` |
+
+- The customer comes from the session cookie; no customer id is ever sent. Another customer's address, or an id that isn't a UUID, is a `404 address_not_found`.
+- Optional fields (`landmark`, `latitude`, `longitude`) are `null` in responses. The frontend sends them as `null` when empty, so an edit can clear them.
+- Validation matches `src/lib/address.ts`: the mobile number may be typed with `+91`, `91`, a leading 0, spaces or dashes and is stored as 10 digits; the state must be in `src/data/indian-states.ts`; text fields are at most 200 characters (name 100).
 
 How the fields map to the model proposed in the brief:
 
@@ -104,7 +129,7 @@ How the fields map to the model proposed in the brief:
 | `isDefault` | `default_address_id` on the list |
 | `createdAt`, `updatedAt` | Added by the server |
 
-Saved addresses, the default address and the active address are in browser storage until these endpoints exist. Replace the storage calls in `AddressBookContext` and `useDeliveryAddress`.
+`AddressBookContext` uses these endpoints when a customer is signed in through the backend. Guests and the demo account keep addresses in browser storage; those are never uploaded or deleted when someone signs in. The address chosen in the header (`useDeliveryAddress`) is still a per-browser preference.
 
 ## Reverse geocoding (`src/services/geocoding.ts`)
 

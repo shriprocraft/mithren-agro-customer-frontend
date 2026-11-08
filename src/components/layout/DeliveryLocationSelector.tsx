@@ -132,8 +132,16 @@ export function DeliveryLocationSelector({ className, geocoder = reverseGeocoder
 
   const chooseAddress = (id: string, name: string) => finish(name, setActiveId(id));
 
-  const saveAddress = (input: AddressInput) => {
-    const { address, saved } = book.add(input);
+  const saveAddress = async (input: AddressInput) => {
+    // Guests save to this browser; a signed-in customer saves to their account (AddressBookContext).
+    const { address, saved } = await book.add(input);
+    if (!address) {
+      toast.error("Address not saved", {
+        id: "delivery-location",
+        description: "Your account couldn’t be updated. Check your connection and try again.",
+      });
+      return;
+    }
     setActiveId(address.id);
     finish(addressShortLabel(address), saved);
   };
@@ -217,11 +225,13 @@ export function DeliveryLocationSelector({ className, geocoder = reverseGeocoder
             </Button>
             <h2 id={`${ids}-title`} className="mt-1 mb-1 font-heading text-base font-semibold text-foreground">Add a delivery address</h2>
             <p className="mb-4 text-xs text-muted-foreground">
-              {formInitial.latitude !== undefined
+              {typeof formInitial.latitude === "number"
                 ? "Check every detail before saving: a detected location can be inexact. Your detected position is saved with this address."
-                : "Saved in this browser only, for this preview."}
+                : book.storage === "account"
+                  ? "Saved to your account."
+                  : "Saved in this browser only, for this preview."}
             </p>
-            <AddressForm initial={formInitial} submitLabel="Save and deliver here" onSubmit={saveAddress} onCancel={() => setFormInitial(null)} />
+            <AddressForm initial={formInitial} submitLabel="Save and deliver here" onSubmit={(input) => void saveAddress(input)} onCancel={() => setFormInitial(null)} />
           </div>
         ) : (
           <>

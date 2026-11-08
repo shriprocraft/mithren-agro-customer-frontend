@@ -23,4 +23,10 @@ export const apiEndpoints = {
   geocoding: {
     reverse: "/geocoding/reverse",
   },
+  customer: {
+    profile: "/customer/profile",
+    addresses: "/customer/addresses",
+    address: (id: string) => `/customer/addresses/${encodeURIComponent(id)}`,
+    defaultAddress: (id: string) => `/customer/addresses/${encodeURIComponent(id)}/default`,
+  },
 } as const;
