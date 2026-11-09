@@ -12,6 +12,7 @@ import { PurchasePanel } from "@/components/products/PurchasePanel";
 import { WishlistButton } from "@/components/products/WishlistButton";
 import { Heading } from "@/components/ui/typography";
 import { shopHref } from "@/lib/browse";
+import { imageShapeFor } from "@/lib/catalog-display";
 import { cn } from "@/lib/utils";
 import { hasVariants } from "@/lib/variants";
 import { getCatalog, getCategories, getProduct, getRelatedProducts, getVendors } from "@/services/catalog";
@@ -20,8 +21,11 @@ import { getCatalog, getCategories, getProduct, getRelatedProducts, getVendors }
 // dynamicParams), so params are awaited inside Suspense for an instant shell, and unknown ids call
 // notFound(), which renders not-found.tsx beside this file. The fallback must stay at least a screen
 // tall (see ProductDetailSkeleton) or client navigations can land at the bottom of the page.
+// With the backend catalogue, the build reads it from the API. Cache Components needs at least one
+// param, so an empty catalogue prerenders a placeholder id, which shows "not found".
 export async function generateStaticParams() {
-  return (await getCatalog()).map((p) => ({ productId: p.id }));
+  const ids = (await getCatalog()).map((p) => ({ productId: p.id }));
+  return ids.length > 0 ? ids : [{ productId: "unavailable" }];
 }
 
 export async function generateMetadata({ params }: PageProps<"/products/[productId]">): Promise<Metadata> {
@@ -51,7 +55,7 @@ async function ProductContent({ params }: Pick<PageProps<"/products/[productId]"
   const vendorNames = Object.fromEntries(vendors.map((v) => [v.id, v.name]));
   const seller = vendorNames[product.vendor_id];
   const image = product.images[0];
-  const portrait = product.category_id === "cat-womens-apparel";
+  const portrait = imageShapeFor(product, categories) === "portrait";
 
   // Mobile reads top to bottom in buying order: image, name, price and pack, availability, seller,
   // quantity and the two purchase buttons, then the longer details. The image is 4:3 on phones so the

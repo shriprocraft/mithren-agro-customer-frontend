@@ -29,4 +29,12 @@ export const apiEndpoints = {
     address: (id: string) => `/customer/addresses/${encodeURIComponent(id)}`,
     defaultAddress: (id: string) => `/customer/addresses/${encodeURIComponent(id)}/default`,
   },
+  catalog: {
+    categories: "/catalog/categories",
+    vendors: "/catalog/vendors",
+    products: "/catalog/products",
+    product: (id: string) => `/catalog/products/${encodeURIComponent(id)}`,
+    related: (id: string) => `/catalog/products/${encodeURIComponent(id)}/related`,
+    bundles: "/catalog/bundles",
+  },
 } as const;

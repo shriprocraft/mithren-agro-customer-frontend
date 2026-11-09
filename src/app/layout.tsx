@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { siteConfig } from "@/config/site";
 import { AppProviders } from "@/context/AppProviders";
+import { CatalogCategoriesProvider } from "@/context/CatalogCategoriesContext";
 import { getBundles, getCategories, getProducts } from "@/services/catalog";
 import "./globals.css";
 
@@ -57,10 +58,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <NavigationProgress />
         </Suspense>
         <AppProviders>
-          <AnnouncementBar />
-          <SiteHeader catalog={[...products, ...bundles]} />
-          {children}
-          <SiteFooter categories={categories} />
+          <CatalogCategoriesProvider categories={categories}>
+            <AnnouncementBar />
+            <SiteHeader catalog={[...products, ...bundles]} />
+            {children}
+            <SiteFooter categories={categories} />
+          </CatalogCategoriesProvider>
         </AppProviders>
       </body>
     </html>

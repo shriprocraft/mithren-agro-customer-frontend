@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { RotateCcw, XCircle } from "lucide-react";
 import { canRequestCancellation, isReturnEligibleCategory, policyConfig, returnWindowEnd } from "@/config/policies";
-import { categories } from "@/data/categories";
+import { useCatalogCategories } from "@/context/CatalogCategoriesContext";
+import { categories as sampleCategories } from "@/data/categories";
+import { categorySlugOf } from "@/lib/catalog-display";
 import { orderStatusLabels } from "@/lib/orders";
 import type { Order } from "@/types/order";
 
@@ -13,9 +15,12 @@ const linkClass = "font-medium text-primary underline-offset-4 hover:underline";
 // window applies only to eligible apparel, counted from the delivery date. There is no self-service
 // cancellation or return yet, so the note points to support.
 export function OrderPolicyNote({ order }: { order: Order }) {
+  const categories = useCatalogCategories();
   const packed = orderStatusLabels[policyConfig.cancellation.packedStatus];
   const deliveredAt = order.history.find((event) => event.status === "delivered")?.at;
-  const returnable = order.items.filter((item) => isReturnEligibleCategory(categories.find((c) => c.id === item.category_id)?.slug));
+  // The storefront's categories first; the demo account's sample orders keep the sample category ids.
+  const slugOf = (id: string | undefined) => categorySlugOf(id, categories) ?? categorySlugOf(id, sampleCategories);
+  const returnable = order.items.filter((item) => isReturnEligibleCategory(slugOf(item.category_id)));
   const windowEnd = deliveredAt ? returnWindowEnd(deliveredAt) : null;
 
   return (

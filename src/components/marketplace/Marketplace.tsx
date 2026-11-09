@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDelayedFlag } from "@/hooks/useDelayedFlag";
+import { imageShapeFor } from "@/lib/catalog-display";
 import { formatPrice } from "@/lib/formatters";
 import {
   activeFilterCount,
@@ -116,7 +117,7 @@ export function Marketplace({ products, categories, vendorNames }: MarketplacePr
               <ProductCard
                 product={product}
                 vendorName={vendorNames[product.vendor_id] ?? "Independent seller"}
-                imageShape={product.category_id === "cat-womens-apparel" ? "portrait" : "square"}
+                imageShape={imageShapeFor(product, categories)}
                 sizes="(min-width: 1280px) 230px, (min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
               />
             </li>

@@ -8,6 +8,7 @@ Nothing here has a default production value: no URL was invented. When a value i
 |---|---|---|
 | `NEXT_PUBLIC_API_BASE_URL` | The customer backend (`src/config/api.ts`): sign-in in `backend` mode and address lookup | Sign-in can't use `backend` mode; a detected position shows "no address" and the customer types it |
 | `NEXT_PUBLIC_AUTH_MODE` | Sign-in adapter: `backend` (needs the URL above) or `mock` (development mock: nothing is verified, ignored in production builds) | Sign-in is unavailable and **no order can be placed** |
+| `NEXT_PUBLIC_CATALOG_SOURCE` | Catalogue (`src/services/catalog.ts`): `backend` reads products, combo boxes, categories and vendors from the API (`GET /catalog/*`), cached for a few minutes. The build reads it too, so the backend must be reachable when building | The sample catalogue in `src/data` |
 | `NEXT_PUBLIC_SELLER_AGENT_APPLY_URL` | "Apply as a Seller Agent" on `/agent-benefits` | Disabled "Seller Agent applications: coming soon" |
 | `NEXT_PUBLIC_DELIVERY_AGENT_APPLY_URL` | "Apply as a Delivery Agent" on `/agent-benefits` | Disabled "Delivery Agent applications: coming soon" |
 | `NEXT_PUBLIC_VIDEO_FARM_TO_HOME_URL` | Homepage video card "From Farm to Your Home" | Poster image with "Video coming soon"; no play button, nothing downloaded |

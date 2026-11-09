@@ -2,7 +2,7 @@
 
 What the customer frontend expects from the backend. Endpoint names live only in `src/config/api.ts`, and API calls only in `src/lib/api-client.ts` and `src/services/*`, so UI components don't change when these do.
 
-**Status:** the backend (FastAPI, `mithren-agro-backend`) implements the session endpoints (`GET /auth/session`, `POST /auth/sign-out`), phone OTP sign-in, the customer profile and the address book, as documented below. No SMS provider is connected yet: phone codes are delivered only by the backend's development fake sender. Email OTP, Google sign-in, orders and reverse geocoding are still proposals.
+**Status:** the backend (FastAPI, `mithren-agro-backend`) implements the session endpoints (`GET /auth/session`, `POST /auth/sign-out`), phone OTP sign-in, the customer profile, the address book and the public catalogue, as documented below. No SMS provider is connected yet: phone codes are delivered only by the backend's development fake sender. Email OTP, Google sign-in, orders and reverse geocoding are still proposals.
 
 ## Conventions
 
@@ -86,6 +86,25 @@ The "Continue with Google" button is text only for now. Add Google's official ma
 ### SMS and email providers
 
 Sending codes is a backend job. No provider has been chosen or connected, and provider keys must stay on the backend.
+
+## Catalogue (`src/services/catalog.ts`, `src/services/catalog-http.ts`; implemented)
+
+Used when `NEXT_PUBLIC_CATALOG_SOURCE=backend`; otherwise the sample catalogue in `src/data` is used. Public: no cookie, no sign-in. Responses are `Cache-Control: public, max-age=60`, and the storefront caches them for a few minutes (`"use cache"`).
+
+| Method | Path | Success |
+|---|---|---|
+| GET | `/catalog/categories` | `200 { "categories": Category[] }`, in display order |
+| GET | `/catalog/vendors` | `200 { "vendors": Vendor[] }`: only vendors with something on sale |
+| GET | `/catalog/products?category=<slug>&seasonal=true&limit=1..100&offset=0` | `200 { "products": Product[], "total", "limit", "offset" }`: single products, not combo boxes |
+| GET | `/catalog/products/:id` | `200 Product` for a product or a combo box; `404 product_not_found` for anything else, including a sample id such as `p-tomatoes` |
+| GET | `/catalog/products/:id/related?limit=1..8` | `200 { "products": Product[] }` from the same category (default 4) |
+| GET | `/catalog/bundles?combo_box=true` | `200 { "products": Product[] }`: combo boxes with `bundle_items` and `bundle_contents`; `combo_box=true` gives the homepage boxes |
+
+- Shapes are exactly `Category`, `Vendor` and `Product` in `src/types/catalog.ts`. Optional fields are left out, never `null`. Ids are UUIDs, so a cart or wishlist saved with sample ids simply drops those items.
+- `stock_status` is worked out on the server (0 is `out_of_stock`, 1 to 5 `low_stock`); exact stock, seller ids and SKUs are never sent. `vendor_id` is a public vendor id, not the seller's.
+- `price` is the list price and `discounted_price` the selling price, when lower. A product with options describes its default option; combo boxes are priced from their items, as in `lib/bundles.ts`.
+- Only listed, active products of approved sellers appear; a combo box appears only if all its items do.
+- Category rules (image shape, return eligibility) match on the category **slug**, never its id (`src/lib/catalog-display.ts`).
 
 ## Orders (no endpoint yet)
 
