@@ -12,19 +12,30 @@ import { OrdersProvider } from "@/context/OrdersContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import type { OrdersService } from "@/services/orders";
+import type { WishlistService } from "@/services/wishlist";
 import type { AuthService } from "@/types/auth";
 
 // Mounted once in the root layout (guide, Section J). MotionConfig honours the OS reduced-motion setting.
 // Each provider owns one kind of client state (docs/ARCHITECTURE.md, "State and persistence").
-export function AppProviders({ children, authService, ordersService }: { children: ReactNode; authService?: AuthService; ordersService?: OrdersService | null }) {
+export function AppProviders({
+  children,
+  authService,
+  ordersService,
+  wishlistService,
+}: {
+  children: ReactNode;
+  authService?: AuthService;
+  ordersService?: OrdersService | null;
+  wishlistService?: WishlistService | null;
+}) {
   return (
     <MotionConfig reducedMotion="user">
       <AnnouncerProvider>
         <ToastProvider>
           <CartProvider>
-            <WishlistProvider>
-              {/* Outside the address book: a signed-in customer's addresses come from their account. */}
-              <AuthProvider service={authService}>
+            {/* Outside the address book and wishlist: both come from the account once signed in. */}
+            <AuthProvider service={authService}>
+              <WishlistProvider {...(wishlistService !== undefined && { service: wishlistService })}>
                 <AddressBookProvider>
                   <CheckoutProvider>
                     <OrdersProvider {...(ordersService !== undefined && { service: ordersService })}>
@@ -33,8 +44,8 @@ export function AppProviders({ children, authService, ordersService }: { childre
                     </OrdersProvider>
                   </CheckoutProvider>
                 </AddressBookProvider>
-              </AuthProvider>
-            </WishlistProvider>
+              </WishlistProvider>
+            </AuthProvider>
           </CartProvider>
         </ToastProvider>
       </AnnouncerProvider>

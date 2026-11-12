@@ -136,6 +136,19 @@ Used when the backend catalogue is on (`NEXT_PUBLIC_CATALOG_SOURCE=backend`) and
 - **Cancelling**: "Cancel order" (after a confirmation) on the order and tracking pages while `cancellable`; `409 cannot_cancel` once packed.
 - **Server rules**: the session decides the customer; prices and stock are recalculated; ordering reserves stock (other customers see less available) without changing the seller's stock count; cancelling releases it.
 
+## Wishlist (`src/services/wishlist.ts`; implemented)
+
+Used with the backend catalogue for a customer signed in through the backend; guests, the sample catalogue and the demo account keep the wishlist in this browser (`WishlistContext`).
+
+| Method | Path | Request | Success |
+|---|---|---|---|
+| GET | `/customer/wishlist` | none | `200 { "items": [{ "product_id", "added_at" }] }`, newest first, only items the storefront shows |
+| PUT | `/customer/wishlist/{product_id}` | none | `200` the item (saving again changes nothing); `404 product_not_found`, `409 wishlist_full` (200 items) |
+| DELETE | `/customer/wishlist/{product_id}` | none | `204` (also when it wasn't saved) |
+| POST | `/customer/wishlist/merge` | `{ "product_ids": [...] }` | `200` the list; adds, never removes; skips unknown ids |
+
+On sign-in, hearts saved in this browser are merged into the account and then cleared here. A heart shows at once; if the store refuses the change, it is undone with an error toast. `/account/wishlist` and the account overview open for signed-in customers.
+
 ## Customer profile (`src/services/profile.ts`; implemented)
 
 | Method | Path | Request | Success |

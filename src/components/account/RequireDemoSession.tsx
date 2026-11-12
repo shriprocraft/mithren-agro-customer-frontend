@@ -15,10 +15,10 @@ import { ordersLive } from "@/services/orders";
 // of the account (no redirect, so no loops, and the address bar keeps the destination). It sits in
 // each page rather than the layout so the page segment always renders (Next.js instant-navigation
 // validation). A user-experience gate only: the demo flag lives in the browser and proves nothing.
-// Pages that work with a real account (`allowSignedIn`: profile, addresses, and orders and tracking when
-// the orders API is in use) also open for a customer signed in through the backend, which then takes
-// priority over the demo; the API enforces access. Every other page (overview, wishlist, settings) stays
-// demo-only, whoever is signed in.
+// Pages that work with a real account (`allowSignedIn`: overview, profile, addresses, and orders,
+// tracking and wishlist when those APIs are in use) also open for a customer signed in through the
+// backend, which then takes priority over the demo; the API enforces access. Settings stays demo-only,
+// whoever is signed in.
 export function RequireDemoSession({ children, allowSignedIn = false }: { children: ReactNode; allowSignedIn?: boolean }) {
   const { hydrated, isActive } = useDemoAccount();
   const pathname = usePathname();
@@ -43,11 +43,11 @@ export function RequireDemoSession({ children, allowSignedIn = false }: { childr
         <p className="mt-2 text-sm text-muted-foreground">
           {liveElsewhere
             ? ordersLive
-              ? "Your profile, saved addresses and orders are live for your account. The overview, wishlist and settings here aren’t connected to it yet; you can explore them with sample data in the demo account."
+              ? "Your profile, saved addresses, orders and wishlist are live for your account. Settings here aren’t connected to it yet; you can explore them with sample data in the demo account."
               : "Your profile and saved addresses are live for your account. Orders, wishlist, settings and order tracking here aren’t connected to it yet; you can explore them with sample data in the demo account."
             : mode === "backend"
               ? ordersLive
-                ? "Signing in gives you your profile, saved addresses and orders. The overview, wishlist and settings here aren’t connected to customer accounts yet; you can explore them with sample data in the demo account."
+                ? "Signing in gives you your profile, saved addresses, orders and wishlist. Settings here aren’t connected to customer accounts yet; you can explore them with sample data in the demo account."
                 : "Signing in gives you your profile and saved addresses. Orders, wishlist, settings and order tracking here aren’t connected to customer accounts yet; you can explore them with sample data in the demo account."
               : "Customer accounts aren’t connected on this site yet. Explore the demo account to see orders, addresses and settings with sample data."}
         </p>

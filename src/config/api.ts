@@ -40,6 +40,11 @@ export const apiEndpoints = {
   checkout: {
     quote: "/checkout/quote",
   },
+  wishlist: {
+    list: "/customer/wishlist",
+    item: (productId: string) => `/customer/wishlist/${encodeURIComponent(productId)}`,
+    merge: "/customer/wishlist/merge",
+  },
   orders: {
     list: "/customer/orders",
     order: (orderNumber: string) => `/customer/orders/${encodeURIComponent(orderNumber)}`,
