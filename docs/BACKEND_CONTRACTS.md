@@ -2,7 +2,7 @@
 
 What the customer frontend expects from the backend. Endpoint names live only in `src/config/api.ts`, and API calls only in `src/lib/api-client.ts` and `src/services/*`, so UI components don't change when these do.
 
-**Status:** the backend (FastAPI, `mithren-agro-backend`) implements the session endpoints (`GET /auth/session`, `POST /auth/sign-out`), phone OTP sign-in, the customer profile, the address book and the public catalogue, as documented below. No SMS provider is connected yet: phone codes are delivered only by the backend's development fake sender. Email OTP, Google sign-in, orders and reverse geocoding are still proposals.
+**Status:** the backend (FastAPI, `mithren-agro-backend`) implements the session endpoints (`GET /auth/session`, `POST /auth/sign-out`), phone OTP sign-in, the customer profile, the address book and the public catalogue, as documented below. No SMS provider is connected yet: phone codes are delivered only by the backend's development fake sender. Cash on Delivery orders are implemented as documented below. Email OTP, Google sign-in and reverse geocoding are still proposals.
 
 ## Conventions
 
@@ -120,15 +120,21 @@ Used with the backend catalogue only (sample product ids mean nothing to the API
 - **Address:** optional. With one, a valid session is required (`401 session_expired`) and it must be the customer's own (`404 address_not_found`, also for an id that isn't a UUID). Without one, the cookie isn't read. `403 origin_not_allowed`, `422 validation_error` and `503` as elsewhere.
 - **Before ordering**, the review step asks again. If anything differs from what is on screen (items, quantities, prices, issues or total, `lib/checkout-quote.ts quoteFingerprint`), it shows the new quote with a notice and places nothing: the order is placed only on a click made after the customer has seen the current prices. The order is then built with the server's prices.
 
-## Orders (no endpoint yet)
+## Orders (`src/services/orders.ts`; implemented, Cash on Delivery)
 
-Orders are still saved in the browser (`OrdersContext`). `POST /orders` must:
+Used when the backend catalogue is on (`NEXT_PUBLIC_CATALOG_SOURCE=backend`) and the customer is signed in through the backend. The sample catalogue and the demo account keep their orders in this browser (`OrdersContext`, mode `"browser"`), unchanged.
 
-- reject any request without a valid session (`401`), and never trust a client claim of being signed in;
-- recalculate prices and stock on the server;
-- be idempotent.
+| Method | Path | Request | Success |
+|---|---|---|---|
+| POST | `/customer/orders` | header `Idempotency-Key: <uuid>`; `{ "items", "address_id", "payment_method": "cod", "pricing_version", "expected": { "total", "lines": [{ "item_index", "unit_price" }] } }` | `201` order (`200` with the same order when the key was already used for this request) |
+| GET | `/customer/orders?limit=50` | none | `200 { "orders": [order], "next_cursor"? }`, newest first |
+| GET | `/customer/orders/{order_number}` | none | `200` order |
+| POST | `/customer/orders/{order_number}/cancel` | `{ "reason"? }` | `200` order (also when already cancelled) |
 
-**The frontend's checkout gate and `placeOrder` check protect the customer journey only. Real enforcement must be on this endpoint.** Replace the body of `placeOrder` with the API call and keep the frontend check.
+- The order matches `Order` (`types/order.ts`): `id` is the order number (`MA-YYYYMMDD-XXXXXX`), plus `payment_method`, `payment_status` (`pending` for COD, `void` once cancelled), `cancellable` and `cancel_reason`. The address is the order's own copy (`address.id` may be empty once the saved address is gone). Status `cancelled` ends an order before it is packed.
+- **Placing** (review step): the final quote is taken again; the order is sent with that quote's `pricing_version`, total and unit prices. `409 quote_changed` (or `checkout_blocked`), both with `error.quote`, means nothing was placed: the page asks for a fresh quote, shows a notice and the customer clicks again. A lost response is retried with the same `Idempotency-Key`, so it can't place the order twice. Other errors: `401 session_expired`, `404 address_not_found`, `409 idempotency_key_reused`, `422 validation_error`.
+- **Cancelling**: "Cancel order" (after a confirmation) on the order and tracking pages while `cancellable`; `409 cannot_cancel` once packed.
+- **Server rules**: the session decides the customer; prices and stock are recalculated; ordering reserves stock (other customers see less available) without changing the seller's stock count; cancelling releases it.
 
 ## Customer profile (`src/services/profile.ts`; implemented)
 

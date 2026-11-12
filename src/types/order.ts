@@ -42,7 +42,8 @@ export const orderStatuses = [
   "out_for_delivery",
   "delivered",
 ] as const;
-export type OrderStatus = (typeof orderStatuses)[number];
+/** The delivery stages in order, plus "cancelled", which ends an order before it is packed. */
+export type OrderStatus = (typeof orderStatuses)[number] | "cancelled";
 
 export interface TrackingEvent {
   status: OrderStatus;
@@ -59,6 +60,8 @@ export interface OrderItem {
   variant_label?: string;
   /** Category at the time of ordering (decides return eligibility). */
   category_id?: string;
+  /** Category slug at the time of ordering, for orders from the backend (whose category ids differ). */
+  category_slug?: string;
   name: string;
   /** Pack size as bought, e.g. "500 g" or "2-piece set". */
   unit: string;
@@ -95,4 +98,12 @@ export interface Order {
   history: TrackingEvent[];
   /** Illustrative order added by the demo account (never a real purchase); removed when the demo ends. */
   is_sample?: boolean;
+  /** Set for orders placed through the backend (Cash on Delivery); absent for browser-only demo orders. */
+  source?: "backend";
+  payment_method?: "cod";
+  payment_status?: "pending" | "paid" | "failed" | "refund_pending" | "refunded" | "void";
+  /** Backend orders: whether the customer can still cancel it online. */
+  cancellable?: boolean;
+  cancelled_at?: string;
+  cancel_reason?: string;
 }

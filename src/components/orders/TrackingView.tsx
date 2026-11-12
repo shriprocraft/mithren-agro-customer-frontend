@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FlaskConical } from "lucide-react";
 import { OrderDetails, formatOrderTime } from "@/components/orders/OrderDetails";
+import { CancelOrder, orderNotice } from "@/components/orders/CancelOrder";
 import { OrderLookup } from "@/components/orders/OrderLookup";
 import { TrackingTimeline } from "@/components/orders/TrackingTimeline";
 import { Button } from "@/components/ui/button";
@@ -40,14 +41,17 @@ function Tracking({ order }: { order: Order }) {
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
           {order.is_sample && <span className="mr-2 rounded-full border border-border px-2 py-0.5 text-xs font-medium">Sample order</span>}
-          Simulated tracking. Estimated delivery: not available. No delivery partner is connected in this preview.
+          {order.source === "backend"
+            ? order.status === "cancelled" ? orderNotice(order) : `${orderNotice(order)} Estimated delivery: not available yet.`
+            : "Simulated tracking. Estimated delivery: not available. No delivery partner is connected in this preview."}
         </p>
+        <CancelOrder order={order} />
         <div className="mt-8">
           <TrackingTimeline order={order} />
         </div>
       </section>
 
-      {DEMO_TOOLS && (
+      {DEMO_TOOLS && order.source !== "backend" && (
         <section aria-labelledby="demo-tools-title" className="mt-6 rounded-3xl border-2 border-dashed border-border p-5">
           <h2 id="demo-tools-title" className="flex items-center gap-2 font-heading text-base font-semibold">
             <FlaskConical className="size-4" aria-hidden="true" /> Demo tools (development only)

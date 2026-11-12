@@ -14,7 +14,7 @@ import { useStorageAvailable } from "@/hooks/usePersistentState";
 // the list, and a warning when this browser blocks site storage (orders from this visit still show,
 // but they cannot be kept).
 export function OrdersList() {
-  const { orders, hydrated } = useOrders();
+  const { orders, hydrated, mode, loadError, reload } = useOrders();
   const storageAvailable = useStorageAvailable();
   const sampleCount = orders.filter((o) => o.is_sample).length;
 
@@ -22,9 +22,20 @@ export function OrdersList() {
     <div className="space-y-5">
       <AccountPageHeader
         title="My Orders"
-        description={sampleCount > 0 ? "Orders marked “Sample order” are demonstration data, not real purchases." : "Orders placed in this browser."}
+        description={
+          mode === "backend"
+            ? "Your Cash on Delivery orders, newest first."
+            : sampleCount > 0 ? "Orders marked “Sample order” are demonstration data, not real purchases." : "Orders placed in this browser."
+        }
       />
-      {!storageAvailable && (
+      {mode === "backend" && loadError && (
+        <p role="alert" className="flex flex-wrap items-center gap-2 rounded-2xl border border-destructive/30 bg-card p-3 text-sm text-destructive">
+          <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
+          {loadError}
+          <Button variant="outline" onClick={() => void reload()}>Try again</Button>
+        </p>
+      )}
+      {mode === "browser" && !storageAvailable && (
         <p role="alert" className="flex gap-2 rounded-2xl border border-destructive/30 bg-card p-3 text-sm text-destructive">
           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           We can’t read orders saved in this browser because site storage is blocked. Orders placed during this visit are shown, but they will

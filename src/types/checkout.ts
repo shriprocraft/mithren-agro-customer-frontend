@@ -43,4 +43,6 @@ export interface Quote {
   blockers: { code: QuoteBlockerCode; message: string }[];
   can_checkout: boolean;
   priced_at: string;
+  /** Identifies everything shown (not the time or address); sent back when placing the order. */
+  pricing_version?: string;
 }

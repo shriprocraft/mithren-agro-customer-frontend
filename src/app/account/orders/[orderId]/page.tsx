@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { RequireDemoSession } from "@/components/account/RequireDemoSession";
+import { ordersLive } from "@/services/orders";
 import { AccountOrderView } from "@/components/account/AccountOrderView";
 
-export const metadata: Metadata = { title: "Order details (demo)" };
+export const metadata: Metadata = { title: ordersLive ? "Order details" : "Order details (demo)" };
 
 // The order lives in browser storage, so the params promise goes to a client component (read with
 // use() inside the account layout's Suspense boundary), as on the existing order pages.
 export default function AccountOrderPage({ params }: PageProps<"/account/orders/[orderId]">) {
-  return <RequireDemoSession><AccountOrderView params={params} /></RequireDemoSession>;
+  return <RequireDemoSession allowSignedIn={ordersLive}><AccountOrderView params={params} /></RequireDemoSession>;
 }

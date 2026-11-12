@@ -11,11 +11,12 @@ import { DemoAccountProvider } from "@/context/DemoAccountContext";
 import { OrdersProvider } from "@/context/OrdersContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import type { OrdersService } from "@/services/orders";
 import type { AuthService } from "@/types/auth";
 
 // Mounted once in the root layout (guide, Section J). MotionConfig honours the OS reduced-motion setting.
 // Each provider owns one kind of client state (docs/ARCHITECTURE.md, "State and persistence").
-export function AppProviders({ children, authService }: { children: ReactNode; authService?: AuthService }) {
+export function AppProviders({ children, authService, ordersService }: { children: ReactNode; authService?: AuthService; ordersService?: OrdersService | null }) {
   return (
     <MotionConfig reducedMotion="user">
       <AnnouncerProvider>
@@ -26,7 +27,7 @@ export function AppProviders({ children, authService }: { children: ReactNode; a
               <AuthProvider service={authService}>
                 <AddressBookProvider>
                   <CheckoutProvider>
-                    <OrdersProvider>
+                    <OrdersProvider {...(ordersService !== undefined && { service: ordersService })}>
                       {/* Inside the order and address stores: the demo account adds its samples to them. */}
                       <DemoAccountProvider>{children}</DemoAccountProvider>
                     </OrdersProvider>

@@ -40,4 +40,9 @@ export const apiEndpoints = {
   checkout: {
     quote: "/checkout/quote",
   },
+  orders: {
+    list: "/customer/orders",
+    order: (orderNumber: string) => `/customer/orders/${encodeURIComponent(orderNumber)}`,
+    cancel: (orderNumber: string) => `/customer/orders/${encodeURIComponent(orderNumber)}/cancel`,
+  },
 } as const;

@@ -9,14 +9,16 @@ import { LoadingState } from "@/components/checkout/PageState";
 import { useAuth, useBackendCustomerId } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useDemoAccount } from "@/context/DemoAccountContext";
+import { ordersLive } from "@/services/orders";
 
 // Wraps the content of every /account page. Without a demo session it shows an entry screen in place
 // of the account (no redirect, so no loops, and the address bar keeps the destination). It sits in
 // each page rather than the layout so the page segment always renders (Next.js instant-navigation
 // validation). A user-experience gate only: the demo flag lives in the browser and proves nothing.
-// Pages that work with a real account (`allowSignedIn`: profile and addresses) also open for a customer
-// signed in through the backend, which then takes priority over the demo; the API enforces access.
-// Every other page (overview, orders, wishlist, settings, tracking) stays demo-only, whoever is signed in.
+// Pages that work with a real account (`allowSignedIn`: profile, addresses, and orders and tracking when
+// the orders API is in use) also open for a customer signed in through the backend, which then takes
+// priority over the demo; the API enforces access. Every other page (overview, wishlist, settings) stays
+// demo-only, whoever is signed in.
 export function RequireDemoSession({ children, allowSignedIn = false }: { children: ReactNode; allowSignedIn?: boolean }) {
   const { hydrated, isActive } = useDemoAccount();
   const pathname = usePathname();
@@ -40,9 +42,13 @@ export function RequireDemoSession({ children, allowSignedIn = false }: { childr
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {liveElsewhere
-            ? "Your profile and saved addresses are live for your account. Orders, wishlist, settings and order tracking here aren’t connected to it yet; you can explore them with sample data in the demo account."
+            ? ordersLive
+              ? "Your profile, saved addresses and orders are live for your account. The overview, wishlist and settings here aren’t connected to it yet; you can explore them with sample data in the demo account."
+              : "Your profile and saved addresses are live for your account. Orders, wishlist, settings and order tracking here aren’t connected to it yet; you can explore them with sample data in the demo account."
             : mode === "backend"
-              ? "Signing in gives you your profile and saved addresses. Orders, wishlist, settings and order tracking here aren’t connected to customer accounts yet; you can explore them with sample data in the demo account."
+              ? ordersLive
+                ? "Signing in gives you your profile, saved addresses and orders. The overview, wishlist and settings here aren’t connected to customer accounts yet; you can explore them with sample data in the demo account."
+                : "Signing in gives you your profile and saved addresses. Orders, wishlist, settings and order tracking here aren’t connected to customer accounts yet; you can explore them with sample data in the demo account."
               : "Customer accounts aren’t connected on this site yet. Explore the demo account to see orders, addresses and settings with sample data."}
         </p>
         <div className="mt-6 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
@@ -50,6 +56,7 @@ export function RequireDemoSession({ children, allowSignedIn = false }: { childr
             <>
               <Button asChild size="lg"><Link href="/account/profile">My Profile</Link></Button>
               <Button asChild size="lg" variant="outline"><Link href="/account/addresses">My Addresses</Link></Button>
+              {ordersLive && <Button asChild size="lg" variant="outline"><Link href="/account/orders">My Orders</Link></Button>}
             </>
           )}
           <ExploreDemoButton />

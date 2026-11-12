@@ -1,10 +1,10 @@
-import { BadgeCheck, Check, ClipboardCheck, House, Package, PackageOpen, Truck, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Check, ClipboardCheck, House, Package, PackageOpen, Truck, XCircle, type LucideIcon } from "lucide-react";
 import { formatOrderTime } from "@/components/orders/OrderDetails";
 import { orderStatusDescriptions, orderStatusLabels } from "@/lib/orders";
 import { cn } from "@/lib/utils";
-import { orderStatuses, type Order, type OrderStatus } from "@/types/order";
+import { orderStatuses, type Order } from "@/types/order";
 
-const icons: Record<OrderStatus, LucideIcon> = {
+const icons: Record<(typeof orderStatuses)[number], LucideIcon> = {
   order_placed: ClipboardCheck,
   order_confirmed: BadgeCheck,
   preparing: PackageOpen,
@@ -19,8 +19,21 @@ const icons: Record<OrderStatus, LucideIcon> = {
  * up to the current stage. Vertical on phones, horizontal from md up. State is also given as text.
  */
 export function TrackingTimeline({ order }: { order: Order }) {
-  const currentIndex = orderStatuses.indexOf(order.status);
   const reachedAt = Object.fromEntries(order.history.map((event) => [event.status, event.at]));
+  if (order.status === "cancelled") {
+    const at = reachedAt.cancelled ?? order.cancelled_at;
+    return (
+      <p role="status" className="flex gap-3 rounded-2xl bg-secondary p-4 text-sm text-secondary-foreground">
+        <XCircle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+        <span>
+          <span className="font-semibold">This order was cancelled</span>
+          {at && <> on <time dateTime={at}>{formatOrderTime(at)}</time></>}. Nothing will be delivered and nothing is due.
+          {order.cancel_reason && <span className="mt-1 block">Reason: {order.cancel_reason}</span>}
+        </span>
+      </p>
+    );
+  }
+  const currentIndex = orderStatuses.indexOf(order.status);
 
   return (
     <ol aria-label="Order progress" className="grid gap-0 md:grid-cols-6">

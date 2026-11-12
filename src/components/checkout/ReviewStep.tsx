@@ -17,17 +17,21 @@ import { useCheckoutLines } from "@/hooks/useCheckoutLines";
 import { quoteErrorMessage, useCheckoutQuote } from "@/hooks/useCheckoutQuote";
 import { addressTypeLabels, formatAddressLine, isValidAddress } from "@/lib/address";
 import { checkoutBlocker, summarize } from "@/lib/cart";
-import { applyQuote, quoteFingerprint } from "@/lib/checkout-quote";
+import { ApiError } from "@/lib/api-client";
+import { applyQuote, quoteFingerprint, toQuoteItems } from "@/lib/checkout-quote";
 import type { Product } from "@/types/catalog";
+import type { Quote } from "@/types/checkout";
 
 // Final check before ordering. "Place order" re-validates everything, is guarded against double
 // submission, saves the order, and only then removes the purchased items from the cart.
+// With a backend account the order is a Cash on Delivery order placed through the API at the prices
+// on screen: if the server's price differs, nothing is placed and the new quote is shown for review.
 export function ReviewStep({ catalog }: { catalog: Product[] }) {
   const router = useRouter();
   const { addresses, hydrated: addressesReady } = useAddressBook();
   const { session, finish } = useCheckout();
   const { removeItems } = useCart();
-  const { placeOrder, hydrated: ordersReady } = useOrders();
+  const { placeOrder, placeServerOrder, mode: ordersMode, hydrated: ordersReady } = useOrders();
   const { lines, items, isBuyNow, ready } = useCheckoutLines(catalog);
   const backendCustomerId = useBackendCustomerId();
   const address = addresses.find((a) => a.id === session.address_id);
@@ -36,6 +40,8 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
   const quoteAddressId = backendCustomerId && address ? address.id : null;
   const { state: quote, refresh } = useCheckoutQuote(items, quoteAddressId, ready && addressesReady);
   const placing = useRef(false);
+  // One key per order attempt at one price: a retry after a lost response returns the same order.
+  const attempt = useRef<{ version: string; key: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -110,6 +116,7 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
       if (!fresh.can_checkout) return stop({ error: fresh.blockers[0]?.message ?? "This order can’t be placed right now." });
       toOrder = applyQuote(lines, items, fresh).lines;
       if (toOrder.length !== lines.length) return stop({ error: "Some items couldn’t be priced. Return to your cart and try again." });
+      if (ordersMode === "backend") return placeWithServer(fresh);
     }
     try {
       const order = placeOrder(toOrder, address);
@@ -119,6 +126,44 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
     } catch (e) {
       stop({ error: e instanceof Error ? e.message : "Your order could not be placed. Please try again." });
     }
+  };
+
+  const placeWithServer = async (fresh: Quote) => {
+    if (!quoteAddressId) return stop({ error: "Choose a delivery address from your account to place this order." });
+    const version = fresh.pricing_version ?? "";
+    if (attempt.current?.version !== version) attempt.current = { version, key: crypto.randomUUID() };
+    const key = attempt.current.key;
+    let order;
+    try {
+      order = await placeServerOrder(
+        {
+          items: toQuoteItems(items),
+          address_id: quoteAddressId,
+          pricing_version: version,
+          expected: { total: fresh.total, lines: fresh.lines.map((line) => ({ item_index: line.item_index, unit_price: line.unit_price })) },
+        },
+        key,
+      );
+    } catch (e) {
+      if (e instanceof ApiError && (e.code === "quote_changed" || e.code === "checkout_blocked")) {
+        // Show the store's current prices and stock; the customer reviews them and clicks again.
+        void refresh().catch(() => undefined);
+        return e.code === "quote_changed"
+          ? stop({ notice: "Prices or stock changed since this page was opened. Check the updated items and total, then place your order again." })
+          : stop({ error: e.message });
+      }
+      if (e instanceof ApiError && (e.code === "network_error" || e.code === "timeout")) {
+        // The order may have been placed: trying again with the same key can't place it twice.
+        return stop({ error: "We couldn’t confirm your order because the connection dropped. Try again: you won’t be charged or sent the order twice." });
+      }
+      if (e instanceof ApiError && e.code === "session_expired") return stop({ error: "Your session has ended. Please sign in again." });
+      if (e instanceof ApiError && e.code === "address_not_found") return stop({ error: "That address wasn’t found. Choose another delivery address." });
+      return stop({ error: "Your order couldn’t be placed right now. Please try again." });
+    }
+    attempt.current = null;
+    if (!isBuyNow) removeItems(lines.map((line) => line.key));
+    finish();
+    router.push(`/orders/${order.id}/confirmation`);
   };
 
   return (
@@ -166,7 +211,9 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
           {busy ? "Placing order…" : "Place order"}
         </Button>
         <p className="mt-3 text-xs text-muted-foreground">
-          Demo checkout: no payment is taken and sellers are not notified. The order is saved in this browser only.
+          {ordersMode === "backend"
+            ? "Cash on Delivery: pay in cash when your order arrives. You can cancel it until it is packed."
+            : "Demo checkout: no payment is taken and sellers are not notified. The order is saved in this browser only."}
         </p>
       </OrderSummary>
     </div>

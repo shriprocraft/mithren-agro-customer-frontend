@@ -9,6 +9,7 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
   ready_for_dispatch: "Ready for Dispatch",
   out_for_delivery: "Out for Delivery",
   delivered: "Delivered",
+  cancelled: "Cancelled",
 };
 
 export const orderStatusDescriptions: Record<OrderStatus, string> = {
@@ -18,10 +19,12 @@ export const orderStatusDescriptions: Record<OrderStatus, string> = {
   ready_for_dispatch: "Your order is packed and waiting for pickup.",
   out_for_delivery: "Your order is on its way to you.",
   delivered: "Your order has been delivered.",
+  cancelled: "This order was cancelled.",
 };
 
 /** The next stage, or null once delivered. Stages only ever move forward, one at a time. */
 export function nextStatus(status: OrderStatus): OrderStatus | null {
+  if (status === "cancelled") return null;
   const index = orderStatuses.indexOf(status);
   return index >= 0 && index < orderStatuses.length - 1 ? orderStatuses[index + 1]! : null;
 }
@@ -91,7 +94,8 @@ export function advanceOrder(order: Order, now: Date): Order {
   return { ...order, status: next, history: [...order.history, { status: next, at: now.toISOString() }] };
 }
 
-const isStatus = (value: unknown): value is OrderStatus => orderStatuses.includes(value as OrderStatus);
+// Browser-stored demo orders are never cancelled, so only the delivery stages are valid there.
+const isStatus = (value: unknown): value is OrderStatus => (orderStatuses as readonly string[]).includes(value as string);
 
 /** Validates stored orders (from browser storage, so untrusted). Drops malformed or inconsistent entries. */
 export function parseOrders(value: unknown): Order[] | null {

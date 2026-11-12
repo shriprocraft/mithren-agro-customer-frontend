@@ -10,6 +10,8 @@ export class ApiError extends Error {
     /** HTTP status; null when no response arrived. */
     readonly status: number | null,
     readonly retryAfterSeconds?: number,
+    /** The whole `error` object of the response, for codes that carry more data (e.g. `quote_changed`). */
+    readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "ApiError";
@@ -21,6 +23,8 @@ export interface ApiRequest {
   body?: unknown;
   query?: Record<string, string>;
   timeoutMs?: number;
+  /** Extra request headers, e.g. Idempotency-Key. */
+  headers?: Record<string, string>;
 }
 
 export interface ApiClient {
@@ -31,7 +35,7 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 
 export function createApiClient(baseUrl: string, fetchImpl: typeof fetch = (...args) => fetch(...args)): ApiClient {
   return {
-    async request<T>(path: string, { method = "GET", body, query, timeoutMs = DEFAULT_TIMEOUT_MS }: ApiRequest = {}): Promise<T> {
+    async request<T>(path: string, { method = "GET", body, query, timeoutMs = DEFAULT_TIMEOUT_MS, headers }: ApiRequest = {}): Promise<T> {
       const search = query ? `?${new URLSearchParams(query).toString()}` : "";
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -41,7 +45,7 @@ export function createApiClient(baseUrl: string, fetchImpl: typeof fetch = (...a
           method,
           credentials: "include",
           signal: controller.signal,
-          headers: { Accept: "application/json", ...(body !== undefined && { "Content-Type": "application/json" }) },
+          headers: { Accept: "application/json", ...(body !== undefined && { "Content-Type": "application/json" }), ...headers },
           ...(body !== undefined && { body: JSON.stringify(body) }),
         });
       } catch (error) {
@@ -62,6 +66,7 @@ export function createApiClient(baseUrl: string, fetchImpl: typeof fetch = (...a
           typeof error?.message === "string" ? error.message : "The request failed.",
           response.status,
           typeof error?.retry_after_seconds === "number" ? error.retry_after_seconds : undefined,
+          error && typeof error === "object" ? (error as Record<string, unknown>) : undefined,
         );
       }
       return payload as T;

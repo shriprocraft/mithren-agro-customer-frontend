@@ -26,7 +26,8 @@ export const policyConfig = {
 
 /** True while a customer may still ask to cancel: before the order is packed. */
 export function canRequestCancellation(status: OrderStatus): boolean {
-  return orderStatuses.indexOf(status) < orderStatuses.indexOf(policyConfig.cancellation.packedStatus);
+  if (status === "cancelled") return false;
+  return orderStatuses.indexOf(status) < orderStatuses.indexOf(policyConfig.cancellation.packedStatus as (typeof orderStatuses)[number]);
 }
 
 /** Whether items in this category have the routine return option. */

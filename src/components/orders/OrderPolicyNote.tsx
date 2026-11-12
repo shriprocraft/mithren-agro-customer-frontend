@@ -20,7 +20,7 @@ export function OrderPolicyNote({ order }: { order: Order }) {
   const deliveredAt = order.history.find((event) => event.status === "delivered")?.at;
   // The storefront's categories first; the demo account's sample orders keep the sample category ids.
   const slugOf = (id: string | undefined) => categorySlugOf(id, categories) ?? categorySlugOf(id, sampleCategories);
-  const returnable = order.items.filter((item) => isReturnEligibleCategory(slugOf(item.category_id)));
+  const returnable = order.items.filter((item) => isReturnEligibleCategory(item.category_slug ?? slugOf(item.category_id)));
   const windowEnd = deliveredAt ? returnWindowEnd(deliveredAt) : null;
 
   return (
@@ -29,8 +29,12 @@ export function OrderPolicyNote({ order }: { order: Order }) {
       <p className="mt-2 flex gap-2 text-muted-foreground">
         <XCircle className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
         <span>
-          {canRequestCancellation(order.status)
-            ? `You can ask to cancel this order until it is packed (“${packed}”). Contact support with the order ID.`
+          {order.status === "cancelled"
+            ? "This order was cancelled."
+            : canRequestCancellation(order.status)
+            ? order.source === "backend"
+              ? `You can cancel this order until it is packed (“${packed}”) with “Cancel order” on its order details or tracking page.`
+              : `You can ask to cancel this order until it is packed (“${packed}”). Contact support with the order ID.`
             : order.status === "delivered"
               ? "This order has been delivered."
               : `This order has been packed, so it can no longer be cancelled. If something is wrong, contact support.`}
