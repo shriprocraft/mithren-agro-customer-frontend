@@ -167,4 +167,15 @@ describe("reverse-geocoding service", () => {
     await expect(service.reverse({ latitude: 1, longitude: 2 })).resolves.toEqual({ status: "not_found" });
     await expect(service.reverse({ latitude: 1, longitude: 2 })).resolves.toEqual({ status: "error" });
   });
+
+  it("reports a backend without a lookup service as unavailable, not as a failed lookup", async () => {
+    const request = vi.fn()
+      .mockRejectedValueOnce(new ApiError("unknown", "Not Found", 404))
+      .mockRejectedValueOnce(new ApiError("service_unavailable", "", 503))
+      .mockRejectedValueOnce(new ApiError("internal_error", "", 500));
+    const service = createHttpReverseGeocoder({ request });
+    await expect(service.reverse({ latitude: 1, longitude: 2 })).resolves.toEqual({ status: "unavailable" });
+    await expect(service.reverse({ latitude: 1, longitude: 2 })).resolves.toEqual({ status: "unavailable" });
+    await expect(service.reverse({ latitude: 1, longitude: 2 })).resolves.toEqual({ status: "error" });
+  });
 });

@@ -1,5 +1,5 @@
 import { apiBaseUrl, apiEndpoints } from "@/config/api";
-import { createApiClient, type ApiClient } from "@/lib/api-client";
+import { ApiError, createApiClient, type ApiClient } from "@/lib/api-client";
 
 // Turning coordinates into a readable address. The provider sits behind the backend, so its key never
 // reaches the browser and it can be replaced without touching the UI (docs/BACKEND_CONTRACTS.md). The
@@ -42,7 +42,12 @@ export function createHttpReverseGeocoder(client: ApiClient): ReverseGeocodingSe
           timeoutMs: 10_000,
         });
         return response?.address?.formatted ? { status: "found", address: response.address } : { status: "not_found" };
-      } catch {
+      } catch (error) {
+        // No lookup service on the backend (the route doesn't exist yet, or no provider is configured):
+        // that is "unavailable", which the page explains, never a failed lookup.
+        if (error instanceof ApiError && (error.status === 404 || error.status === 501 || error.status === 503)) {
+          return { status: "unavailable" };
+        }
         return { status: "error" };
       }
     },

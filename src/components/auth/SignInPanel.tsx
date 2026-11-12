@@ -180,9 +180,11 @@ function OtpStep({ challenge, destination, onChallenge, onBack }: { challenge: O
   const [busy, setBusy] = useState(false);
   const [resending, setResending] = useState(false);
   const [now, refreshNow] = useNow();
-  const [cooldownUntil, setCooldownUntil] = useState(() => Date.now() + challenge.resend_after_seconds * 1000);
+  // Both deadlines start from the clock the countdown reads, so a fresh code shows its full time (5:00,
+  // not 5:01 when a millisecond passes between the two readings).
+  const [cooldownUntil, setCooldownUntil] = useState(() => now + challenge.resend_after_seconds * 1000);
   // The server decides expiry; this only stops the customer typing a code that can no longer work.
-  const [expiresAt, setExpiresAt] = useState(() => Date.now() + challenge.expires_in_seconds * 1000);
+  const [expiresAt, setExpiresAt] = useState(() => now + challenge.expires_in_seconds * 1000);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
