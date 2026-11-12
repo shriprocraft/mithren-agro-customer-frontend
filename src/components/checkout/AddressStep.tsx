@@ -11,9 +11,11 @@ import { useAddressBook } from "@/context/AddressBookContext";
 import { useCheckout } from "@/context/CheckoutContext";
 import { useToast } from "@/context/ToastContext";
 import { useCheckoutLines } from "@/hooks/useCheckoutLines";
+import { useCheckoutQuote } from "@/hooks/useCheckoutQuote";
 import { useDeliveryAddress } from "@/hooks/useDeliveryAddress";
 import { addressTypeLabels, formatAddressLine, isValidAddress } from "@/lib/address";
 import { checkoutBlocker } from "@/lib/cart";
+import { applyQuote } from "@/lib/checkout-quote";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types/catalog";
 
@@ -26,7 +28,9 @@ export function AddressStep({ catalog }: { catalog: Product[] }) {
   const toast = useToast();
   const book = useAddressBook();
   const { session, selectAddress } = useCheckout();
-  const { lines, isBuyNow, ready } = useCheckoutLines(catalog);
+  const { lines, items, isBuyNow, ready } = useCheckoutLines(catalog);
+  // The server's stock check (backend catalogue only). The review step checks again with the address.
+  const { state: quote } = useCheckoutQuote(items, null, ready);
   const { activeAddress } = useDeliveryAddress();
   const [mode, setMode] = useState<Mode | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +52,7 @@ export function AddressStep({ catalog }: { catalog: Product[] }) {
 
   if (!ready || !book.hydrated) return <LoadingState label="Loading your details…" />;
 
-  const blocker = checkoutBlocker(lines);
+  const blocker = checkoutBlocker(lines) ?? (quote.status === "ready" ? applyQuote(lines, items, quote.quote).blocker : null);
   if (blocker) {
     return (
       <MessageState icon={ShoppingCart} title={lines.length === 0 ? "There’s nothing to check out" : "Your cart needs attention"}

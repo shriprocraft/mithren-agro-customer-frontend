@@ -106,6 +106,20 @@ Used when `NEXT_PUBLIC_CATALOG_SOURCE=backend`; otherwise the sample catalogue i
 - Only listed, active products of approved sellers appear; a combo box appears only if all its items do.
 - Category rules (image shape, return eligibility) match on the category **slug**, never its id (`src/lib/catalog-display.ts`).
 
+## Checkout quote (`src/services/checkout.ts`, `src/hooks/useCheckoutQuote.ts`; implemented)
+
+Used with the backend catalogue only (sample product ids mean nothing to the API; sample mode keeps pricing in `lib/cart.ts`). The cart and address steps ask without an address; the review step asks with the chosen address when it is in the customer's account.
+
+| Method | Path | Request | Success |
+|---|---|---|---|
+| POST | `/checkout/quote` | `{ "items": [{ "product_id", "variant_id"?, "quantity": 1..20 }], "address_id"? }` (1 to 50 items, each product and option once) | `200 Quote` (`src/types/checkout.ts`), `Cache-Control: no-store` |
+
+- **Stateless:** nothing is reserved or saved. The server prices with the catalogue's own rules and checks stock across all lines, including what combo boxes contain.
+- **Quantities are never lowered.** A line that can't be supplied gets `issue: "out_of_stock"` or `"insufficient_stock"`; items that can't be sold are listed in `unavailable`. Each adds a `blockers` entry with a message to show, and `can_checkout` is false. Stock is never a number.
+- `charges` is `[]` (no delivery charge yet; prices include GST) and `serviceability` is `"not_checked"`.
+- **Address:** optional. With one, a valid session is required (`401 session_expired`) and it must be the customer's own (`404 address_not_found`, also for an id that isn't a UUID). Without one, the cookie isn't read. `403 origin_not_allowed`, `422 validation_error` and `503` as elsewhere.
+- **Before ordering**, the review step asks again. If anything differs from what is on screen (items, quantities, prices, issues or total, `lib/checkout-quote.ts quoteFingerprint`), it shows the new quote with a notice and places nothing: the order is placed only on a click made after the customer has seen the current prices. The order is then built with the server's prices.
+
 ## Orders (no endpoint yet)
 
 Orders are still saved in the browser (`OrdersContext`). `POST /orders` must:

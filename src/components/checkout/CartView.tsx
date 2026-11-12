@@ -11,8 +11,10 @@ import { Button } from "@/components/ui/button";
 import { useAnnounce } from "@/context/AnnouncerContext";
 import { useCart } from "@/context/CartContext";
 import { useCheckout } from "@/context/CheckoutContext";
+import { useCheckoutQuote } from "@/hooks/useCheckoutQuote";
 import { useRemovedFromCartToast } from "@/hooks/useRemovedFromCartToast";
 import { checkoutBlocker, resolveLines, summarize } from "@/lib/cart";
+import { applyQuote } from "@/lib/checkout-quote";
 import { formatPrice } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types/catalog";
@@ -21,15 +23,30 @@ import type { Product } from "@/types/catalog";
 export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorNames: Record<string, string> }) {
   const router = useRouter();
   const announce = useAnnounce();
-  const { items, hydrated, setQuantity, removeItem } = useCart();
+  const { items, hydrated, setQuantity, removeItem, removeItems } = useCart();
   const { start } = useCheckout();
   const removed = useRemovedFromCartToast();
+  // With the backend catalogue the server prices the cart (a guest quote: no address). Off in sample mode.
+  const { state: quote, refresh } = useCheckoutQuote(items, null, hydrated);
 
   if (!hydrated) return <LoadingState label="Loading your cart…" />;
 
-  const { lines, missing } = resolveLines(items, catalog);
-  const summary = summarize(lines);
-  const blocker = checkoutBlocker(lines);
+  const resolved = resolveLines(items, catalog);
+  const quoted = quote.status !== "off" && quote.quote ? applyQuote(resolved.lines, items, quote.quote) : null;
+  const priced = new Map(quoted?.lines.map((line) => [line.key, line]));
+  const lines = quoted ? resolved.lines.map((line) => priced.get(line.key) ?? line) : resolved.lines;
+  const summary = quoted?.summary ?? summarize(lines);
+  const blocker =
+    quote.status === "off"
+      ? checkoutBlocker(lines)
+      : quote.status === "error"
+        ? quote.message
+        : quote.status === "loading" || !quoted
+          ? "Checking prices and stock…"
+          : quoted.blocker;
+  // Sample mode: items missing from the catalogue. With a server quote: only what the server reports
+  // unavailable, so an item merely missing from the cached catalogue is never removed by mistake.
+  const missing = quote.status === "off" ? resolved.missing : (quoted?.unavailableKeys ?? []);
 
   if (lines.length === 0) {
     return (
@@ -54,8 +71,18 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
       <section aria-labelledby="cart-items-title" className="min-w-0">
         <h2 id="cart-items-title" className="sr-only">Items in your cart</h2>
         {missing.length > 0 && (
+          <div role="status" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-secondary p-3 text-sm text-secondary-foreground">
+            <span>{missing.length === 1 ? "One item is" : `${missing.length} items are`} {quote.status === "off" ? "no longer listed and won’t be ordered." : "no longer available. Remove them to continue."}</span>
+            {quote.status !== "off" && (
+              <Button variant="outline" onClick={() => { removeItems(missing); announce("Unavailable items removed from your cart."); }}>
+                Remove unavailable items
+              </Button>
+            )}
+          </div>
+        )}
+        {quoted?.pricesChanged && (
           <p role="status" className="mb-3 rounded-2xl bg-secondary p-3 text-sm text-secondary-foreground">
-            {missing.length === 1 ? "One item is" : `${missing.length} items are`} no longer listed and won’t be ordered.
+            Prices were updated. The amounts below are the store’s current prices.
           </p>
         )}
         <ul className="surface-card divide-y rounded-3xl">
@@ -85,6 +112,11 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
                       <AlertTriangle className="size-4" aria-hidden="true" /> Out of stock: remove to continue
                     </p>
                   )}
+                  {issue === "insufficient_stock" && (
+                    <p className="mt-1 flex items-center gap-1 text-sm text-destructive">
+                      <AlertTriangle className="size-4" aria-hidden="true" /> Not enough stock for this quantity: lower it to continue
+                    </p>
+                  )}
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                     <QuantityStepper value={quantity} label={`Quantity of ${product.name}, ${selection.description}`} disabled={issue === "out_of_stock"}
                       onChange={(q) => { setQuantity(key, q); announce(`${product.name}: quantity ${q}.`); }} />
@@ -101,12 +133,17 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
       </section>
 
       <OrderSummary subtotal={summary.subtotal} itemCount={summary.count} charges={summary.charges} total={summary.total}>
-        {blocker && <p role="alert" className="mt-4 text-sm text-destructive">{blocker}</p>}
+        {blocker && <p role={quote.status === "loading" ? "status" : "alert"} className={cn("mt-4 text-sm", quote.status === "loading" ? "text-muted-foreground" : "text-destructive")}>{blocker}</p>}
+        {quote.status === "error" && (
+          <Button variant="outline" className="mt-3 w-full" onClick={() => void refresh().catch(() => undefined)}>Try again</Button>
+        )}
         <Button className="mt-4 w-full" disabled={!!blocker} onClick={proceed}>
           Proceed to checkout
           <ArrowRight aria-hidden="true" />
         </Button>
-        <p className="mt-3 text-xs text-muted-foreground">Your cart is saved in this browser only. Prices are sample data.</p>
+        <p className="mt-3 text-xs text-muted-foreground">
+          {quote.status === "off" ? "Your cart is saved in this browser only. Prices are sample data." : "Your cart is saved in this browser. Prices and stock are checked by the store."}
+        </p>
       </OrderSummary>
     </div>
   );

@@ -1,5 +1,6 @@
 import { cacheLife } from "next/cache";
 import { apiBaseUrl } from "@/config/api";
+import { catalogSource } from "@/config/catalog";
 import { bundles, comboBoxes } from "@/data/bundles";
 import { categories } from "@/data/categories";
 import { products } from "@/data/products";
@@ -13,14 +14,9 @@ import type { Category, CategorySlug, Product, Vendor } from "@/types/catalog";
 //   valid NEXT_PUBLIC_API_BASE_URL. Results are cached for a few minutes ("use cache"), so pages stay
 //   fast and the backend isn't asked on every render.
 // - "sample": the mock data in src/data, used otherwise (and by the demo account).
+// The choice lives in config/catalog.ts, so browser code can read it without this server-only module.
 
-export type CatalogSource = "backend" | "sample";
-
-export function resolveCatalogSource(config: { source: string | undefined; apiBaseUrl: string | null }): CatalogSource {
-  return config.source === "backend" && config.apiBaseUrl ? "backend" : "sample";
-}
-
-export const catalogSource = resolveCatalogSource({ source: process.env.NEXT_PUBLIC_CATALOG_SOURCE, apiBaseUrl });
+export { catalogSource, resolveCatalogSource, type CatalogSource } from "@/config/catalog";
 
 function backend(): CatalogReader {
   return createHttpCatalog(createApiClient(apiBaseUrl!));

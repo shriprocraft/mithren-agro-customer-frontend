@@ -81,7 +81,8 @@ export function parseCart(value: unknown): CartItem[] | null {
   }));
 }
 
-export type LineIssue = "out_of_stock";
+/** "insufficient_stock" comes only from the server quote: the sample catalogue has no stock numbers. */
+export type LineIssue = "out_of_stock" | "insufficient_stock";
 
 export interface CartLine {
   /** Identifies the line as stored (product + option); use it to change or remove the line. */
@@ -140,6 +141,7 @@ export function summarize(lines: CartLine[]) {
 export function checkoutBlocker(lines: CartLine[]): string | null {
   if (lines.length === 0) return "Your cart is empty.";
   if (lines.some((line) => line.issue === "out_of_stock")) return "Remove out-of-stock items to continue.";
+  if (lines.some((line) => line.issue === "insufficient_stock")) return "There isn't enough stock for some items. Lower their quantity to continue.";
   if (lines.some((line) => line.quantity < 1 || line.quantity > MAX_QUANTITY_PER_ITEM)) {
     return `Quantities must be between 1 and ${MAX_QUANTITY_PER_ITEM}.`;
   }

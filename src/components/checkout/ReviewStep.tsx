@@ -9,12 +9,15 @@ import { LoadingState, MessageState } from "@/components/checkout/PageState";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
 import { Button } from "@/components/ui/button";
 import { useAddressBook } from "@/context/AddressBookContext";
+import { useBackendCustomerId } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useCheckout } from "@/context/CheckoutContext";
 import { useOrders } from "@/context/OrdersContext";
 import { useCheckoutLines } from "@/hooks/useCheckoutLines";
+import { quoteErrorMessage, useCheckoutQuote } from "@/hooks/useCheckoutQuote";
 import { addressTypeLabels, formatAddressLine, isValidAddress } from "@/lib/address";
 import { checkoutBlocker, summarize } from "@/lib/cart";
+import { applyQuote, quoteFingerprint } from "@/lib/checkout-quote";
 import type { Product } from "@/types/catalog";
 
 // Final check before ordering. "Place order" re-validates everything, is guarded against double
@@ -25,21 +28,44 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
   const { session, finish } = useCheckout();
   const { removeItems } = useCart();
   const { placeOrder, hydrated: ordersReady } = useOrders();
-  const { lines, isBuyNow, ready } = useCheckoutLines(catalog);
+  const { lines, items, isBuyNow, ready } = useCheckoutLines(catalog);
+  const backendCustomerId = useBackendCustomerId();
+  const address = addresses.find((a) => a.id === session.address_id);
+  // With the backend catalogue the server prices this order for this address. Only an address from the
+  // customer's account is sent: demo and browser-stored addresses mean nothing to the API.
+  const quoteAddressId = backendCustomerId && address ? address.id : null;
+  const { state: quote, refresh } = useCheckoutQuote(items, quoteAddressId, ready && addressesReady);
   const placing = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   if (!ready || !addressesReady || !ordersReady) return <LoadingState label="Preparing your order…" />;
   // Once placed, the cart empties before navigation finishes; keep showing progress, not "empty cart".
   if (busy) return <LoadingState label="Placing your order…" />;
+  // Nothing to check out: no quote is asked for an empty cart, so never wait for one, and never show a
+  // quote left over from before the cart emptied (another tab, or the order that was just placed).
+  const hasItems = items.length > 0;
+  if (hasItems && quote.status === "loading" && !quote.quote) return <LoadingState label="Checking prices and stock…" />;
 
-  const address = addresses.find((a) => a.id === session.address_id);
-  const blocker = checkoutBlocker(lines);
+  const quoted = hasItems && quote.status !== "off" && quote.quote ? applyQuote(lines, items, quote.quote) : null;
+  const shownLines = quoted?.lines ?? lines;
+  const blocker = !hasItems
+    ? checkoutBlocker(lines)
+    : quote.status === "error" && !quote.quote
+      ? quote.message
+      : quoted
+        ? quoted.blocker
+        : checkoutBlocker(lines);
   if (blocker) {
     return (
       <MessageState icon={ShoppingCart} title={lines.length === 0 ? "There’s nothing to review" : "Your cart needs attention"}
-        actions={<Button asChild><Link href={lines.length === 0 ? "/products" : "/cart"}>{lines.length === 0 ? "Browse products" : "Return to cart"}</Link></Button>}>
+        actions={
+          <>
+            {hasItems && quote.status === "error" && <Button variant="outline" onClick={() => void refresh().catch(() => undefined)}>Try again</Button>}
+            <Button asChild><Link href={lines.length === 0 ? "/products" : "/cart"}>{lines.length === 0 ? "Browse products" : "Return to cart"}</Link></Button>
+          </>
+        }>
         {blocker}
       </MessageState>
     );
@@ -52,22 +78,46 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
     );
   }
 
-  const summary = summarize(lines);
+  const summary = quoted?.summary ?? summarize(lines);
 
-  const submit = () => {
+  const stop = (message: { error?: string; notice?: string }) => {
+    placing.current = false;
+    setBusy(false);
+    setError(message.error ?? null);
+    setNotice(message.notice ?? null);
+  };
+
+  const submit = async () => {
     if (placing.current) return; // a second click while the first is being handled does nothing
     placing.current = true;
     setBusy(true);
     setError(null);
+    setNotice(null);
+    let toOrder = lines;
+    if (quote.status !== "off") {
+      // Price everything again. If anything differs from what is on screen, show the new quote and
+      // let the customer review it: the order is placed only on a click made after seeing it.
+      const shown = quote.quote;
+      let fresh;
+      try {
+        fresh = await refresh();
+      } catch (e) {
+        return stop({ error: quoteErrorMessage(e) });
+      }
+      if (!fresh || !shown || quoteFingerprint(fresh) !== quoteFingerprint(shown)) {
+        return stop({ notice: "Prices or stock changed since this page was opened. Check the updated items and total, then place your order again." });
+      }
+      if (!fresh.can_checkout) return stop({ error: fresh.blockers[0]?.message ?? "This order can’t be placed right now." });
+      toOrder = applyQuote(lines, items, fresh).lines;
+      if (toOrder.length !== lines.length) return stop({ error: "Some items couldn’t be priced. Return to your cart and try again." });
+    }
     try {
-      const order = placeOrder(lines, address);
-      if (!isBuyNow) removeItems(lines.map((line) => line.key));
+      const order = placeOrder(toOrder, address);
+      if (!isBuyNow) removeItems(toOrder.map((line) => line.key));
       finish();
       router.push(`/orders/${order.id}/confirmation`);
     } catch (e) {
-      placing.current = false;
-      setBusy(false);
-      setError(e instanceof Error ? e.message : "Your order could not be placed. Please try again.");
+      stop({ error: e instanceof Error ? e.message : "Your order could not be placed. Please try again." });
     }
   };
 
@@ -95,7 +145,7 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
           {isBuyNow && <p className="mt-1 text-sm text-muted-foreground">Buy now: only this item is ordered. Your cart stays as it is.</p>}
           <ItemList
             label="Items in this order"
-            items={lines.map(({ key, product, selection, quantity, unit_price, line_total }) => ({
+            items={shownLines.map(({ key, product, selection, quantity, unit_price, line_total }) => ({
               key, product_id: product.id, name: product.name, unit: selection.description,
               image: product.images[0] ?? { src: "", alt: "" }, unit_price, quantity, line_total,
             }))}
@@ -104,8 +154,14 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
       </div>
 
       <OrderSummary subtotal={summary.subtotal} itemCount={summary.count} charges={summary.charges} total={summary.total}>
+        {notice && <p role="alert" className="mt-4 rounded-2xl bg-secondary p-3 text-sm font-medium text-secondary-foreground">{notice}</p>}
+        {!notice && quoted?.pricesChanged && (
+          <p role="status" className="mt-4 rounded-2xl bg-secondary p-3 text-sm text-secondary-foreground">
+            Prices were updated. The items and total shown are the store’s current prices.
+          </p>
+        )}
         {error && <p role="alert" className="mt-4 text-sm text-destructive">{error}</p>}
-        <Button className="mt-4 w-full" onClick={submit} loading={busy}>
+        <Button className="mt-4 w-full" onClick={() => void submit()} loading={busy}>
           <PackageCheck aria-hidden="true" />
           {busy ? "Placing order…" : "Place order"}
         </Button>

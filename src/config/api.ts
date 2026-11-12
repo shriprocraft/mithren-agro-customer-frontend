@@ -37,4 +37,7 @@ export const apiEndpoints = {
     related: (id: string) => `/catalog/products/${encodeURIComponent(id)}/related`,
     bundles: "/catalog/bundles",
   },
+  checkout: {
+    quote: "/checkout/quote",
+  },
 } as const;
