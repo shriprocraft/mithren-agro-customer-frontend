@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { AuthError } from "@/lib/auth-errors";
 import { getAuthService } from "@/services/auth";
-import type { AuthMode, AuthService, AuthSession, OtpChallenge, OtpChannel } from "@/types/auth";
+import type { AuthMode, AuthService, AuthSession, GoogleLinkStatus, OtpChallenge, OtpChannel } from "@/types/auth";
 
 // The customer's sign-in state, separate from the demo account (context/DemoAccountContext.tsx), whose
 // marker proves nothing and never counts as signed in. The session is read from the configured adapter
@@ -29,6 +29,10 @@ interface AuthValue {
   /** Ends the name step (saved or skipped) for this sign-in. */
   finishOnboarding: () => void;
   startGoogleSignIn: (returnTo: string) => Promise<void>;
+  /** A first Google sign-in's email-code step (see GoogleLinkStep). Linking never signs in by itself. */
+  getGoogleLink: () => Promise<GoogleLinkStatus>;
+  resendGoogleLink: () => Promise<GoogleLinkStatus>;
+  verifyGoogleLink: (code: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -104,6 +108,9 @@ export function AuthProvider({ children, service }: { children: ReactNode; servi
       needsName,
       finishOnboarding,
       startGoogleSignIn: (returnTo) => auth.startGoogleSignIn(returnTo),
+      getGoogleLink: () => auth.getGoogleLink(),
+      resendGoogleLink: () => auth.resendGoogleLink(),
+      verifyGoogleLink: (code) => auth.verifyGoogleLink(code),
       signOut,
     }),
     [state, auth, verifyOtp, refreshSession, needsName, finishOnboarding, signOut],

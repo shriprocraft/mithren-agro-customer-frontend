@@ -132,7 +132,7 @@ describe("the account overview", () => {
       </AppProviders>,
     );
     expect(await screen.findByRole("heading", { name: "Hello, Asha" })).toBeInTheDocument();
-    expect(screen.getByText(/signed in with \+91 98765 43210/i)).toBeInTheDocument();
+    expect(screen.getByText(/signed in as \+91 98765 43210/i)).toBeInTheDocument();
     expect(screen.queryByText(/this is the demo account/i)).toBeNull();
     await waitFor(() => expect(screen.getByText("2 saved items")).toBeInTheDocument());
     expect(await screen.findByText("0 orders")).toBeInTheDocument();

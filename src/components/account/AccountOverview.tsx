@@ -55,7 +55,7 @@ export function AccountOverview() {
         </Heading>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
           {customer
-            ? `Signed in with ${formatPhone(customer.phone)}. Your orders, addresses and wishlist are kept in your account.`
+            ? `Signed in as ${customer.phone ? formatPhone(customer.phone) : customer.email ?? "a Mithren Agro customer"}. Your orders, addresses and wishlist are kept in your account.`
             : "This is the demo account. Its orders and address are sample data, nothing here is a real purchase, and everything is saved in this browser only."}
         </p>
         {customer && !customer.full_name && (

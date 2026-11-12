@@ -19,6 +19,9 @@ export const apiEndpoints = {
     emailOtpRequest: "/auth/otp/email/request",
     emailOtpVerify: "/auth/otp/email/verify",
     googleStart: "/auth/google/start",
+    googleLink: "/auth/google/link",
+    googleLinkResend: "/auth/google/link/resend",
+    googleLinkVerify: "/auth/google/link/verify",
   },
   geocoding: {
     reverse: "/geocoding/reverse",

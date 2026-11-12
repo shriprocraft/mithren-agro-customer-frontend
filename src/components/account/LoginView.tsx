@@ -7,6 +7,7 @@ import { CircleCheck, Info, ShoppingCart } from "lucide-react";
 import { DemoBadge } from "@/components/account/DemoBadge";
 import { ExploreDemoButton } from "@/components/account/ExploreDemoButton";
 import { DevelopmentAuthNotice } from "@/components/auth/DevelopmentAuthNotice";
+import { GoogleLinkStep } from "@/components/auth/GoogleLinkStep";
 import { NameStep } from "@/components/auth/NameStep";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { LoadingState } from "@/components/checkout/PageState";
@@ -22,7 +23,8 @@ import { safeNextPath } from "@/lib/demo-account";
 // The sign-in page. Customer sign-in (a phone code for now) comes first; it is the only thing
 // that allows ordering. The demo account stays below as a separate way to look around with sample data.
 // ?next= (same-site paths only) is where a signed-in customer returns; ?auth_error= is set by the
-// backend when a Google sign-in fails; ?signed_out=1 confirms that the demo was left.
+// backend when a Google sign-in fails; ?google=verify-email is the email-code step of a first Google
+// sign-in; ?signed_out=1 confirms that the demo was left.
 export function LoginView() {
   const params = useSearchParams();
   const router = useRouter();
@@ -36,6 +38,8 @@ export function LoginView() {
   const demoNext = safeNextPath(fromCheckout ? null : rawNext);
   const registerHref = demoNext === "/account" ? "/register" : `/register?next=${encodeURIComponent(demoNext)}`;
   const signedIn = canPlaceOrder(auth.session);
+  const signInReturn = `/login?next=${encodeURIComponent(next)}`;
+  const googleStep = params.get("google") === "verify-email" && auth.mode === "backend";
 
   // Only an explicit destination redirects, so opening /login while signed in shows the panel below.
   // A new customer without a name is asked for one first (NameStep refreshes the session when done).
@@ -85,8 +89,10 @@ export function LoginView() {
               <Button size="lg" variant="outline" onClick={() => void auth.signOut()}>Sign out</Button>
             </div>
           </div>
+        ) : googleStep ? (
+          <GoogleLinkStep returnTo={signInReturn} onCancel={() => router.replace(signInReturn)} />
         ) : (
-          <SignInPanel returnTo={`/login?next=${encodeURIComponent(next)}`} initialError={authError ? toAuthErrorCode(authError) : undefined} />
+          <SignInPanel returnTo={signInReturn} initialError={authError ? toAuthErrorCode(authError) : undefined} />
         )}
       </div>
 
@@ -115,7 +121,7 @@ export function LoginView() {
 
       <div className="mt-6 flex flex-col gap-1 border-t border-border pt-5 text-sm sm:flex-row sm:items-center sm:justify-between">
         {auth.mode === "backend" ? (
-          <p className="text-muted-foreground">New here? Signing in with your mobile number creates your account.</p>
+          <p className="text-muted-foreground">New here? Signing in with your mobile number, email or Google creates your account.</p>
         ) : (
           <p className="text-muted-foreground">
             New here?{" "}

@@ -45,6 +45,13 @@ export const authErrorCodes = [
   "validation_error",
   /** Frontend only: verification succeeded but GET /auth/session didn't return the customer (cookie not kept). */
   "sign_in_not_confirmed",
+  /** Google sign-in, sent back by the backend as ?auth_error= or returned by the link step. */
+  "google_cancelled",
+  "google_expired",
+  "google_failed",
+  "no_verified_email",
+  "google_link_failed",
+  "link_not_found",
   "unknown",
 ] as const;
 export type AuthErrorCode = (typeof authErrorCodes)[number];
@@ -63,5 +70,20 @@ export interface AuthService {
    * signed in only when getSession() later returns the session the backend created.
    */
   startGoogleSignIn(returnTo: string): Promise<void>;
+  /** A first Google sign-in's pending email code (found by the backend's link cookie). */
+  getGoogleLink(): Promise<GoogleLinkStatus>;
+  resendGoogleLink(): Promise<GoogleLinkStatus>;
+  /** Confirms the code: the Google account is linked (or the account created). Never signs in by itself. */
+  verifyGoogleLink(code: string): Promise<void>;
   signOut(): Promise<void>;
+}
+
+export interface GoogleLinkStatus {
+  /** Null when a new code has to be sent first. */
+  challenge_id: string | null;
+  /** Masked, e.g. a•••@example.com. */
+  destination_hint: string;
+  expires_in_seconds: number;
+  resend_after_seconds: number;
+  delivered: boolean;
 }

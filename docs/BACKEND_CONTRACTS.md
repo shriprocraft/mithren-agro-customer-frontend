@@ -2,7 +2,7 @@
 
 What the customer frontend expects from the backend. Endpoint names live only in `src/config/api.ts`, and API calls only in `src/lib/api-client.ts` and `src/services/*`, so UI components don't change when these do.
 
-**Status:** the backend (FastAPI, `mithren-agro-backend`) implements the session endpoints (`GET /auth/session`, `POST /auth/sign-out`), phone OTP sign-in, the customer profile, the address book and the public catalogue, as documented below. No SMS provider is connected yet: phone codes are delivered only by the backend's development fake sender. Cash on Delivery orders are implemented as documented below. Email OTP, Google sign-in and reverse geocoding are still proposals.
+**Status:** the backend (FastAPI, `mithren-agro-backend`) implements the session endpoints (`GET /auth/session`, `POST /auth/sign-out`), phone and email OTP sign-in, Google sign-in, the customer profile, the address book and the public catalogue, as documented below. No SMS provider is connected yet: phone codes are delivered only by the backend's development fake sender. Cash on Delivery orders are implemented as documented below. Email OTP, Google sign-in and reverse geocoding are still proposals.
 
 ## Conventions
 
@@ -47,13 +47,18 @@ The frontend adds `network_error` and `timeout` itself. Any other code shows a g
 | GET | `/auth/session` | none | `200 { "customer": Customer }`; `200 { "customer": null }` with no cookie; `401 session_expired` (cookie cleared) when the cookie is no longer valid. **Implemented** |
 | POST | `/auth/otp/phone/request` | `{ "phone": "+919876543210" }` | `200 OtpChallenge`, the same whether or not the number has an account. **Implemented** |
 | POST | `/auth/otp/phone/verify` | `{ "challenge_id", "code" }` | `200 { "customer": Customer }` and sets the cookie; the first sign-in of a new number creates the account. **Implemented** |
-| POST | `/auth/otp/email/request` | `{ "email": "name@example.com" }` | `200 OtpChallenge`. Not implemented; the Email tab is hidden (`src/config/auth.ts`) |
-| POST | `/auth/otp/email/verify` | `{ "challenge_id", "code" }` | `200 { "customer": Customer }` and sets the cookie. Not implemented |
-| GET | `/auth/google/start?return_to=<same-site path>` | Browser navigation | Redirects to Google. Not implemented; the button is disabled as "Coming soon" |
+| POST | `/auth/otp/email/request` | `{ "email": "name@example.com" }` | `200 OtpChallenge` (`channel: "email"`, hint `a•••@example.com`); the same limits as phone codes. **Implemented** |
+| POST | `/auth/otp/email/verify` | `{ "challenge_id", "code" }` | `200 { "customer": Customer }` and sets the cookie; a new email creates the account. A removed (reserved) email gets `expired_otp`. **Implemented** |
+| GET | `/auth/google/start?return_to=<same-site path>` | Browser navigation | Redirects to Google (with the backend only; the button reads "Coming soon" elsewhere). **Implemented** |
+| GET | `/auth/google/link` | none (link cookie) | `200 GoogleLinkStatus` for a first Google sign-in's email code; `404 link_not_found` |
+| POST | `/auth/google/link/resend` | none | `200 GoogleLinkStatus`; `429 rate_limited` |
+| POST | `/auth/google/link/verify` | `{ "code" }` | `200 { "status": "linked" }`: Google is now connected; **no session** is created, so the storefront starts Google sign-in again. `400 invalid_otp`, `expired_otp` or `google_link_failed` |
 | POST | `/auth/sign-out` | none | `204` and clears the cookie. **Implemented** |
 
 ```ts
 Customer     { id: string; full_name: string | null; email: string | null; phone: string | null }
+GoogleLinkStatus { challenge_id: string | null; destination_hint: string; expires_in_seconds: number;
+                   resend_after_seconds: number; delivered: boolean }
 OtpChallenge { challenge_id: string; channel: "phone" | "email"; destination_hint: string; // masked
                expires_in_seconds: number; resend_after_seconds: number }
 ```
@@ -73,11 +78,12 @@ The account profile has its own endpoints (see "Customer profile"). Sessions ref
 
 The authorisation-code flow runs entirely on the backend. Google's client secret must never reach the frontend.
 
-1. Create an OAuth client in Google Cloud Console and store `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` as **backend** environment variables.
-2. Register the backend's callback, for example `https://<api-host>/auth/google/callback`, as an authorised redirect URI.
-3. `/auth/google/start` validates `return_to` as a same-site path, stores it with `state` and PKCE, and redirects to Google.
-4. The callback verifies `state` and the ID token, creates or finds the customer, sets the cookie and redirects to the storefront's `return_to`, which is `/login?next=<step>`.
-5. On failure, redirect to `/login?auth_error=<code>&next=<step>`. Never send a token in the URL.
+1. Create an OAuth client in Google Cloud Console and store `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` and `FRONTEND_BASE_URL` as **backend** environment variables.
+2. Register the backend's callback, `https://<api-host>/api/v1/auth/google/callback`, as an authorised redirect URI.
+3. `/auth/google/start` validates `return_to` as a same-site path, stores it with `state`, nonce and PKCE, sets a cookie bound to this attempt and redirects to Google.
+4. The callback checks `state` and that cookie, exchanges the code and verifies the ID token. A Google account already connected signs in: cookie set, redirect to `return_to` (`/login?next=<step>`).
+5. **First Google sign-in:** the backend emails a code to the Google account's verified address and redirects to `return_to` with `&google=verify-email`. The sign-in page shows `GoogleLinkStep`: the customer enters the code (`/auth/google/link/verify`), then the page starts Google sign-in again, which now signs them in. This happens whether or not the email already has an account (it links to that account).
+6. On failure, redirect to `return_to` with `&auth_error=<code>`: `provider_not_configured`, `auth_unavailable`, `google_cancelled`, `google_expired`, `google_failed` or `no_verified_email`. Never send a token in the URL.
 
 The storefront then calls `GET /auth/session`. Only that response marks the customer as signed in.
 

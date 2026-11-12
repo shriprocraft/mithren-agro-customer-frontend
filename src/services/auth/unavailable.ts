@@ -14,5 +14,14 @@ export const unavailableAuthService: AuthService = {
   startGoogleSignIn: async () => {
     throw new AuthError("auth_unavailable");
   },
+  getGoogleLink: async () => {
+    throw new AuthError("auth_unavailable");
+  },
+  resendGoogleLink: async () => {
+    throw new AuthError("auth_unavailable");
+  },
+  verifyGoogleLink: async () => {
+    throw new AuthError("auth_unavailable");
+  },
   signOut: async () => undefined,
 };

@@ -40,6 +40,9 @@ function fakeBackend({ afterVerify = session("Asha"), ...overrides }: Partial<Au
       return session("ignored: the session check decides");
     }),
     startGoogleSignIn: vi.fn(async () => undefined),
+    getGoogleLink: vi.fn(async () => ({ challenge_id: "g1", destination_hint: "a•••@example.com", expires_in_seconds: 300, resend_after_seconds: 30, delivered: true })),
+    resendGoogleLink: vi.fn(async () => ({ challenge_id: "g2", destination_hint: "a•••@example.com", expires_in_seconds: 300, resend_after_seconds: 30, delivered: true })),
+    verifyGoogleLink: vi.fn(async () => undefined),
     signOut: vi.fn(async () => {
       current = null;
     }),
@@ -280,7 +283,7 @@ describe("sign-up with the backend", () => {
   it("tells a new customer on the sign-in page that signing in creates the account", async () => {
     const { service } = fakeBackend();
     view(service);
-    expect(await screen.findByText(/Signing in with your mobile number creates your account/)).toBeInTheDocument();
+    expect(await screen.findByText(/Signing in with your mobile number, email or Google creates your account/)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Create an account \(preview\)/ })).toBeNull();
   });
 });

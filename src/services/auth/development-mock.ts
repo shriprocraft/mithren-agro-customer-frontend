@@ -84,6 +84,16 @@ export function createDevelopmentMockAuthService(nodeEnv: string | undefined = p
     async startGoogleSignIn() {
       throw new AuthError("provider_not_configured");
     },
+    // Google is never simulated, so there is never a pending Google link either.
+    async getGoogleLink() {
+      throw new AuthError("link_not_found");
+    },
+    async resendGoogleLink() {
+      throw new AuthError("link_not_found");
+    },
+    async verifyGoogleLink() {
+      throw new AuthError("link_not_found");
+    },
     async signOut() {
       try {
         sessionStorage.removeItem(MOCK_SESSION_KEY);

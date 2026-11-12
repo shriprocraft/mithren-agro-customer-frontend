@@ -127,13 +127,15 @@ describe("sign-in screens with the development mock", () => {
     fireEvent.click(screen.getByRole("button", { name: "Verify and continue" }));
   };
 
-  it("validates the phone number before sending anything, and offers no email option", async () => {
+  it("validates the phone number before sending anything, and offers an email option", async () => {
     view();
     fireEvent.change(await screen.findByLabelText("Mobile number"), { target: { value: "12345" } });
     fireEvent.click(screen.getByRole("button", { name: "Send code" }));
     expect(screen.getByText(/valid 10-digit Indian mobile number/)).toBeInTheDocument();
-    expect(screen.queryByRole("radio", { name: "Email" })).toBeNull();
-    expect(screen.queryByLabelText("Email address")).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "Email" }));
+    fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "not-an-email" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+    expect(screen.getByText(/email address like name@example.com/)).toBeInTheDocument();
   });
 
   it("returns to the checkout step after signing in, with the cart intact and no code stored", async () => {

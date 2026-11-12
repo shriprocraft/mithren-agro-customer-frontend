@@ -1,7 +1,7 @@
 import { apiEndpoints } from "@/config/api";
 import { ApiError, type ApiClient } from "@/lib/api-client";
 import { AuthError, toAuthErrorCode } from "@/lib/auth-errors";
-import type { AuthenticatedCustomer, AuthService, AuthSession, OtpChallenge } from "@/types/auth";
+import type { AuthenticatedCustomer, AuthService, AuthSession, GoogleLinkStatus, OtpChallenge } from "@/types/auth";
 
 // The real adapter: every decision is the backend's (docs/BACKEND_CONTRACTS.md). The session is its
 // HTTP-only cookie; nothing here stores anything, and a session is only ever what the backend returned.
@@ -61,6 +61,27 @@ export function createHttpAuthService(client: ApiClient, baseUrl: string, naviga
     },
     async startGoogleSignIn(returnTo) {
       navigate(`${baseUrl}${auth.googleStart}?${new URLSearchParams({ return_to: returnTo }).toString()}`);
+    },
+    async getGoogleLink() {
+      try {
+        return await client.request<GoogleLinkStatus>(auth.googleLink);
+      } catch (error) {
+        rethrow(error);
+      }
+    },
+    async resendGoogleLink() {
+      try {
+        return await client.request<GoogleLinkStatus>(auth.googleLinkResend, { method: "POST" });
+      } catch (error) {
+        rethrow(error);
+      }
+    },
+    async verifyGoogleLink(code) {
+      try {
+        await client.request(auth.googleLinkVerify, { method: "POST", body: { code } });
+      } catch (error) {
+        rethrow(error);
+      }
     },
     async signOut() {
       try {

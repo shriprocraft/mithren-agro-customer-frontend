@@ -35,15 +35,15 @@ function useNow() {
 /** Whole seconds from `now` until `deadline` (a Date.now() value), never negative. */
 const secondsUntil = (deadline: number, now: number) => Math.max(0, Math.ceil((deadline - now) / 1000));
 
-// Phone one-time code sign-in (email and Google appear only once they exist on the backend). It holds a
-// typed code only in this component's memory until it is submitted, and it never decides that anyone is
-// signed in: AuthContext does, from the backend's session.
+// Sign-in by a one-time code (phone or email) or with Google (backend only). It holds a typed code only
+// in this component's memory until it is submitted, and it never decides that anyone is signed in:
+// AuthContext does, from the backend's session.
 export function SignInPanel({ returnTo, initialError }: { returnTo: string; initialError?: AuthErrorCode }) {
   const auth = useAuth();
   const [channel, setChannel] = useState<OtpChannel>("phone");
   const [destination, setDestination] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
-  const [formError, setFormError] = useState<{ code: AuthErrorCode; context?: "google" } | null>(
+  const [formError, setFormError] = useState<{ code: AuthErrorCode; context?: "google" | "email" } | null>(
     initialError ? { code: initialError, context: "google" } : null,
   );
   const [sending, setSending] = useState(false);
@@ -54,6 +54,8 @@ export function SignInPanel({ returnTo, initialError }: { returnTo: string; init
   const [now, refreshNow] = useNow();
   const wait = secondsUntil(waitUntil, now);
   const unavailable = auth.mode === "unavailable";
+  // Google signs people in only through the backend; the development mock never pretends to.
+  const googleOffered = authFeatures.googleSignIn && auth.mode === "backend";
   // A rate limit's message goes once its wait is over.
   const shownFormError = formError && !(formError.code === "rate_limited" && wait === 0) ? formError : null;
 
@@ -84,8 +86,9 @@ export function SignInPanel({ returnTo, initialError }: { returnTo: string; init
       setSentTo(normalized);
     } catch (error) {
       const code = codeOf(error);
-      if (code === "invalid_destination") setFieldError(authErrorMessage(code));
-      else setFormError({ code });
+      const context = channel === "email" ? "email" : undefined;
+      if (code === "invalid_destination") setFieldError(authErrorMessage(code, { context }));
+      else setFormError({ code, ...(context && { context }) });
       if (code === "rate_limited") {
         setWaitUntil(Date.now() + (waitOf(error) || 30) * 1000);
         refreshNow();
@@ -96,7 +99,7 @@ export function SignInPanel({ returnTo, initialError }: { returnTo: string; init
   };
 
   const google = async () => {
-    if (!authFeatures.googleSignIn) return;
+    if (!googleOffered) return;
     setFormError(null);
     setGoogleBusy(true);
     try {
@@ -114,7 +117,7 @@ export function SignInPanel({ returnTo, initialError }: { returnTo: string; init
 
   return (
     <div className="grid gap-5">
-      {authFeatures.googleSignIn ? (
+      {googleOffered ? (
         <Button type="button" variant="outline" size="lg" className="w-full" disabled={unavailable} loading={googleBusy} onClick={google}>
           Continue with Google
         </Button>
@@ -309,7 +312,7 @@ function OtpStep({ challenge, destination, onChallenge, onBack }: { challenge: O
   );
 }
 
-function ErrorLine({ code, context, retryAfterSeconds }: { code: AuthErrorCode; context?: "google"; retryAfterSeconds?: number }) {
+function ErrorLine({ code, context, retryAfterSeconds }: { code: AuthErrorCode; context?: "google" | "email"; retryAfterSeconds?: number }) {
   return (
     <p role="alert" className="flex gap-2 text-sm font-medium text-destructive">
       <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
