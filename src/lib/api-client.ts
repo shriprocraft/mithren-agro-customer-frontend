@@ -32,8 +32,21 @@ export interface ApiClient {
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
+// ngrok's free tunnels answer browser requests with a warning page unless this header is sent, so a
+// backend reached through ngrok (development only) gets it on every request. Other hosts never do.
+const NGROK_HOSTS = [".ngrok-free.dev", ".ngrok-free.app", ".ngrok.dev", ".ngrok.app", ".ngrok.io"];
+
+export function tunnelHeaders(baseUrl: string): Record<string, string> {
+  try {
+    const host = new URL(baseUrl).hostname;
+    return NGROK_HOSTS.some((suffix) => host.endsWith(suffix)) ? { "ngrok-skip-browser-warning": "1" } : {};
+  } catch {
+    return {};
+  }
+}
 
 export function createApiClient(baseUrl: string, fetchImpl: typeof fetch = (...args) => fetch(...args)): ApiClient {
+  const tunnel = tunnelHeaders(baseUrl);
   return {
     async request<T>(path: string, { method = "GET", body, query, timeoutMs = DEFAULT_TIMEOUT_MS, headers }: ApiRequest = {}): Promise<T> {
       const search = query ? `?${new URLSearchParams(query).toString()}` : "";
@@ -45,7 +58,7 @@ export function createApiClient(baseUrl: string, fetchImpl: typeof fetch = (...a
           method,
           credentials: "include",
           signal: controller.signal,
-          headers: { Accept: "application/json", ...(body !== undefined && { "Content-Type": "application/json" }), ...headers },
+          headers: { Accept: "application/json", ...(body !== undefined && { "Content-Type": "application/json" }), ...tunnel, ...headers },
           ...(body !== undefined && { body: JSON.stringify(body) }),
         });
       } catch (error) {
