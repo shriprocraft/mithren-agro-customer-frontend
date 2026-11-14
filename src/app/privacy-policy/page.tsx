@@ -20,10 +20,9 @@ const sections: PolicySection[] = [
           Agro website and services to browse, buy and track products.
         </p>
         <p>
-          <strong>Current preview.</strong> The website is currently a preview. It has no customer account server and takes no payments. The
-          details you enter (such as delivery addresses) and your cart, wishlist, orders and demo account are stored only in your own browser’s
-          storage on your device; they are not sent to us. This policy also describes how we intend to handle information once the full service
-          is live.
+          <strong>Accounts and orders.</strong> When you sign in, your profile, saved delivery addresses, wishlist and orders are stored in your
+          customer account on our servers. Before you sign in, your cart, wishlist and any delivery addresses you enter are kept only in your own
+          browser’s storage on your device. The website takes no online payments: orders are Cash on Delivery.
         </p>
       </>
     ),
@@ -52,7 +51,8 @@ const sections: PolicySection[] = [
       <>
         <p>
           The website currently sets no advertising or analytics cookies and uses no third-party analytics. It uses your browser’s local storage to
-          remember your cart, wishlist, saved addresses, orders and demo-account settings on your device. You can remove this data at any time by
+          remember your cart, and before you sign in your wishlist and delivery addresses, on your device. Signing in uses a session cookie
+          set by our server. You can remove this data at any time by
           clearing this site’s data in your browser.
         </p>
         <p>If we introduce cookies or analytics in future, we will update this policy and, where required, ask for your consent first.</p>
@@ -137,8 +137,7 @@ const sections: PolicySection[] = [
     content: (
       <p>
         We will send offers and promotional messages only if you have opted in, and every message will explain how to opt out. Service messages
-        about your orders (confirmations, status updates) are not marketing. The notification settings in the demo account are stored in your
-        browser and do not send any messages.
+        about your orders (confirmations, status updates) are not marketing.
       </p>
     ),
   },

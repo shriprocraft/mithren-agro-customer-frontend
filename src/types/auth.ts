@@ -14,8 +14,8 @@ export interface AuthenticatedCustomer {
 
 export interface AuthSession {
   customer: AuthenticatedCustomer;
-  /** "development_mock" comes only from the development adapter and can never exist in a production build. */
-  source: "backend" | "development_mock";
+  /** Sessions only ever come from the backend. */
+  source: "backend";
 }
 
 export interface OtpChallenge {
@@ -26,8 +26,6 @@ export interface OtpChallenge {
   expires_in_seconds: number;
   /** Minimum wait before another code can be requested. */
   resend_after_seconds: number;
-  /** Development mock only, so a code can be typed without a message being sent. Never set by a backend. */
-  development_code?: string;
 }
 
 export const authErrorCodes = [
@@ -56,7 +54,7 @@ export const authErrorCodes = [
 ] as const;
 export type AuthErrorCode = (typeof authErrorCodes)[number];
 
-export type AuthMode = "backend" | "development_mock" | "unavailable";
+export type AuthMode = "backend" | "unavailable";
 
 /** The boundary the UI talks to; adapters live in services/auth. */
 export interface AuthService {

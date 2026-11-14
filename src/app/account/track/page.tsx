@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { RequireDemoSession } from "@/components/account/RequireDemoSession";
-import { ordersLive } from "@/services/orders";
+import { RequireSignIn } from "@/components/account/RequireSignIn";
 import { TrackOrders } from "@/components/account/TrackOrders";
 
-export const metadata: Metadata = { title: ordersLive ? "Track orders" : "Track orders (demo)" };
+export const metadata: Metadata = { title: "Track orders" };
 
-export default function TrackOrdersPage() {
-  return <RequireDemoSession allowSignedIn={ordersLive}><TrackOrders /></RequireDemoSession>;
+export default function Page() {
+  return <RequireSignIn><TrackOrders /></RequireSignIn>;
 }

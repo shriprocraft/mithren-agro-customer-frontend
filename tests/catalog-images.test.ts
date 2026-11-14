@@ -2,9 +2,9 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { bundles } from "@/data/bundles";
-import { categories } from "@/data/categories";
-import { products } from "@/data/products";
+import { bundles } from "./fixtures/catalog/bundles";
+import { categories } from "./fixtures/catalog/categories";
+import { products } from "./fixtures/catalog/products";
 import { shopLinks } from "@/lib/navigation";
 
 const publicDir = fileURLToPath(new URL("../public", import.meta.url));

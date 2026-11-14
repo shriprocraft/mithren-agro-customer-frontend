@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { RequireDemoSession } from "@/components/account/RequireDemoSession";
-import { ProfileView } from "@/components/account/ProfileView";
+import { RequireSignIn } from "@/components/account/RequireSignIn";
+import { AccountProfileView } from "@/components/account/AccountProfileView";
 
 export const metadata: Metadata = { title: "My profile" };
 
-export default function ProfilePage() {
-  return <RequireDemoSession allowSignedIn><ProfileView /></RequireDemoSession>;
+export default function Page() {
+  return <RequireSignIn><AccountProfileView /></RequireSignIn>;
 }

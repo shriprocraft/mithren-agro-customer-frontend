@@ -5,7 +5,7 @@ import { AccountOrderView } from "@/components/account/AccountOrderView";
 import { OrdersList } from "@/components/account/OrdersList";
 import { ReviewStep } from "@/components/checkout/ReviewStep";
 import { AppProviders } from "@/context/AppProviders";
-import { products } from "@/data/products";
+import { products } from "./fixtures/catalog/products";
 import { ApiError, type ApiClient } from "@/lib/api-client";
 import { createHttpOrders, toOrder, type ApiOrder, type OrdersService } from "@/services/orders";
 import { unavailableAuthService } from "@/services/auth/unavailable";

@@ -1,10 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { products } from "@/data/products";
+import { products } from "./fixtures/catalog/products";
 import { cleanAddress, emptyAddress, formatAddressLine, isValidPincode, normalizeMobile, parseAddresses, validateAddress } from "@/lib/address";
 import { addToCart, checkoutBlocker, clampQuantity, MAX_QUANTITY_PER_ITEM, parseCart, resolveLines, setCartQuantity, summarize } from "@/lib/cart";
-import { advanceOrder, buildOrder, generateOrderId, nextStatus, OrderValidationError, parseOrders } from "@/lib/orders";
-import { orderStatuses, type Address, type AddressInput } from "@/types/order";
+import type { Address, AddressInput } from "@/types/order";
 
 const valid: AddressInput = {
   full_name: "Asha Rao",
@@ -76,50 +75,5 @@ describe("cart quantities and totals", () => {
   it("ignores malformed stored cart data", () => {
     expect(parseCart([{ product_id: "a", quantity: 2 }, { product_id: "b", quantity: -1 }, { quantity: 1 }, null])).toEqual([{ product_id: "a", quantity: 2 }]);
     expect(parseCart({})).toBeNull();
-  });
-});
-
-describe("orders", () => {
-  const now = new Date("2026-10-24T10:30:00Z");
-  const lines = resolveLines([{ product_id: tomatoes.id, quantity: 2 }], products).lines;
-
-  it("generates unique, readable order IDs", () => {
-    const id = generateOrderId(now, new Set());
-    expect(id).toMatch(/^MA-\d{8}-[A-Z2-9]{6}$/);
-    let calls = 0;
-    const repeat = () => new Uint8Array(6).fill(calls++ < 2 ? 0 : 1); // first two attempts collide
-    const taken = new Set([generateOrderId(now, new Set(), () => new Uint8Array(6))]);
-    expect(taken.has(generateOrderId(now, taken, repeat))).toBe(false);
-  });
-
-  it("builds a consistent order with the initial status only", () => {
-    const order = buildOrder(lines, address, "MA-1", now);
-    expect(order).toMatchObject({ id: "MA-1", status: "order_placed", subtotal: tomatoes.price * 2, total: tomatoes.price * 2, address });
-    expect(order.history).toEqual([{ status: "order_placed", at: now.toISOString() }]);
-    expect(order.items[0]).toMatchObject({ product_id: tomatoes.id, quantity: 2, unit_price: tomatoes.price, line_total: tomatoes.price * 2 });
-  });
-
-  it("refuses to build an order from invalid input", () => {
-    expect(() => buildOrder([], address, "MA-1", now)).toThrow(OrderValidationError);
-    expect(() => buildOrder(lines, { ...address, pincode: "12" }, "MA-1", now)).toThrow(OrderValidationError);
-  });
-
-  it("advances one stage at a time and stops at delivered", () => {
-    let order = buildOrder(lines, address, "MA-1", now);
-    for (const status of orderStatuses.slice(1)) {
-      order = advanceOrder(order, now);
-      expect(order.status).toBe(status);
-    }
-    expect(order.history.map((e) => e.status)).toEqual([...orderStatuses]);
-    expect(nextStatus("delivered")).toBeNull();
-    expect(advanceOrder(order, now)).toBe(order);
-  });
-
-  it("drops stored orders that are malformed or inconsistent", () => {
-    const order = buildOrder(lines, address, "MA-1", now);
-    expect(parseOrders([order])).toEqual([order]);
-    expect(parseOrders([{ ...order, total: order.total + 1 }])).toEqual([]);
-    expect(parseOrders([{ ...order, status: "delivered" }])).toEqual([]); // history disagrees
-    expect(parseOrders([{ ...order, items: [] }, "junk"])).toEqual([]);
   });
 });

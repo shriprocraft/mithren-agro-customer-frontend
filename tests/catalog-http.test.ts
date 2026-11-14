@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ApiError, type ApiClient } from "@/lib/api-client";
 import { categorySlugOf, imageShapeFor } from "@/lib/catalog-display";
-import { resolveCatalogSource } from "@/services/catalog";
 import { createHttpCatalog } from "@/services/catalog-http";
 import type { Category, Product } from "@/types/catalog";
 
@@ -30,24 +29,15 @@ function fakeClient(routes: Record<string, (query?: Record<string, string>) => u
 
 const categoriesRoute = { "/catalog/categories": () => ({ categories: [fruits, apparel, unknown] }) };
 
-describe("catalogue source", () => {
-  it("uses the backend only when asked and an API URL exists", () => {
-    expect(resolveCatalogSource({ source: "backend", apiBaseUrl: "http://localhost:8000/api/v1" })).toBe("backend");
-    expect(resolveCatalogSource({ source: "backend", apiBaseUrl: null })).toBe("sample");
-    expect(resolveCatalogSource({ source: undefined, apiBaseUrl: "http://localhost:8000/api/v1" })).toBe("sample");
-    expect(resolveCatalogSource({ source: "mock", apiBaseUrl: "http://localhost:8000/api/v1" })).toBe("sample");
-  });
-});
-
 describe("HTTP catalogue", () => {
-  it("drops categories the storefront doesn't know, and products filed under them", async () => {
+  it("keeps every category the backend lists (no hardcoded list), and drops products in unlisted ones", async () => {
     const { client } = fakeClient({
       ...categoriesRoute,
-      "/catalog/products": () => ({ products: [product("a"), product("b", unknown.id)], total: 2 }),
+      "/catalog/products": () => ({ products: [product("a"), product("b", unknown.id), product("c", "c-unlisted")], total: 3 }),
     });
     const catalog = createHttpCatalog(client);
-    expect((await catalog.categories()).map((c) => c.slug)).toEqual(["fruits", "womens-apparel"]);
-    expect((await catalog.products()).map((p) => p.id)).toEqual(["a"]);
+    expect((await catalog.categories()).map((c) => c.slug)).toEqual(["fruits", "womens-apparel", "gadgets"]);
+    expect((await catalog.products()).map((p) => p.id)).toEqual(["a", "b"]);
   });
 
   it("reads every page of products and passes the filters", async () => {

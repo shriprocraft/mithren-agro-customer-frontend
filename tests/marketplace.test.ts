@@ -1,9 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { bundles } from "@/data/bundles";
-import { categories } from "@/data/categories";
-import { products } from "@/data/products";
-import { vendors } from "@/data/vendors";
+import { bundles } from "./fixtures/catalog/bundles";
+import { categories } from "./fixtures/catalog/categories";
+import { products } from "./fixtures/catalog/products";
+import { vendors } from "./fixtures/catalog/vendors";
 import { effectivePrice } from "@/lib/formatters";
 import {
   activeFilterCount,
@@ -89,8 +89,9 @@ describe("marketplace URL state", () => {
   });
 
   it("ignores unknown or malformed values and swaps a reversed price range", () => {
-    const c = parseCriteria(new URLSearchParams("category=fruits,bogus&min=abc&max=-5&stock=maybe&sort=random"));
-    expect(c.categories).toEqual(["fruits"]);
+    // Any well-formed slug is kept (categories come from the backend); malformed ones are dropped.
+    const c = parseCriteria(new URLSearchParams("category=fruits,Not%20A%20Slug,../x,new-category&min=abc&max=-5&stock=maybe&sort=random"));
+    expect(c.categories).toEqual(["fruits", "new-category"]);
     expect([c.minPrice, c.maxPrice, c.availability, c.sort]).toEqual([null, null, [], "relevance"]);
     const swapped = parseCriteria(new URLSearchParams("min=500&max=20"));
     expect([swapped.minPrice, swapped.maxPrice]).toEqual([20, 500]);

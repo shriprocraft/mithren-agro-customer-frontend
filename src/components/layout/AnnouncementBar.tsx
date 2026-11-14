@@ -10,8 +10,7 @@ export function AnnouncementBar() {
       <Container className="flex min-h-7 items-center justify-center gap-1.5 py-1 text-center text-[0.6875rem] leading-snug text-balance xl:min-h-[1.875rem] xl:text-xs">
         <Sprout className="hidden size-3.5 shrink-0 sm:block" aria-hidden="true" />
         <p>
-          Produce, pantry staples, farm supplies and apparel from independent sellers ·{" "}
-          <strong className="font-medium">Preview storefront:</strong> all listings and prices are sample data.
+          Produce, pantry staples, farm supplies and apparel from independent sellers.
         </p>
       </Container>
     </div>

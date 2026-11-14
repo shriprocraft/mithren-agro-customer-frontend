@@ -7,7 +7,6 @@ import { AnnouncerProvider } from "@/context/AnnouncerContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { CheckoutProvider } from "@/context/CheckoutContext";
-import { DemoAccountProvider } from "@/context/DemoAccountContext";
 import { OrdersProvider } from "@/context/OrdersContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { WishlistProvider } from "@/context/WishlistContext";
@@ -38,10 +37,7 @@ export function AppProviders({
               <WishlistProvider {...(wishlistService !== undefined && { service: wishlistService })}>
                 <AddressBookProvider>
                   <CheckoutProvider>
-                    <OrdersProvider {...(ordersService !== undefined && { service: ordersService })}>
-                      {/* Inside the order and address stores: the demo account adds its samples to them. */}
-                      <DemoAccountProvider>{children}</DemoAccountProvider>
-                    </OrdersProvider>
+                    <OrdersProvider {...(ordersService !== undefined && { service: ordersService })}>{children}</OrdersProvider>
                   </CheckoutProvider>
                 </AddressBookProvider>
               </WishlistProvider>

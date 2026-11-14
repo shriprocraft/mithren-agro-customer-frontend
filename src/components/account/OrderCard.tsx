@@ -33,7 +33,6 @@ export function OrderCard({ order }: { order: Order }) {
           <p className="text-xs text-muted-foreground">Placed {formatOrderTime(order.created_at)}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {order.is_sample && <span className="rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">Sample order</span>}
           <OrderStatusBadge order={order} />
         </div>
       </div>

@@ -14,8 +14,7 @@ function rethrow(error: unknown): never {
 
 const toSession = (customer: AuthenticatedCustomer): AuthSession => ({ customer, source: "backend" });
 
-/** Only the documented fields. development_code belongs to the development mock and is never taken from a
- * backend response, so no code could ever be shown on screen from the API. */
+/** Only the documented fields, so nothing else in a response (never a code) could reach the screen. */
 function toChallenge(response: OtpChallenge | null | undefined): OtpChallenge {
   if (!response?.challenge_id) throw new AuthError("unknown");
   const { challenge_id, channel, destination_hint, expires_in_seconds, resend_after_seconds } = response;

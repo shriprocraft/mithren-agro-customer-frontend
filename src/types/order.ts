@@ -20,11 +20,9 @@ export interface Address {
   /** From the customer's device, saved only if they confirm an address started from "Use my current location". */
   latitude?: number | null;
   longitude?: number | null;
-  /** Fictional sample address added by the demo account; removed when the demo ends. */
-  is_sample?: boolean;
 }
 
-export type AddressInput = Omit<Address, "id" | "is_sample">;
+export type AddressInput = Omit<Address, "id">;
 
 /** What is being bought: the whole cart, or one product via "Buy now" (the cart is left untouched). */
 export type CheckoutSource = { kind: "cart" } | { kind: "buy_now"; product_id: string; variant_id?: string; quantity: number };
@@ -96,9 +94,7 @@ export interface Order {
   status: OrderStatus;
   /** One event per status reached, oldest first; the last one matches `status`. */
   history: TrackingEvent[];
-  /** Illustrative order added by the demo account (never a real purchase); removed when the demo ends. */
-  is_sample?: boolean;
-  /** Set for orders placed through the backend (Cash on Delivery); absent for browser-only demo orders. */
+  /** Orders always come from the backend (Cash on Delivery orders in the customer's account). */
   source?: "backend";
   payment_method?: "cod";
   payment_status?: "pending" | "paid" | "failed" | "refund_pending" | "refunded" | "void";

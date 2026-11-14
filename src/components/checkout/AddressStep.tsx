@@ -136,7 +136,6 @@ export function AddressStep({ catalog }: { catalog: Product[] }) {
                       {address.full_name}
                       <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">{addressTypeLabels[address.type]}</span>
                       {address.id === book.defaultId && <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">Default</span>}
-                      {address.is_sample && <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">Sample</span>}
                     </span>
                     <span className="mt-1 block text-sm text-muted-foreground">{formatAddressLine(address)}</span>
                     <span className="block text-sm text-muted-foreground">Mobile {address.mobile}</span>

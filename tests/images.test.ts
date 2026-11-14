@@ -2,10 +2,10 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { bundles } from "@/data/bundles";
-import { categories } from "@/data/categories";
+import { bundles } from "./fixtures/catalog/bundles";
+import { categories } from "./fixtures/catalog/categories";
 import { investmentDomains } from "@/data/investments";
-import { products } from "@/data/products";
+import { products } from "./fixtures/catalog/products";
 
 const publicFile = (src: string) => join(process.cwd(), "public", src);
 

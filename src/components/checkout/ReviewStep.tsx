@@ -23,20 +23,20 @@ import type { Product } from "@/types/catalog";
 import type { Quote } from "@/types/checkout";
 
 // Final check before ordering. "Place order" re-validates everything, is guarded against double
-// submission, saves the order, and only then removes the purchased items from the cart.
-// With a backend account the order is a Cash on Delivery order placed through the API at the prices
-// on screen: if the server's price differs, nothing is placed and the new quote is shown for review.
+// submission, places the order, and only then removes the purchased items from the cart.
+// The order is a Cash on Delivery order placed through the API at the prices on screen: if the
+// server's price differs, nothing is placed and the new quote is shown for review.
 export function ReviewStep({ catalog }: { catalog: Product[] }) {
   const router = useRouter();
   const { addresses, hydrated: addressesReady } = useAddressBook();
   const { session, finish } = useCheckout();
   const { removeItems } = useCart();
-  const { placeOrder, placeServerOrder, mode: ordersMode, hydrated: ordersReady } = useOrders();
+  const { placeServerOrder, hydrated: ordersReady } = useOrders();
   const { lines, items, isBuyNow, ready } = useCheckoutLines(catalog);
   const backendCustomerId = useBackendCustomerId();
   const address = addresses.find((a) => a.id === session.address_id);
-  // With the backend catalogue the server prices this order for this address. Only an address from the
-  // customer's account is sent: demo and browser-stored addresses mean nothing to the API.
+  // The server prices this order for this address. Only an address from the customer's account is
+  // sent: browser-stored addresses mean nothing to the API.
   const quoteAddressId = backendCustomerId && address ? address.id : null;
   const { state: quote, refresh } = useCheckoutQuote(items, quoteAddressId, ready && addressesReady);
   const placing = useRef(false);
@@ -54,7 +54,7 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
   const hasItems = items.length > 0;
   if (hasItems && quote.status === "loading" && !quote.quote) return <LoadingState label="Checking prices and stock…" />;
 
-  const quoted = hasItems && quote.status !== "off" && quote.quote ? applyQuote(lines, items, quote.quote) : null;
+  const quoted = hasItems && quote.quote ? applyQuote(lines, items, quote.quote) : null;
   const shownLines = quoted?.lines ?? lines;
   const blocker = !hasItems
     ? checkoutBlocker(lines)
@@ -99,33 +99,23 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
     setBusy(true);
     setError(null);
     setNotice(null);
-    let toOrder = lines;
-    if (quote.status !== "off") {
-      // Price everything again. If anything differs from what is on screen, show the new quote and
-      // let the customer review it: the order is placed only on a click made after seeing it.
-      const shown = quote.quote;
-      let fresh;
-      try {
-        fresh = await refresh();
-      } catch (e) {
-        return stop({ error: quoteErrorMessage(e) });
-      }
-      if (!fresh || !shown || quoteFingerprint(fresh) !== quoteFingerprint(shown)) {
-        return stop({ notice: "Prices or stock changed since this page was opened. Check the updated items and total, then place your order again." });
-      }
-      if (!fresh.can_checkout) return stop({ error: fresh.blockers[0]?.message ?? "This order can’t be placed right now." });
-      toOrder = applyQuote(lines, items, fresh).lines;
-      if (toOrder.length !== lines.length) return stop({ error: "Some items couldn’t be priced. Return to your cart and try again." });
-      if (ordersMode === "backend") return placeWithServer(fresh);
-    }
+    // Price everything again. If anything differs from what is on screen, show the new quote and let
+    // the customer review it: the order is placed only on a click made after seeing it.
+    const shown = quote.quote;
+    let fresh;
     try {
-      const order = placeOrder(toOrder, address);
-      if (!isBuyNow) removeItems(toOrder.map((line) => line.key));
-      finish();
-      router.push(`/orders/${order.id}/confirmation`);
+      fresh = await refresh();
     } catch (e) {
-      stop({ error: e instanceof Error ? e.message : "Your order could not be placed. Please try again." });
+      return stop({ error: quoteErrorMessage(e) });
     }
+    if (!fresh || !shown || quoteFingerprint(fresh) !== quoteFingerprint(shown)) {
+      return stop({ notice: "Prices or stock changed since this page was opened. Check the updated items and total, then place your order again." });
+    }
+    if (!fresh.can_checkout) return stop({ error: fresh.blockers[0]?.message ?? "This order can’t be placed right now." });
+    if (applyQuote(lines, items, fresh).lines.length !== lines.length) {
+      return stop({ error: "Some items couldn’t be priced. Return to your cart and try again." });
+    }
+    return placeWithServer(fresh);
   };
 
   const placeWithServer = async (fresh: Quote) => {
@@ -211,9 +201,7 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
           {busy ? "Placing order…" : "Place order"}
         </Button>
         <p className="mt-3 text-xs text-muted-foreground">
-          {ordersMode === "backend"
-            ? "Cash on Delivery: pay in cash when your order arrives. You can cancel it until it is packed."
-            : "Demo checkout: no payment is taken and sellers are not notified. The order is saved in this browser only."}
+          Cash on Delivery: pay in cash when your order arrives. You can cancel it until it is packed.
         </p>
       </OrderSummary>
     </div>

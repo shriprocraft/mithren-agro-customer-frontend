@@ -8,13 +8,13 @@ import type { CartItem } from "@/types/cart";
 import type { Quote } from "@/types/checkout";
 
 export type QuoteState =
-  /** Sample mode: no server quote; the page prices in the browser as before. */
-  | { status: "off" }
   | { status: "loading"; quote: Quote | null }
   | { status: "ready"; quote: Quote }
   | { status: "error"; quote: Quote | null; message: string };
 
 const DEBOUNCE_MS = 250;
+/** Shown when NEXT_PUBLIC_API_BASE_URL isn't set: prices exist only on the server, so nothing can be priced. */
+export const QUOTE_UNAVAILABLE = "The store can't be reached right now, so prices and stock can't be checked. Please try again later.";
 
 export function quoteErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -33,7 +33,9 @@ export function quoteErrorMessage(error: unknown): string {
 export function useCheckoutQuote(items: CartItem[], addressId: string | null, enabled = true) {
   const service = enabled ? checkoutQuotes : null;
   const key = useMemo(() => JSON.stringify({ items: toQuoteItems(items), addressId }), [items, addressId]);
-  const [state, setState] = useState<QuoteState>(service ? { status: "loading", quote: null } : { status: "off" });
+  const [state, setState] = useState<QuoteState>(
+    checkoutQuotes ? { status: "loading", quote: null } : { status: "error", quote: null, message: QUOTE_UNAVAILABLE },
+  );
   const latest = useRef(0);
 
   // Reads its inputs from `key`, so it changes exactly when they do.

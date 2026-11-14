@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ReviewStep } from "@/components/checkout/ReviewStep";
 import { AppProviders } from "@/context/AppProviders";
 import { useCart } from "@/context/CartContext";
-import { products } from "@/data/products";
+import { products } from "./fixtures/catalog/products";
 import { quoteErrorMessage } from "@/hooks/useCheckoutQuote";
 import { ApiError, type ApiClient } from "@/lib/api-client";
 import { itemKey, resolveLines } from "@/lib/cart";
@@ -14,7 +14,7 @@ import type { AuthService } from "@/types/auth";
 import type { CartItem } from "@/types/cart";
 import type { Quote, QuoteLine } from "@/types/checkout";
 
-// The quote service is replaced: in tests the catalogue source is "sample", where it is normally off.
+// The quote service is replaced: tests have no API URL, so the real one would be unavailable.
 const quoteMock = vi.hoisted(() => vi.fn());
 vi.mock("@/services/checkout", async (original) => ({
   ...(await original<typeof import("@/services/checkout")>()),
@@ -137,25 +137,31 @@ describe("review step with a server quote", () => {
 
   it("shows the server's prices and asks for a second look when they change before ordering", async () => {
     quoteMock.mockResolvedValueOnce(priced(4000)).mockResolvedValueOnce(priced(4500)).mockResolvedValue(priced(4500));
-    render(<AppProviders authService={signedIn}><ReviewStep catalog={products} /></AppProviders>);
+    const place = vi.fn<(input: unknown, key: string) => Promise<never>>(async () => ({ id: "MA-20261114-ABC123" }) as never);
+    const ordersService = { list: async () => [], get: vi.fn(), place, cancel: vi.fn() };
+    render(<AppProviders authService={signedIn} ordersService={ordersService}><ReviewStep catalog={products} /></AppProviders>);
 
-    const place = await screen.findByRole("button", { name: /place order/i });
+    const placeButton = await screen.findByRole("button", { name: /place order/i });
     expect(screen.getAllByText("₹80").length).toBeGreaterThan(0);
     expect(quoteMock).toHaveBeenLastCalledWith([{ product_id: "p-tomatoes", variant_id: "1kg", quantity: 2 }], "a1");
 
     // The price changed on the server: nothing is ordered, the new total is shown with a notice.
-    await act(async () => fireEvent.click(place));
+    await act(async () => fireEvent.click(placeButton));
     expect(await screen.findByText(/prices or stock changed/i)).toBeInTheDocument();
     expect(screen.getAllByText("₹90").length).toBeGreaterThan(0);
-    expect(localStorage.getItem("mithren.orders")).toBeNull();
+    expect(place).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
 
-    // A click after seeing the new quote places the order at the server's price.
+    // A click after seeing the new quote places the order through the API at the server's price.
     await act(async () => fireEvent.click(screen.getByRole("button", { name: /place order/i })));
-    await waitFor(() => expect(push).toHaveBeenCalledWith(expect.stringMatching(/^\/orders\/MA-\d{8}-[A-Z0-9]{6}\/confirmation$/)));
-    const [order] = JSON.parse(localStorage.getItem("mithren.orders")!);
-    expect(order.items[0]).toMatchObject({ product_id: "p-tomatoes", quantity: 2, unit_price: 4500, line_total: 9000 });
-    expect(order.total).toBe(9000);
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/orders/MA-20261114-ABC123/confirmation"));
+    expect(place).toHaveBeenCalledTimes(1);
+    expect(place.mock.calls[0]![0]).toMatchObject({
+      items: [{ product_id: "p-tomatoes", variant_id: "1kg", quantity: 2 }],
+      address_id: "a1",
+      expected: { total: 9000, lines: [{ item_index: 0, unit_price: 4500 }] },
+    });
+    expect(localStorage.getItem("mithren.orders")).toBeNull();
   });
 
   it("shows an empty cart as nothing to review instead of waiting for a quote", async () => {

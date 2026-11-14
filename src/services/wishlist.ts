@@ -1,10 +1,8 @@
 import { apiBaseUrl, apiEndpoints } from "@/config/api";
-import { catalogSource } from "@/config/catalog";
 import { createApiClient, type ApiClient } from "@/lib/api-client";
 
-// The signed-in customer's wishlist (/customer/wishlist, docs/BACKEND_CONTRACTS.md). Used only with the
-// backend catalogue and a backend session: sample product ids mean nothing to the API, so the sample
-// catalogue, the demo account and guests keep their wishlist in this browser (WishlistContext).
+// The signed-in customer's wishlist (/customer/wishlist, docs/BACKEND_CONTRACTS.md). Guests keep their
+// wishlist in this browser until they sign in (WishlistContext).
 
 export interface WishlistService {
   /** Product ids, newest first; only products the storefront still shows. */
@@ -32,9 +30,9 @@ export function createHttpWishlist(client: ApiClient): WishlistService {
   };
 }
 
-/** The wishlist service, or null in sample mode (the wishlist then stays in this browser). */
+/** The wishlist service, or null when NEXT_PUBLIC_API_BASE_URL isn't set (the guest wishlist then stays in this browser). */
 export const wishlistService: WishlistService | null =
-  catalogSource === "backend" && apiBaseUrl ? createHttpWishlist(createApiClient(apiBaseUrl)) : null;
+  apiBaseUrl ? createHttpWishlist(createApiClient(apiBaseUrl)) : null;
 
 /** Whether a customer signed in through the backend has an account wishlist (My Wishlist opens for them). */
 export const wishlistLive = wishlistService !== null;

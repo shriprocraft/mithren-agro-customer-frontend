@@ -83,8 +83,7 @@ export function SiteFooter({ categories }: { categories: Category[] }) {
       <div className="border-t border-border bg-band">
         <Container className="py-4 text-center text-[0.8125rem] leading-relaxed sm:text-sm text-pretty text-secondary-foreground">
           <p>
-            © {siteConfig.legalName} All rights reserved. · Preview storefront · Listings, prices and sellers are sample data · Policies are drafts
-            under legal review
+            © {siteConfig.legalName} All rights reserved. · Policies are drafts under legal review
           </p>
         </Container>
       </div>

@@ -7,39 +7,23 @@ import { OrderCard } from "@/components/account/OrderCard";
 import { MessageState } from "@/components/checkout/PageState";
 import { Button } from "@/components/ui/button";
 import { useOrders } from "@/context/OrdersContext";
-import { useStorageAvailable } from "@/hooks/usePersistentState";
 
-// Every order saved in this browser, newest first: the demo account's sample orders (labelled) and
-// any order placed through checkout. States: a skeleton until saved orders are read, an empty state,
-// the list, and a warning when this browser blocks site storage (orders from this visit still show,
-// but they cannot be kept).
+// The signed-in customer's orders from their account, newest first. States: a skeleton while they load,
+// an error with a retry when the load fails, an empty state, and the list.
 export function OrdersList() {
-  const { orders, hydrated, mode, loadError, reload } = useOrders();
-  const storageAvailable = useStorageAvailable();
-  const sampleCount = orders.filter((o) => o.is_sample).length;
+  const { orders, hydrated, loadError, reload } = useOrders();
 
   return (
     <div className="space-y-5">
       <AccountPageHeader
         title="My Orders"
-        description={
-          mode === "backend"
-            ? "Your Cash on Delivery orders, newest first."
-            : sampleCount > 0 ? "Orders marked “Sample order” are demonstration data, not real purchases." : "Orders placed in this browser."
-        }
+        description="Your Cash on Delivery orders, newest first."
       />
-      {mode === "backend" && loadError && (
+      {loadError && (
         <p role="alert" className="flex flex-wrap items-center gap-2 rounded-2xl border border-destructive/30 bg-card p-3 text-sm text-destructive">
           <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
           {loadError}
           <Button variant="outline" onClick={() => void reload()}>Try again</Button>
-        </p>
-      )}
-      {mode === "browser" && !storageAvailable && (
-        <p role="alert" className="flex gap-2 rounded-2xl border border-destructive/30 bg-card p-3 text-sm text-destructive">
-          <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          We can’t read orders saved in this browser because site storage is blocked. Orders placed during this visit are shown, but they will
-          be lost when you close the tab. Allow site data for this site and reload to keep them.
         </p>
       )}
       {!hydrated ? (

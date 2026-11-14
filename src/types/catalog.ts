@@ -7,22 +7,12 @@ export interface ImageAsset {
   studio?: boolean;
 }
 
-export const categorySlugs = [
-  "spinach",
-  "vegetables",
-  "fruits",
-  "organic-groceries",
-  "oil",
-  "cosmetics",
-  "fancy-items",
-  "womens-apparel",
-  "fertilizers",
-] as const;
+/** A category's URL name, as the backend defines it (lowercase words joined by hyphens, e.g. "fertilizers"). */
+export type CategorySlug = string;
 
-export type CategorySlug = (typeof categorySlugs)[number];
-
+/** Whether a value is shaped like a category slug (the backend's own rule). Says nothing about whether it exists. */
 export function isCategorySlug(value: string): value is CategorySlug {
-  return (categorySlugs as readonly string[]).includes(value);
+  return value.length <= 80 && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(value);
 }
 
 export interface Category {

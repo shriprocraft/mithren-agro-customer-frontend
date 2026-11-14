@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { PageLoading } from "@/components/layout/PageLoading";
 import type { Metadata } from "next";
 import { CheckoutAuthGate } from "@/components/auth/CheckoutAuthGate";
 import { AddressStep } from "@/components/checkout/AddressStep";
@@ -9,7 +11,7 @@ import { getCatalog } from "@/services/catalog";
 
 export const metadata: Metadata = { title: "Delivery address" };
 
-export default async function AddressPage() {
+async function AddressPageContent() {
   const catalog = await getCatalog();
   return (
     <main id="main-content" className="flex-1">
@@ -26,5 +28,15 @@ export default async function AddressPage() {
         </div>
       </Container>
     </main>
+  );
+}
+
+// The data comes live from the backend on every request, so it loads inside this boundary: the page
+// streams with a loading state instead of blocking navigation.
+export default function AddressPage() {
+  return (
+    <Suspense fallback={<PageLoading label="Loading checkout…" />}>
+      <AddressPageContent />
+    </Suspense>
   );
 }

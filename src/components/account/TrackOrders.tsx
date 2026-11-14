@@ -10,11 +10,11 @@ import { TextField } from "@/components/account/TextField";
 import { Button } from "@/components/ui/button";
 import { useOrders } from "@/context/OrdersContext";
 
-// Orders still on their way, plus a lookup by order ID. Only orders saved in this browser can be
-// found: there is no order service to ask.
+// The signed-in customer's orders still on their way, plus a lookup by order ID (orders not in the
+// loaded list are fetched from the account on the tracking page).
 export function TrackOrders() {
   const router = useRouter();
-  const { orders, getOrder, mode } = useOrders();
+  const { orders } = useOrders();
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | undefined>();
   const active = orders.filter((o) => o.status !== "delivered" && o.status !== "cancelled");
@@ -23,15 +23,13 @@ export function TrackOrders() {
     event.preventDefault();
     const id = query.trim().toUpperCase();
     if (!id) return setError("Enter an order ID, such as MA-20261025-7K3QX9");
-    // Backend orders not in the loaded list are looked up on the tracking page itself.
-    if (mode === "browser" && !getOrder(id)) return setError("No order with that ID is saved in this browser.");
     setError(undefined);
     router.push(`/orders/${id}/tracking`);
   };
 
   return (
     <div className="space-y-6">
-      <AccountPageHeader title="Track Orders" description={mode === "backend" ? "Order status updates as the seller prepares and sends your order." : "Tracking is simulated in this preview: no delivery partner is connected."} />
+      <AccountPageHeader title="Track Orders" description="Order status updates as the seller prepares and sends your order." />
 
       <form onSubmit={find} noValidate className="surface-card flex flex-col gap-3 rounded-3xl p-5 sm:flex-row sm:items-start sm:p-6">
         <TextField name="order_id" label="Order ID" placeholder="Enter your order ID, e.g. MA-20261024-7K3QX9" value={query} onChange={(v) => { setQuery(v); setError(undefined); }} error={error} autoComplete="off" className="flex-1" />
@@ -52,7 +50,6 @@ export function TrackOrders() {
                   <p className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-sm font-semibold break-all">{order.id}</span>
                     <OrderStatusBadge order={order} />
-                    {order.is_sample && <span className="text-xs text-muted-foreground">Sample</span>}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">{itemsSummary(order, 1)}</p>
                 </div>

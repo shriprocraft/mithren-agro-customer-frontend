@@ -1,95 +1,62 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, ChevronRight, CircleHelp, Heart, LayoutDashboard, LogIn, LogOut, MapPin, Package, UserRound, type LucideIcon } from "lucide-react";
-import { DemoBadge } from "@/components/account/DemoBadge";
-import { DevelopmentAuthNotice } from "@/components/auth/DevelopmentAuthNotice";
+import { ChevronDown, ChevronRight, CircleHelp, Heart, LayoutDashboard, LogIn, LogOut, MapPin, Package, Truck, UserRound, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useAnnounce } from "@/context/AnnouncerContext";
-import { useAuth } from "@/context/AuthContext";
-import { useDemoAccount } from "@/context/DemoAccountContext";
+import { useAuth, useBackendCustomerId } from "@/context/AuthContext";
 import { useOrders } from "@/context/OrdersContext";
-import { useEndDemoSession } from "@/hooks/useEndDemoSession";
 import { formatPrice } from "@/lib/formatters";
 import { orderStatusLabels } from "@/lib/orders";
 
 const accountLinks: { href: string; label: string; Icon: LucideIcon }[] = [
   { href: "/account", label: "My Account", Icon: LayoutDashboard },
+  { href: "/account/profile", label: "My Profile", Icon: UserRound },
   { href: "/account/orders", label: "My Orders", Icon: Package },
+  { href: "/account/track", label: "Track Orders", Icon: Truck },
   { href: "/account/addresses", label: "My Addresses", Icon: MapPin },
   { href: "/account/wishlist", label: "My Wishlist", Icon: Heart },
 ];
 
 const rowClass = "flex min-h-11 items-center gap-2.5 rounded-lg px-2 text-sm font-medium outline-none hover:bg-soft focus-visible:ring-2 focus-visible:ring-ring";
 
-// The header's single account control. Signed out (the default): sign in, the demo account, how to
-// create an account (phone sign-in with the backend; the registration preview otherwise), My Orders and
-// the latest orders saved in this browser, so guests can still get back to them. In a demo session:
-// account links and Logout. A signed-in customer (AuthContext, separate from the demo) sees who they are,
-// links to the parts of My Account that are live for them (Profile and Addresses, backend sessions
-// only) and Sign out at the top. The trigger follows the reference: tinted avatar circle, label, chevron.
+// The header's single account control. Signed out: sign in (which also creates an account), the wishlist
+// and help. Signed in through the backend: who they are, the account sections, their latest orders and
+// Sign out. The trigger follows the reference: tinted avatar circle, label, chevron.
 export function AccountMenu() {
-  const { hydrated, isActive, profile, startDemoSession } = useDemoAccount();
-  const { orders, hydrated: ordersReady } = useOrders();
-  const endSession = useEndDemoSession();
-  const announce = useAnnounce();
   const auth = useAuth();
-  const customer = auth.session?.customer;
-  const backendCustomer = auth.session?.source === "backend";
+  const signedIn = Boolean(useBackendCustomerId());
+  const { orders, hydrated: ordersReady } = useOrders();
+  const customer = signedIn ? auth.session?.customer : undefined;
   const customerName = customer ? (customer.full_name ?? customer.phone ?? customer.email ?? "customer") : null;
-  const signedIn = hydrated && isActive;
   const recent = orders.slice(0, 3);
 
   return (
     <Popover>
       <PopoverTrigger
-        aria-label={signedIn ? `Account: ${profile.full_name} (demo)` : customerName ? `Account: signed in as ${customerName}` : "Account: sign in"}
+        aria-label={customerName ? `Account: signed in as ${customerName}` : "Account: sign in"}
         className="inline-flex h-11 items-center gap-2 rounded-full p-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring sm:pr-3"
       >
         <span className="relative grid size-9 place-items-center rounded-full bg-linear-to-b from-white/70 to-secondary text-brand shadow-[inset_0_0_0_1px_rgb(255_255_255/0.85),0_6px_16px_-10px_rgb(var(--shadow-tint)/0.4)]">
-          {signedIn ? <span className="font-heading text-base font-semibold" aria-hidden="true">{profile.full_name.trim().charAt(0).toUpperCase() || "D"}</span> : <UserRound className="size-5" aria-hidden="true" />}
+          {customerName ? (
+            <span className="font-heading text-base font-semibold" aria-hidden="true">{customerName.trim().charAt(0).toUpperCase()}</span>
+          ) : (
+            <UserRound className="size-5" aria-hidden="true" />
+          )}
         </span>
         <span className="hidden max-w-28 truncate sm:inline" aria-hidden="true">
-          {signedIn ? profile.full_name.split(/\s+/)[0] : "Account"}
+          {customer?.full_name ? customer.full_name.split(/\s+/)[0] : "Account"}
         </span>
         <ChevronDown className="hidden size-4 text-muted-foreground sm:block" aria-hidden="true" />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[min(20rem,calc(100vw-2rem))] gap-3 p-4">
-        {customer && (
-          <div className="border-b border-border pb-3">
-            <p className="text-xs text-muted-foreground">Signed in as</p>
-            <p className="truncate font-heading text-base font-medium">{customerName}</p>
-            {auth.session?.source === "development_mock" && <DevelopmentAuthNotice className="mt-2" />}
-            {backendCustomer && (
-              <ul aria-label="Your account" className="-mx-2 mt-2">
-                <li>
-                  <PopoverClose asChild>
-                    <Link href="/account/profile" className={rowClass}><UserRound className="size-4 text-muted-foreground" aria-hidden="true" />My Profile</Link>
-                  </PopoverClose>
-                </li>
-                <li>
-                  <PopoverClose asChild>
-                    <Link href="/account/addresses" className={rowClass}><MapPin className="size-4 text-muted-foreground" aria-hidden="true" />My Addresses</Link>
-                  </PopoverClose>
-                </li>
-              </ul>
-            )}
-            <PopoverClose asChild>
-              <Button type="button" variant="outline" className="mt-2 w-full" onClick={() => void auth.signOut()}>
-                <LogOut aria-hidden="true" />Sign out
-              </Button>
-            </PopoverClose>
-          </div>
-        )}
-        {signedIn ? (
+        {customer ? (
           <>
             <div>
-              <p className="truncate font-heading text-base font-medium">{profile.full_name}</p>
-              <p className="truncate text-xs text-muted-foreground">{profile.email}</p>
-              <DemoBadge className="mt-2" />
+              <p className="text-xs text-muted-foreground">Signed in as</p>
+              <p className="truncate font-heading text-base font-medium">{customerName}</p>
             </div>
-            <ul className="-mx-2 border-t border-border pt-2">
+            <ul aria-label="Your account" className="-mx-2 border-t border-border pt-2">
               {accountLinks.map(({ href, label, Icon }) => (
                 <li key={href}>
                   <PopoverClose asChild>
@@ -97,58 +64,17 @@ export function AccountMenu() {
                   </PopoverClose>
                 </li>
               ))}
-              <li>
-                <PopoverClose asChild>
-                  <button type="button" onClick={endSession} className={`${rowClass} w-full text-left hover:text-destructive`}>
-                    <LogOut className="size-4 text-muted-foreground" aria-hidden="true" />Logout
-                  </button>
-                </PopoverClose>
-              </li>
             </ul>
-          </>
-        ) : (
-          <>
-            <div>
-              <p className="font-heading text-base font-medium">{customer ? "More of My Account is coming" : "You’re shopping as a guest"}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {!customer
-                  ? "Browse and fill your cart freely. Sign in before placing an order."
-                  : backendCustomer
-                    ? "Order history, wishlist and settings aren’t linked to your account yet. You can try them with sample data in the demo account."
-                    : "This is a development sign-in, so My Account shows sample data only."}
-              </p>
-            </div>
-            <div className="grid gap-2">
-              {!customer && (
-                <PopoverClose asChild>
-                  <Button asChild><Link href="/login"><LogIn aria-hidden="true" />Sign in</Link></Button>
-                </PopoverClose>
-              )}
-              <PopoverClose asChild>
-                <Button asChild variant="outline">
-                  <Link href="/account" onClick={() => { startDemoSession(); announce("Demo account opened. This is sample data."); }}>Explore Demo Account</Link>
-                </Button>
-              </PopoverClose>
-            </div>
-            {!customer && (
-              <PopoverClose asChild>
-                {auth.mode === "backend" ? (
-                  <Link href="/login" className="inline-flex min-h-9 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">New here? Sign in with your mobile number to create an account</Link>
-                ) : (
-                  <Link href="/register" className="inline-flex min-h-9 items-center text-sm font-medium text-primary underline-offset-4 hover:underline">New here? Create an account (preview)</Link>
-                )}
-              </PopoverClose>
-            )}
             <div className="border-t border-border pt-3">
-              {/* The order-history page. Its demo-account gate stays as it is; the latest orders saved
-                  in this browser are listed below so guests can still open their tracking pages. */}
               <PopoverClose asChild>
                 <Link href="/account/orders" className="-mx-1 flex min-h-11 items-center justify-between gap-2 rounded-lg px-1 text-sm font-semibold outline-none hover:bg-soft focus-visible:ring-2 focus-visible:ring-ring">
-                  <span className="flex items-center gap-2"><Package className="size-4" aria-hidden="true" />My Orders</span>
+                  <span>Latest orders</span>
                   <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
                 </Link>
               </PopoverClose>
-              {ordersReady && recent.length > 0 ? (
+              {!ordersReady ? (
+                <p className="mt-1 text-sm text-muted-foreground">Loading…</p>
+              ) : recent.length > 0 ? (
                 <ul className="mt-1 divide-y">
                   {recent.map((order) => (
                     <li key={order.id}>
@@ -165,6 +91,27 @@ export function AccountMenu() {
                 <p className="mt-1 text-sm text-muted-foreground">No orders yet.</p>
               )}
             </div>
+            <PopoverClose asChild>
+              <Button type="button" variant="outline" className="w-full" onClick={() => void auth.signOut()}>
+                <LogOut aria-hidden="true" />Sign out
+              </Button>
+            </PopoverClose>
+          </>
+        ) : (
+          <>
+            <div>
+              <p className="font-heading text-base font-medium">You’re shopping as a guest</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {auth.mode === "unavailable"
+                  ? "Sign-in isn’t available right now, so orders can’t be placed. You can still browse and fill your cart."
+                  : "Browse and fill your cart freely. Sign in before placing an order: signing in for the first time creates your account."}
+              </p>
+            </div>
+            {auth.mode !== "unavailable" && (
+              <PopoverClose asChild>
+                <Button asChild><Link href="/login"><LogIn aria-hidden="true" />Sign in</Link></Button>
+              </PopoverClose>
+            )}
             <div className="-mx-2 flex flex-wrap border-t border-border pt-2">
               <PopoverClose asChild>
                 <Link href="/wishlist" className={rowClass}><Heart className="size-4 text-muted-foreground" aria-hidden="true" />Wishlist</Link>

@@ -1,69 +1,57 @@
-import { cacheLife } from "next/cache";
+import { connection } from "next/server";
 import { apiBaseUrl } from "@/config/api";
-import { catalogSource } from "@/config/catalog";
-import { bundles, comboBoxes } from "@/data/bundles";
-import { categories } from "@/data/categories";
-import { products } from "@/data/products";
-import { vendors } from "@/data/vendors";
 import { createApiClient } from "@/lib/api-client";
 import { createHttpCatalog, type CatalogReader } from "@/services/catalog-http";
-import type { Category, CategorySlug, Product, Vendor } from "@/types/catalog";
+import type { Category, Product, Vendor } from "@/types/catalog";
 
-// The only layer pages call for catalogue data (guide, Section M). Two sources:
-// - "backend": the customer API (GET /catalog/*), chosen with NEXT_PUBLIC_CATALOG_SOURCE=backend and a
-//   valid NEXT_PUBLIC_API_BASE_URL. Results are cached for a few minutes ("use cache"), so pages stay
-//   fast and the backend isn't asked on every render.
-// - "sample": the mock data in src/data, used otherwise (and by the demo account).
-// The choice lives in config/catalog.ts, so browser code can read it without this server-only module.
+// The only layer pages call for catalogue data (guide, Section M). Everything comes from the customer
+// API (GET /catalog/*, which reads the database). There is no sample catalogue and no fallback: when the
+// API isn't configured or a request fails, the call throws and the page shows its error state
+// (app/error.tsx). Nothing is cached: `connection()` makes every read happen at request time, so each
+// page load shows the database as it is now.
 
-export { catalogSource, resolveCatalogSource, type CatalogSource } from "@/config/catalog";
-
-function backend(): CatalogReader {
-  return createHttpCatalog(createApiClient(apiBaseUrl!));
+/** Thrown when NEXT_PUBLIC_API_BASE_URL isn't set to a valid URL, so there is no catalogue to read. */
+export class CatalogUnavailableError extends Error {
+  constructor() {
+    super("The store's catalogue API is not configured (NEXT_PUBLIC_API_BASE_URL).");
+    this.name = "CatalogUnavailableError";
+  }
 }
 
-async function fromBackend<T>(read: (catalog: CatalogReader) => Promise<T>): Promise<T> {
-  return read(backend());
+async function catalog(): Promise<CatalogReader> {
+  await connection();
+  if (!apiBaseUrl) throw new CatalogUnavailableError();
+  return createHttpCatalog(createApiClient(apiBaseUrl));
 }
 
 export async function getCategories(): Promise<Category[]> {
-  if (catalogSource === "sample") return categories;
-  return backendCategories();
+  return (await catalog()).categories();
 }
 
 export async function getVendors(): Promise<Vendor[]> {
-  if (catalogSource === "sample") return vendors;
-  return backendVendors();
+  return (await catalog()).vendors();
 }
 
 export async function getProducts(): Promise<Product[]> {
-  if (catalogSource === "sample") return products;
-  return backendProducts();
+  return (await catalog()).products();
 }
 
-export async function getProductsByCategory(slug: CategorySlug): Promise<Product[]> {
-  if (catalogSource === "sample") {
-    const category = categories.find((c) => c.slug === slug);
-    return category ? products.filter((p) => p.category_id === category.id) : [];
-  }
-  return backendProductsByCategory(slug);
+export async function getProductsByCategory(slug: string): Promise<Product[]> {
+  return (await catalog()).products({ category: slug });
 }
 
 export async function getSeasonalProducts(): Promise<Product[]> {
-  if (catalogSource === "sample") return products.filter((p) => p.is_seasonal);
-  return backendSeasonalProducts();
+  return (await catalog()).products({ seasonal: true });
 }
 
 /** Every combo box and offer. */
 export async function getBundles(): Promise<Product[]> {
-  if (catalogSource === "sample") return bundles;
-  return backendBundles();
+  return (await catalog()).bundles();
 }
 
-/** The ₹1,000 / ₹5,000 / ₹10,000 budget boxes that lead the homepage "Combo offers" section. */
+/** The budget boxes that lead the homepage "Combo offers" section. */
 export async function getComboBoxes(): Promise<Product[]> {
-  if (catalogSource === "sample") return comboBoxes;
-  return backendComboBoxes();
+  return (await catalog()).bundles({ comboBox: true });
 }
 
 /** Everything that can be bought: individual products and combo boxes. */
@@ -73,70 +61,10 @@ export async function getCatalog(): Promise<Product[]> {
 }
 
 export async function getProduct(id: string): Promise<Product | undefined> {
-  if (catalogSource === "sample") return [...products, ...bundles].find((p) => p.id === id);
-  return backendProduct(id);
+  return (await catalog()).product(id);
 }
 
 /** Other items from the same category, for "You may also like" on product details. */
 export async function getRelatedProducts(product: Product, limit = 4): Promise<Product[]> {
-  if (catalogSource === "sample") {
-    return [...products, ...bundles].filter((p) => p.category_id === product.category_id && p.id !== product.id).slice(0, limit);
-  }
-  return backendRelated(product.id, limit);
-}
-
-// Cached backend reads. Each is its own cache entry, keyed by its arguments.
-
-async function backendCategories() {
-  "use cache";
-  cacheLife("minutes");
-  return fromBackend((catalog) => catalog.categories());
-}
-
-async function backendVendors() {
-  "use cache";
-  cacheLife("minutes");
-  return fromBackend((catalog) => catalog.vendors());
-}
-
-async function backendProducts() {
-  "use cache";
-  cacheLife("minutes");
-  return fromBackend((catalog) => catalog.products());
-}
-
-async function backendProductsByCategory(slug: CategorySlug) {
-  "use cache";
-  cacheLife("minutes");
-  return fromBackend((catalog) => catalog.products({ category: slug }));
-}
-
-async function backendSeasonalProducts() {
-  "use cache";
-  cacheLife("minutes");
-  return fromBackend((catalog) => catalog.products({ seasonal: true }));
-}
-
-async function backendBundles() {
-  "use cache";
-  cacheLife("minutes");
-  return fromBackend((catalog) => catalog.bundles());
-}
-
-async function backendComboBoxes() {
-  "use cache";
-  cacheLife("minutes");
-  return fromBackend((catalog) => catalog.bundles({ comboBox: true }));
-}
-
-async function backendProduct(id: string) {
-  "use cache";
-  cacheLife("minutes");
-  return fromBackend((catalog) => catalog.product(id));
-}
-
-async function backendRelated(id: string, limit: number) {
-  "use cache";
-  cacheLife("minutes");
-  return fromBackend((catalog) => catalog.related(id, limit));
+  return (await catalog()).related(product.id, limit);
 }

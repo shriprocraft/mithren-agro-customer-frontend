@@ -105,7 +105,6 @@ export function AddressManager() {
                   {address.full_name}
                   <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">{addressTypeLabels[address.type]}</span>
                   {isDefault && <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">Default</span>}
-                  {address.is_sample && <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">Sample</span>}
                 </p>
                 <p className="mt-1.5 text-sm text-muted-foreground">{formatAddressLine(address)}</p>
                 <p className="text-sm text-muted-foreground">Mobile {address.mobile}</p>

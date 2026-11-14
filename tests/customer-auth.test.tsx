@@ -5,17 +5,15 @@ import { CheckoutAuthGate } from "@/components/auth/CheckoutAuthGate";
 import { resolveApiBaseUrl } from "@/config/api";
 import { AppProviders } from "@/context/AppProviders";
 import { useCart } from "@/context/CartContext";
-import { useDemoAccount } from "@/context/DemoAccountContext";
 import { OrderAuthError, useOrders } from "@/context/OrdersContext";
 import { ApiError, createApiClient, type ApiClient } from "@/lib/api-client";
 import { AuthError } from "@/lib/auth-errors";
 import { canPlaceOrder, signInHref } from "@/lib/checkout-auth";
 import { resolveAuthMode } from "@/services/auth";
-import { createDevelopmentMockAuthService, MOCK_SESSION_KEY } from "@/services/auth/development-mock";
 import { createHttpAuthService } from "@/services/auth/http";
 import { unavailableAuthService } from "@/services/auth/unavailable";
 import type { AuthService, AuthSession } from "@/types/auth";
-import type { Address } from "@/types/order";
+import { createFakeAuthService, type FakeAuthService } from "./fixtures/fake-auth";
 
 const replace = vi.fn();
 let search = new URLSearchParams();
@@ -37,44 +35,33 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("adapter selection fails closed", () => {
-  it("needs a valid URL for backend mode and refuses the mock in production", () => {
-    expect(resolveAuthMode({ mode: "backend", apiBaseUrl: "https://api.example.com", nodeEnv: "production" })).toBe("backend");
-    expect(resolveAuthMode({ mode: "backend", apiBaseUrl: null, nodeEnv: "production" })).toBe("unavailable");
-    expect(resolveAuthMode({ mode: "mock", apiBaseUrl: null, nodeEnv: "development" })).toBe("development_mock");
-    expect(resolveAuthMode({ mode: "mock", apiBaseUrl: "https://api.example.com", nodeEnv: "production" })).toBe("unavailable");
-    expect(resolveAuthMode({ mode: undefined, apiBaseUrl: "https://api.example.com", nodeEnv: "development" })).toBe("unavailable");
-    expect(() => createDevelopmentMockAuthService("production")).toThrow(/cannot run in a production build/);
+  it("uses the backend only with a valid URL; there is no mock sign-in", () => {
+    expect(resolveAuthMode({ apiBaseUrl: "https://api.example.com" })).toBe("backend");
+    expect(resolveAuthMode({ apiBaseUrl: null })).toBe("unavailable");
     expect(resolveApiBaseUrl("https://api.example.com/v1/")).toBe("https://api.example.com/v1");
     expect(resolveApiBaseUrl("javascript:alert(1)")).toBeNull();
   });
 });
 
 describe("order rule", () => {
-  it("needs a verified session; a mock session is refused in production", () => {
+  it("needs a session from the backend", () => {
     expect(canPlaceOrder(null)).toBe(false);
-    expect(canPlaceOrder(realSession, "production")).toBe(true);
-    const mock: AuthSession = { source: "development_mock", customer: { id: "dev-mock-1", full_name: null, email: "a@example.com", phone: null } };
-    expect(canPlaceOrder(mock, "development")).toBe(true);
-    expect(canPlaceOrder(mock, "production")).toBe(false);
+    expect(canPlaceOrder(realSession)).toBe(true);
     expect(signInHref("/checkout/review")).toBe("/login?next=%2Fcheckout%2Freview");
   });
 
-  const address = { id: "a", full_name: "Asha", mobile: "9876543210", house: "1", street: "Main", city: "Chennai", state: "Tamil Nadu", pincode: "600001", type: "home" } as Address;
   let orders: ReturnType<typeof useOrders>;
-  let demo: ReturnType<typeof useDemoAccount>;
   function Probe() {
     orders = useOrders();
-    demo = useDemoAccount();
     return null;
   }
 
-  it("placeOrder rejects a guest, even with the demo account open, and stores nothing", async () => {
+  it("a guest can't place an order and has no orders", async () => {
     render(<AppProviders authService={unavailableAuthService}><Probe /></AppProviders>);
     await act(async () => {});
-    act(() => demo.startDemoSession());
-    const before = orders.orders.length;
-    expect(() => orders.placeOrder([], address)).toThrow(OrderAuthError);
-    expect(orders.orders).toHaveLength(before);
+    expect(orders.available).toBe(false);
+    expect(orders.orders).toHaveLength(0);
+    await expect(orders.placeServerOrder({} as never, "key")).rejects.toBeInstanceOf(OrderAuthError);
   });
 });
 
@@ -100,27 +87,26 @@ describe("checkout gate", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it("does not count the demo account as signed in", async () => {
-    localStorage.setItem("mithren.demo-session", JSON.stringify({ kind: "demo", started_at: new Date().toISOString() }));
-    gate(unavailableAuthService);
-    await waitFor(() => expect(replace).toHaveBeenCalled());
-    expect(screen.queryByText("Checkout step")).toBeNull();
-  });
 });
 
-describe("sign-in screens with the development mock", () => {
+describe("sign-in screens (fake backend)", () => {
   let cart: ReturnType<typeof useCart>;
   function CartProbe() {
     cart = useCart();
     return null;
   }
-  const view = (service: AuthService = createDevelopmentMockAuthService("test")) =>
+  let fake: FakeAuthService;
+  beforeEach(() => {
+    fake = createFakeAuthService();
+  });
+  const view = (service: AuthService = fake) =>
     render(<AppProviders authService={service}><CartProbe /><LoginView /></AppProviders>);
 
   const requestCode = async () => {
     fireEvent.change(await screen.findByLabelText("Mobile number"), { target: { value: "98765 43210" } });
     fireEvent.click(screen.getByRole("button", { name: "Send code" }));
-    return (await screen.findByTestId("development-code")).textContent!;
+    await screen.findByLabelText("One-time code");
+    return fake.lastCode()!;
   };
   const submitCode = (code: string) => {
     fireEvent.change(screen.getByLabelText("One-time code"), { target: { value: code } });
@@ -152,14 +138,7 @@ describe("sign-in screens with the development mock", () => {
     expect(cart.items).toEqual([expect.objectContaining({ product_id: "p-tomatoes", quantity: 2 })]);
     const stored = JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage });
     expect(stored).not.toContain(code);
-    expect(JSON.parse(sessionStorage.getItem(MOCK_SESSION_KEY)!).customer.id).toMatch(/^dev-mock-/);
-  });
-
-  it("generates a different code each time", async () => {
-    const mock = createDevelopmentMockAuthService("test");
-    const codes = new Set<string | undefined>();
-    for (let i = 0; i < 6; i++) codes.add((await mock.requestOtp({ channel: "email", destination: "a@example.com" })).development_code);
-    expect(codes.size).toBeGreaterThan(1);
+    expect(fake.currentSession()?.source).toBe("backend");
   });
 
   it("reports an invalid code and stays signed out", async () => {
@@ -167,7 +146,7 @@ describe("sign-in screens with the development mock", () => {
     const code = await requestCode();
     submitCode(code === "000000" ? "000001" : "000000");
     expect(await screen.findByText(/That code isn’t correct/)).toBeInTheDocument();
-    expect(sessionStorage.getItem(MOCK_SESSION_KEY)).toBeNull();
+    expect(fake.currentSession()).toBeNull();
   });
 
   it("reports an expired code and offers a new one straight away", async () => {
@@ -184,34 +163,28 @@ describe("sign-in screens with the development mock", () => {
   });
 
   it("shows a network failure when a code can't be requested", async () => {
-    view({ ...createDevelopmentMockAuthService("test"), requestOtp: () => Promise.reject(new AuthError("network_error")) });
+    view({ ...fake, requestOtp: () => Promise.reject(new AuthError("network_error")) });
     fireEvent.change(await screen.findByLabelText("Mobile number"), { target: { value: "9876543210" } });
     fireEvent.click(screen.getByRole("button", { name: "Send code" }));
     expect(await screen.findByText(/couldn’t reach the server/)).toBeInTheDocument();
   });
 
-  it("shows Google as coming soon, disabled, and never starts it", async () => {
-    const startGoogleSignIn = vi.fn();
-    view({ ...createDevelopmentMockAuthService("test"), startGoogleSignIn });
+  it("starts Google sign-in through the backend", async () => {
+    const startGoogleSignIn = vi.fn().mockResolvedValue(undefined);
+    view({ ...fake, startGoogleSignIn });
     const google = await screen.findByRole("button", { name: /Continue with Google/ });
-    expect(google).toBeDisabled();
-    expect(google).toHaveTextContent("Coming soon");
+    expect(google).toBeEnabled();
     fireEvent.click(google);
-    expect(startGoogleSignIn).not.toHaveBeenCalled();
-    expect(sessionStorage.getItem(MOCK_SESSION_KEY)).toBeNull();
-    expect(replace).not.toHaveBeenCalled();
+    await waitFor(() => expect(startGoogleSignIn).toHaveBeenCalled());
   });
 
-  it("labels the mock, disables everything when unavailable, and has no password field", async () => {
-    const { unmount } = view();
-    expect(await screen.findByText(/Development sign-in, not a real account/)).toBeInTheDocument();
-    unmount();
+  it("disables everything when sign-in is unavailable, offers no demo, and has no password field", async () => {
     view(unavailableAuthService);
-    expect(await screen.findByText(/Sign-in isn’t connected on this site yet/)).toBeInTheDocument();
+    expect(await screen.findByText(/Sign-in isn’t available right now/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Continue with Google/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Send code" })).toBeDisabled();
     expect(document.querySelector("input[type=password]")).toBeNull();
-    expect(screen.getByRole("button", { name: /Explore Demo Account/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Demo/ })).toBeNull();
   });
 
   it("shows the error the backend sends back from a failed Google sign-in", async () => {
@@ -250,7 +223,7 @@ describe("backend adapter", () => {
     await expect(service.requestOtp({ channel: "phone", destination: "+91" })).rejects.toMatchObject({ code: "validation_error" });
   });
 
-  it("never takes a development code, or any other extra field, from a backend response", async () => {
+  it("never takes a code, or any other extra field, from a backend response", async () => {
     const challenge = { challenge_id: "c", channel: "phone", destination_hint: "+91 ••••• •3210", expires_in_seconds: 300, resend_after_seconds: 30 };
     const service = createHttpAuthService(client(async () => ({ ...challenge, development_code: "123456", code: "123456" } as never)), "https://api");
     await expect(service.requestOtp({ channel: "phone", destination: "+919876543210" })).resolves.toEqual(challenge);

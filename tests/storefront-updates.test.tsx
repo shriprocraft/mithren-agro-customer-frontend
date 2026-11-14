@@ -1,10 +1,8 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OrdersList } from "@/components/account/OrdersList";
-import { RegisterView } from "@/components/account/RegisterView";
 import { VideoCard } from "@/components/home/VideoCard";
 import { AccountMenu } from "@/components/layout/AccountMenu";
 import { Marketplace } from "@/components/marketplace/Marketplace";
@@ -13,9 +11,10 @@ import { PurchasePanel } from "@/components/products/PurchasePanel";
 import { designTokens } from "@/config/design-tokens";
 import { safeExternalUrl, safeMediaUrl, type HomeVideo } from "@/config/external-links";
 import { AppProviders } from "@/context/AppProviders";
-import { categories } from "@/data/categories";
-import { products } from "@/data/products";
-import { vendors } from "@/data/vendors";
+import { unavailableAuthService } from "@/services/auth/unavailable";
+import { categories } from "./fixtures/catalog/categories";
+import { products } from "./fixtures/catalog/products";
+import { vendors } from "./fixtures/catalog/vendors";
 import { MAX_QUANTITY_PER_ITEM } from "@/lib/cart";
 
 const push = vi.fn();
@@ -191,31 +190,25 @@ describe("Buy now", () => {
 });
 
 describe("forms and account menu", () => {
-  it("registration fields keep visible labels and gain placeholders", () => {
-    render(<AppProviders><RegisterView /></AppProviders>);
-    expect(screen.getByLabelText("Full name")).toHaveAttribute("placeholder", "Enter your full name");
-    expect(screen.getByLabelText("Email address")).toHaveAttribute("placeholder", "Enter your email address");
-    expect(screen.getByLabelText("Email address")).toHaveAttribute("type", "email");
-    expect(screen.getByLabelText(/Mobile number/)).toHaveAttribute("placeholder", "Enter your 10-digit mobile number");
-    expect(document.querySelector("input[type=password]")).toBeNull();
-  });
-
-  it("signed-out account menu says My Orders and opens the order history", () => {
+  it("signed-out account menu lists no orders (orders live in the account) and keeps wishlist and help", () => {
     render(<AppProviders><AccountMenu /></AppProviders>);
     act(() => fireEvent.click(screen.getByRole("button", { name: "Account: sign in" })));
-    expect(screen.getByRole("link", { name: "My Orders" })).toHaveAttribute("href", "/account/orders");
-    expect(screen.queryByText("Orders in this browser")).toBeNull();
+    expect(screen.queryByText(/Latest orders|No orders yet/)).toBeNull();
+    expect(screen.getByRole("link", { name: "Wishlist" })).toHaveAttribute("href", "/wishlist");
+    expect(screen.getByRole("link", { name: "Help" })).toHaveAttribute("href", "/support");
   });
 });
 
 describe("order history states", () => {
-  it("renders a skeleton before saved orders are read (server and hydration render)", () => {
-    const html = renderToString(<AppProviders><OrdersList /></AppProviders>);
-    expect(html).toContain("Loading your orders");
-    expect(html).not.toContain("No orders yet");
+  it("shows a skeleton while the account's orders load", async () => {
+    const signedIn = { ...unavailableAuthService, mode: "backend" as const, getSession: async () => ({ source: "backend" as const, customer: { id: "c1", full_name: "Asha", email: null, phone: null } }) };
+    const pending = { list: () => new Promise<never>(() => {}), get: vi.fn(), place: vi.fn(), cancel: vi.fn() };
+    render(<AppProviders authService={signedIn} ordersService={pending}><OrdersList /></AppProviders>);
+    expect(await screen.findByRole("status", { name: "Loading your orders" })).toBeInTheDocument();
+    expect(screen.queryByText("No orders yet")).toBeNull();
   });
 
-  it("shows the empty state once read", () => {
+  it("shows the empty state when there are no orders", () => {
     render(<AppProviders><OrdersList /></AppProviders>);
     expect(screen.getByRole("heading", { name: "No orders yet" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Start shopping" })).toHaveAttribute("href", "/products");

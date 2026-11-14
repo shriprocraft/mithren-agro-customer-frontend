@@ -5,14 +5,14 @@ import { useOrders } from "@/context/OrdersContext";
 import type { Order } from "@/types/order";
 
 /**
- * One order by its ID. Browser orders come from storage; a backend order not in the loaded list (an
- * older one, or a link opened directly) is fetched from the account. `undefined` while looking.
+ * One order by its ID, from the signed-in customer's account: the loaded list first, then (an older
+ * order, or a link opened directly) fetched on its own. `undefined` while looking.
  */
 export function useOrderLookup(id: string): { order: Order | undefined; loading: boolean } {
-  const { getOrder, fetchOrder, hydrated, mode } = useOrders();
+  const { getOrder, fetchOrder, hydrated, available } = useOrders();
   const listed = hydrated ? getOrder(id) : undefined;
   const [fetched, setFetched] = useState<{ id: string; order: Order | undefined } | null>(null);
-  const needsFetch = mode === "backend" && hydrated && !listed;
+  const needsFetch = available && hydrated && !listed;
 
   useEffect(() => {
     if (!needsFetch) return;

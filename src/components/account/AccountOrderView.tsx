@@ -2,21 +2,19 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { ArrowLeft, FlaskConical, PackageSearch, Truck } from "lucide-react";
+import { ArrowLeft, Info, PackageSearch, Truck } from "lucide-react";
 import { OrderStatusBadge } from "@/components/account/OrderCard";
 import { LoadingState, MessageState } from "@/components/checkout/PageState";
 import { OrderDetails, formatOrderTime } from "@/components/orders/OrderDetails";
 import { CancelOrder, orderNotice } from "@/components/orders/CancelOrder";
 import { TrackingTimeline } from "@/components/orders/TrackingTimeline";
 import { Button } from "@/components/ui/button";
-import { useOrders } from "@/context/OrdersContext";
 import { useOrderLookup } from "@/hooks/useOrderLookup";
 
-// One order inside the account: summary, the simulated tracking timeline and the order contents.
+// One order inside the account: summary, the status timeline and the order contents.
 // The full tracking page (/orders/[id]/tracking) is linked rather than duplicated.
 export function AccountOrderView({ params }: { params: Promise<{ orderId: string }> }) {
   const { orderId } = use(params);
-  const { mode } = useOrders();
   const { order, loading } = useOrderLookup(decodeURIComponent(orderId));
   if (loading) return <LoadingState label="Loading your order…" fullHeight />;
 
@@ -31,9 +29,7 @@ export function AccountOrderView({ params }: { params: Promise<{ orderId: string
       <div className="space-y-3">
         {back}
         <MessageState icon={PackageSearch} title="We couldn’t find that order" actions={<Button asChild><Link href="/account/orders">View my orders</Link></Button>}>
-          {mode === "backend"
-            ? "Check the order ID. Only orders placed from your account are listed."
-            : "Check the order ID. Orders are saved in the browser they were placed in, so they can’t be opened from another device or after site data is cleared."}
+          Check the order ID. Only orders placed from your account are listed.
         </MessageState>
       </div>
     );
@@ -50,16 +46,15 @@ export function AccountOrderView({ params }: { params: Promise<{ orderId: string
             <p className="text-sm text-muted-foreground">Placed {formatOrderTime(order.created_at)}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {order.is_sample && <span className="rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">Sample order</span>}
             <OrderStatusBadge order={order} />
           </div>
         </div>
         <p className="mt-4 flex gap-2 rounded-2xl bg-secondary p-3 text-xs leading-relaxed text-secondary-foreground">
-          <FlaskConical className="mt-px size-4 shrink-0" aria-hidden="true" />
+          <Info className="mt-px size-4 shrink-0" aria-hidden="true" />
           {orderNotice(order)}
         </p>
         <CancelOrder order={order} />
-        <h2 className="mt-6 font-heading text-base font-semibold">{order.source === "backend" ? "Order status" : "Simulated tracking"}</h2>
+        <h2 className="mt-6 font-heading text-base font-semibold">Order status</h2>
         <div className="mt-4"><TrackingTimeline order={order} /></div>
         <div className="mt-6 flex flex-wrap gap-3">
           <Button asChild><Link href={`/orders/${order.id}/tracking`}><Truck aria-hidden="true" />Open tracking page</Link></Button>

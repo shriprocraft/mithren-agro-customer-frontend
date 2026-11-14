@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import Home from "@/app/page";
+import { HomeContent as Home } from "@/components/home/HomeContent";
 import { AppProviders } from "@/context/AppProviders";
 
 vi.mock("next/navigation", () => ({
@@ -8,6 +8,21 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/",
   useSearchParams: () => new URLSearchParams(),
 }));
+
+// The homepage reads the catalogue from the backend; here the API's answers are the test fixtures.
+vi.mock("@/services/catalog", async () => {
+  const { products } = await import("./fixtures/catalog/products");
+  const { categories } = await import("./fixtures/catalog/categories");
+  const { bundles, comboBoxes } = await import("./fixtures/catalog/bundles");
+  const { vendors } = await import("./fixtures/catalog/vendors");
+  return {
+    getCategories: async () => categories,
+    getVendors: async () => vendors,
+    getProducts: async () => products,
+    getBundles: async () => bundles,
+    getComboBoxes: async () => comboBoxes,
+  };
+});
 
 describe("homepage", () => {
   it("renders one h1 and the sections in the required order, without the removed ones", async () => {

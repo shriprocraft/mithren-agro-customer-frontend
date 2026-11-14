@@ -7,10 +7,10 @@ import { usePersistentState } from "@/hooks/usePersistentState";
 import { wishlistService as defaultWishlistService, type WishlistService } from "@/services/wishlist";
 
 // One wishlist behind one interface:
-// - signed in through the backend (with the backend catalogue): the customer's account wishlist. On
+// - signed in: the customer's account wishlist on the backend. On
 //   sign-in, hearts saved in this browser are added to the account (never removing any) and then cleared
 //   here, so the account is the one list from then on;
-// - otherwise (guests, the sample catalogue, the demo account): saved in this browser's localStorage.
+// - guests: saved in this browser's localStorage (product ids from the backend catalogue).
 interface WishlistContextValue {
   ids: string[];
   hydrated: boolean;

@@ -1,29 +1,36 @@
+import { Suspense } from "react";
+import { LoadingState } from "@/components/checkout/PageState";
 import type { Metadata } from "next";
-import { RequireDemoSession } from "@/components/account/RequireDemoSession";
+import { RequireSignIn } from "@/components/account/RequireSignIn";
 import { AccountPageHeader } from "@/components/account/AccountPageHeader";
 import { WishlistView } from "@/components/checkout/WishlistView";
 import { getCatalog, getVendors } from "@/services/catalog";
-import { wishlistLive } from "@/services/wishlist";
 
-export const metadata: Metadata = { title: wishlistLive ? "My wishlist" : "My wishlist (demo)" };
+export const metadata: Metadata = { title: "My wishlist" };
 
 // The same wishlist as /wishlist and the header (WishlistContext): one list, shown inside the account.
-export default async function AccountWishlistPage() {
+async function AccountWishlistPageContent() {
   const [catalog, vendors] = await Promise.all([getCatalog(), getVendors()]);
   const vendorNames = Object.fromEntries(vendors.map((v) => [v.id, v.name]));
   return (
-    <RequireDemoSession allowSignedIn={wishlistLive}>
+    <RequireSignIn>
       <div className="space-y-5">
         <AccountPageHeader
           title="My Wishlist"
-          description={
-            wishlistLive
-              ? "Products you saved with the heart, kept in your account. The same list as the header wishlist."
-              : "Products you saved with the heart. Kept in this browser, shared with the header wishlist."
-          }
+          description="Products you saved with the heart, kept in your account. The same list as the header wishlist."
         />
         <WishlistView catalog={catalog} vendorNames={vendorNames} />
       </div>
-    </RequireDemoSession>
+    </RequireSignIn>
+  );
+}
+
+// The data comes live from the backend on every request, so it loads inside this boundary: the page
+// streams with a loading state instead of blocking navigation.
+export default function AccountWishlistPage() {
+  return (
+    <Suspense fallback={<LoadingState label="Loading your wishlist…" fullHeight />}>
+      <AccountWishlistPageContent />
+    </Suspense>
   );
 }

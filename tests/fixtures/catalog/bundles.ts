@@ -1,4 +1,4 @@
-import { products } from "@/data/products";
+import { products } from "./products";
 import { buildBundle, type BundleDefinition } from "@/lib/bundles";
 import type { Product } from "@/types/catalog";
 

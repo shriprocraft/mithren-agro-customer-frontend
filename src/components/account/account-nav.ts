@@ -1,4 +1,4 @@
-import { CircleHelp, Heart, LayoutDashboard, MapPin, Package, Settings, Truck, UserRound, type LucideIcon } from "lucide-react";
+import { CircleHelp, Heart, LayoutDashboard, MapPin, Package, Truck, UserRound, type LucideIcon } from "lucide-react";
 
 export interface AccountNavItem {
   href: string;
@@ -14,7 +14,6 @@ export const accountNavItems: AccountNavItem[] = [
   { href: "/account/track", label: "Track Orders", Icon: Truck },
   { href: "/account/addresses", label: "My Addresses", Icon: MapPin },
   { href: "/account/wishlist", label: "My Wishlist", Icon: Heart },
-  { href: "/account/settings", label: "Account Settings", Icon: Settings },
   { href: "/support", label: "Help & Support", Icon: CircleHelp },
 ];
 

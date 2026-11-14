@@ -19,12 +19,12 @@ function cancelErrorMessage(error: unknown): string {
 
 /** Cancels a backend order that hasn't been packed, after the customer confirms. */
 export function CancelOrder({ order }: { order: Order }) {
-  const { cancelOrder, mode } = useOrders();
+  const { cancelOrder, available } = useOrders();
   const announce = useAnnounce();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (mode !== "backend" || order.source !== "backend" || !order.cancellable) return null;
+  if (!available || !order.cancellable) return null;
 
   const cancel = async () => {
     setBusy(true);
@@ -60,10 +60,6 @@ export function CancelOrder({ order }: { order: Order }) {
 
 /** What kind of order this is, in one line, for the order pages. */
 export function orderNotice(order: Order): string {
-  if (order.is_sample) return "Sample order for the demo account. It was never placed or paid for, and its tracking is simulated.";
-  if (order.source === "backend") {
-    if (order.status === "cancelled") return "Cash on Delivery order, cancelled. Nothing is due.";
-    return "Cash on Delivery: pay when your order arrives. The status updates as the seller prepares and sends it.";
-  }
-  return "Demo order: no payment was taken and no seller or delivery partner was notified. Tracking is simulated.";
+  if (order.status === "cancelled") return "Cash on Delivery order, cancelled. Nothing is due.";
+  return "Cash on Delivery: pay when your order arrives. The status updates as the seller prepares and sends it.";
 }

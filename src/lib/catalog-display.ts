@@ -1,7 +1,7 @@
 import type { Category, CategorySlug, Product } from "@/types/catalog";
 
 // Display rules that depend on a product's category. They match on the category's slug, never its id:
-// ids differ between the sample data and the backend catalogue.
+// ids are database ids, while slugs are stable names.
 
 /** Clothing photos are taller than they are wide. */
 const PORTRAIT_CATEGORIES: readonly CategorySlug[] = ["womens-apparel"];

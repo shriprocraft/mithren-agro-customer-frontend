@@ -13,7 +13,7 @@ import { useCart } from "@/context/CartContext";
 import { useCheckout } from "@/context/CheckoutContext";
 import { useCheckoutQuote } from "@/hooks/useCheckoutQuote";
 import { useRemovedFromCartToast } from "@/hooks/useRemovedFromCartToast";
-import { checkoutBlocker, resolveLines, summarize } from "@/lib/cart";
+import { resolveLines, summarize } from "@/lib/cart";
 import { applyQuote } from "@/lib/checkout-quote";
 import { formatPrice } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -26,27 +26,25 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
   const { items, hydrated, setQuantity, removeItem, removeItems } = useCart();
   const { start } = useCheckout();
   const removed = useRemovedFromCartToast();
-  // With the backend catalogue the server prices the cart (a guest quote: no address). Off in sample mode.
+  // The server prices the cart (a guest quote: no address); without it nothing can be checked out.
   const { state: quote, refresh } = useCheckoutQuote(items, null, hydrated);
 
   if (!hydrated) return <LoadingState label="Loading your cart…" />;
 
   const resolved = resolveLines(items, catalog);
-  const quoted = quote.status !== "off" && quote.quote ? applyQuote(resolved.lines, items, quote.quote) : null;
+  const quoted = quote.quote ? applyQuote(resolved.lines, items, quote.quote) : null;
   const priced = new Map(quoted?.lines.map((line) => [line.key, line]));
   const lines = quoted ? resolved.lines.map((line) => priced.get(line.key) ?? line) : resolved.lines;
   const summary = quoted?.summary ?? summarize(lines);
   const blocker =
-    quote.status === "off"
-      ? checkoutBlocker(lines)
-      : quote.status === "error"
-        ? quote.message
-        : quote.status === "loading" || !quoted
-          ? "Checking prices and stock…"
-          : quoted.blocker;
-  // Sample mode: items missing from the catalogue. With a server quote: only what the server reports
-  // unavailable, so an item merely missing from the cached catalogue is never removed by mistake.
-  const missing = quote.status === "off" ? resolved.missing : (quoted?.unavailableKeys ?? []);
+    quote.status === "error"
+      ? quote.message
+      : quote.status === "loading" || !quoted
+        ? "Checking prices and stock…"
+        : quoted.blocker;
+  // Only what the server reports unavailable, so an item merely missing from the page's catalogue is
+  // never removed by mistake.
+  const missing = quoted?.unavailableKeys ?? [];
 
   if (lines.length === 0) {
     return (
@@ -72,12 +70,10 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
         <h2 id="cart-items-title" className="sr-only">Items in your cart</h2>
         {missing.length > 0 && (
           <div role="status" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-secondary p-3 text-sm text-secondary-foreground">
-            <span>{missing.length === 1 ? "One item is" : `${missing.length} items are`} {quote.status === "off" ? "no longer listed and won’t be ordered." : "no longer available. Remove them to continue."}</span>
-            {quote.status !== "off" && (
-              <Button variant="outline" onClick={() => { removeItems(missing); announce("Unavailable items removed from your cart."); }}>
-                Remove unavailable items
-              </Button>
-            )}
+            <span>{missing.length === 1 ? "One item is" : `${missing.length} items are`} no longer available. Remove them to continue.</span>
+            <Button variant="outline" onClick={() => { removeItems(missing); announce("Unavailable items removed from your cart."); }}>
+              Remove unavailable items
+            </Button>
           </div>
         )}
         {quoted?.pricesChanged && (
@@ -142,7 +138,7 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
           <ArrowRight aria-hidden="true" />
         </Button>
         <p className="mt-3 text-xs text-muted-foreground">
-          {quote.status === "off" ? "Your cart is saved in this browser only. Prices are sample data." : "Your cart is saved in this browser. Prices and stock are checked by the store."}
+          Your cart is saved in this browser. Prices and stock are checked by the store.
         </p>
       </OrderSummary>
     </div>

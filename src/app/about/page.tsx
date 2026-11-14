@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { PageLoading } from "@/components/layout/PageLoading";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, Handshake, Layers, Scale, ShoppingBasket, Store, TrendingUp, type LucideIcon } from "lucide-react";
@@ -30,7 +32,7 @@ const steps = [
   { title: "Check out", text: "Add a delivery address and place your order, then follow its status." },
 ];
 
-export default async function AboutPage() {
+async function AboutPageContent() {
   const categories = await getCategories();
   return (
     <main id="main-content" className="flex-1">
@@ -113,7 +115,7 @@ export default async function AboutPage() {
             ))}
           </ol>
           <p className="mt-6 text-xs text-muted-foreground">
-            This storefront is a preview: listings, prices and sellers are sample data, and orders are not charged or delivered yet.
+            Listings, prices and stock come from the sellers on Mithren Agro. Orders are Cash on Delivery.
           </p>
         </section>
 
@@ -152,5 +154,15 @@ export default async function AboutPage() {
         </section>
       </Container>
     </main>
+  );
+}
+
+// The data comes live from the backend on every request, so it loads inside this boundary: the page
+// streams with a loading state instead of blocking navigation.
+export default function AboutPage() {
+  return (
+    <Suspense fallback={<PageLoading label="Loading…" />}>
+      <AboutPageContent />
+    </Suspense>
   );
 }

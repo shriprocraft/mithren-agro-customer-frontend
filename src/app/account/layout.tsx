@@ -3,9 +3,10 @@ import { AccountShell } from "@/components/account/AccountShell";
 import { LoadingState } from "@/components/checkout/PageState";
 import { Container } from "@/components/layout/Container";
 
-// Every /account page shares the demo-account frame. The account lives in browser storage, so the
-// shell is static and the content renders on the client (with a full-height loading state, which also
-// keeps navigations here starting at the top; see components/products/ProductDetailSkeleton.tsx).
+// Every /account page shares the account frame. The account is read from the backend in the browser
+// (the session cookie belongs to the API), so the shell is static and the content renders on the client
+// (with a full-height loading state, which also keeps navigations here starting at the top; see
+// components/products/ProductDetailSkeleton.tsx).
 export default function AccountLayout({ children }: LayoutProps<"/account">) {
   return (
     <main id="main-content" className="flex-1">

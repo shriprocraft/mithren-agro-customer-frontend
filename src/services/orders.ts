@@ -1,12 +1,10 @@
 import { apiBaseUrl, apiEndpoints } from "@/config/api";
-import { catalogSource } from "@/config/catalog";
 import { createApiClient, type ApiClient } from "@/lib/api-client";
 import type { Quote, QuoteItemInput } from "@/types/checkout";
 import type { Order, OrderStatus } from "@/types/order";
 
 // Cash on Delivery orders in the customer's account (GET/POST /customer/orders, docs/BACKEND_CONTRACTS.md).
-// Used only with the backend catalogue and a backend session: sample product ids mean nothing to the API,
-// so the sample catalogue and the demo account keep their orders in this browser (OrdersContext).
+// Needs a signed-in customer: orders exist only in the customer's account on the backend.
 
 export interface PlaceOrderInput {
   items: QuoteItemInput[];
@@ -40,7 +38,7 @@ export interface ApiOrder {
     quantity: number;
     line_total: number;
   }[];
-  address: Omit<Order["address"], "id" | "is_sample"> & { id?: string };
+  address: Omit<Order["address"], "id"> & { id?: string };
   subtotal: number;
   charges: { label: string; amount: number }[];
   total: number;
@@ -125,9 +123,9 @@ export function createHttpOrders(client: ApiClient): OrdersService {
   };
 }
 
-/** The orders service, or null in sample mode (orders then stay in this browser). */
+/** The orders service, or null when NEXT_PUBLIC_API_BASE_URL isn't set (then no order can be placed). */
 export const ordersService: OrdersService | null =
-  catalogSource === "backend" && apiBaseUrl ? createHttpOrders(createApiClient(apiBaseUrl)) : null;
+  apiBaseUrl ? createHttpOrders(createApiClient(apiBaseUrl)) : null;
 
 /** Whether a customer signed in through the backend has real orders (My Orders and Track open for them). */
 export const ordersLive = ordersService !== null;

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { accountNavItems, activeAccountHref } from "@/components/account/account-nav";
-import { useEndDemoSession } from "@/hooks/useEndDemoSession";
+import { useAnnounce } from "@/context/AnnouncerContext";
+import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
 // Sidebar from lg; below lg the same links form one swipeable row of pills, so the mobile account
@@ -12,7 +13,14 @@ import { cn } from "@/lib/utils";
 export function AccountNav() {
   const pathname = usePathname();
   const active = activeAccountHref(pathname);
-  const endSession = useEndDemoSession();
+  const router = useRouter();
+  const announce = useAnnounce();
+  const { signOut } = useAuth();
+  const endSession = async () => {
+    await signOut().catch(() => undefined);
+    announce("You have signed out.");
+    router.push("/login?signed_out=1");
+  };
 
   return (
     <nav aria-label="Account">
@@ -38,7 +46,7 @@ export function AccountNav() {
         <li className="shrink-0 lg:mt-2 lg:border-t lg:border-border lg:pt-2">
           <button
             type="button"
-            onClick={endSession}
+            onClick={() => void endSession()}
             className="flex min-h-11 w-full items-center gap-2.5 rounded-full border border-border px-4 text-sm whitespace-nowrap text-muted-foreground outline-none hover:bg-soft hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring lg:rounded-xl lg:border-transparent lg:px-3"
           >
             <LogOut className="size-4 shrink-0" aria-hidden="true" />

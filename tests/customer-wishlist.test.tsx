@@ -139,8 +139,9 @@ describe("the account overview", () => {
     expect(screen.getByText(/orders you place appear here/i)).toBeInTheDocument();
   });
 
-  it("keeps the demo account's sample profile and notice", async () => {
+  it("shows no demo or sample profile when nobody is signed in", async () => {
     render(<AppProviders authService={unavailableAuthService}><AccountOverview /></AppProviders>);
-    expect(await screen.findByText(/this is the demo account/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Hello" })).toBeInTheDocument();
+    expect(screen.queryByText(/demo account|sample data/i)).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { categories } from "@/data/categories";
-import { products } from "@/data/products";
-import { vendors } from "@/data/vendors";
+import { categories } from "./fixtures/catalog/categories";
+import { products } from "./fixtures/catalog/products";
+import { vendors } from "./fixtures/catalog/vendors";
 import { shopHref } from "@/lib/browse";
 import { addToCart, countItems, MAX_QUANTITY_PER_ITEM, removeFromCart } from "@/lib/cart";
 import { freshPicks, roundRobin } from "@/lib/collections";

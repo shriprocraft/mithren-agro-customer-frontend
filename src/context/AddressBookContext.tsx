@@ -8,7 +8,7 @@ import { accountAddressService, type AddressService } from "@/services/addresses
 import type { Address, AddressInput } from "@/types/order";
 
 // Saved delivery addresses. A customer signed in through the backend uses their account's address book
-// (the customer API); everyone else, including guests and the demo account, keeps addresses in this
+// (the customer API); guests keep addresses they type in this
 // browser's localStorage. Browser-stored addresses are never uploaded or deleted when someone signs in:
 // they reappear when the customer signs out. The default address is the one checkout preselects.
 interface AddressBookValue {
@@ -26,10 +26,6 @@ interface AddressBookValue {
   add: (input: AddressInput) => Promise<{ address: Address | null; saved: boolean }>;
   update: (id: string, input: AddressInput) => Promise<boolean>;
   remove: (id: string) => Promise<boolean>;
-  /** Demo account: adds the fictional sample address (flagged is_sample) to browser storage and returns it. */
-  addSample: (input: AddressInput) => Address;
-  /** Demo account: removes every sample address from browser storage. */
-  removeSamples: () => void;
 }
 
 interface AccountBook {
@@ -74,18 +70,6 @@ export function AddressBookProvider({ children, service = accountAddressService 
   );
 
   const value = useMemo<AddressBookValue>(() => {
-    const browserSamples = {
-      addSample: (input: AddressInput) => {
-        const address: Address = { ...cleanAddress(input), id: `addr-sample-${crypto.randomUUID()}`, is_sample: true };
-        setStored((current) => [...current, address]);
-        return address;
-      },
-      removeSamples: () => {
-        if (stored.find((a) => a.id === browserDefaultId)?.is_sample) setStoredDefault(null);
-        setStored((current) => current.filter((a) => !a.is_sample));
-      },
-    };
-
     if (customerId && service) {
       return {
         addresses: accountLoaded ? account.addresses : EMPTY,
@@ -130,7 +114,6 @@ export function AddressBookProvider({ children, service = accountAddressService 
             return false;
           }
         },
-        ...browserSamples,
       };
     }
 
@@ -146,13 +129,12 @@ export function AddressBookProvider({ children, service = accountAddressService 
         return { address, saved };
       },
       update: async (id, input) =>
-        setStored((current) => current.map((a) => (a.id === id ? { ...cleanAddress(input), id, ...(a.is_sample && { is_sample: true }) } : a))),
+        setStored((current) => current.map((a) => (a.id === id ? { ...cleanAddress(input), id } : a))),
       remove: async (id) => {
         const saved = setStored((current) => current.filter((a) => a.id !== id));
         if (id === browserDefaultId) setStoredDefault(null);
         return saved;
       },
-      ...browserSamples,
     };
   }, [customerId, service, account, accountLoaded, updateAccount, stored, storageHydrated, signInPending, browserDefaultId, setStored, setStoredDefault]);
 

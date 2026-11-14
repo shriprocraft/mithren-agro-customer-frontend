@@ -17,15 +17,15 @@ const groups: { title: string; faqs: Faq[] }[] = [
   {
     title: "Orders and tracking",
     faqs: [
-      { q: "Where can I see my orders?", a: <>In <Link href="/account/orders" className="font-medium text-primary underline-offset-4 hover:underline">My Orders</Link>, or from the account menu in the header. Orders are saved in the browser they were placed in.</> },
-      { q: "How do I track an order?", a: <>Use “Track order” on the confirmation page or in My Orders, or enter the order ID in <Link href="/account/track" className="font-medium text-primary underline-offset-4 hover:underline">Track Orders</Link>. In this preview the stages are simulated: no seller or delivery partner is connected, so there is no live location or delivery estimate.</> },
-      { q: "Is my order real?", a: "No. This is a preview storefront: no payment is taken, no seller is notified and nothing is delivered. Orders marked “Sample order” were added by the demo account." },
+      { q: "Where can I see my orders?", a: <>In <Link href="/account/orders" className="font-medium text-primary underline-offset-4 hover:underline">My Orders</Link>, or from the account menu in the header. Orders are kept in your account, so you can see them on any device after signing in.</> },
+      { q: "How do I track an order?", a: <>Use “Track order” on the confirmation page or in My Orders, or enter the order ID in <Link href="/account/track" className="font-medium text-primary underline-offset-4 hover:underline">Track Orders</Link>. The status updates as the seller prepares and sends your order; there is no live location or delivery estimate yet.</> },
+      { q: "How do I pay?", a: "Orders are Cash on Delivery: pay in cash when your order arrives. You can cancel an order until it is packed." },
     ],
   },
   {
     title: "Addresses and checkout",
     faqs: [
-      { q: "Do I need an account to check out?", a: "You can browse, search and fill your cart without one, but you need to sign in with your mobile number and a one-time code before placing an order. Your cart is kept while you sign in." },
+      { q: "Do I need an account to check out?", a: "You can browse, search and fill your cart without one, but you need to sign in (with a one-time code sent to your mobile number or email, or with Google) before placing an order. Your cart is kept while you sign in." },
       { q: "How do I change my default address?", a: <>In <Link href="/account/addresses" className="font-medium text-primary underline-offset-4 hover:underline">My Addresses</Link>, choose “Set as default”. Checkout preselects it.</> },
       { q: "Are delivery charges or taxes added?", a: "Not in this preview. No delivery, tax or discount rules are configured, so the total is the sum of the items." },
     ],
@@ -33,8 +33,7 @@ const groups: { title: string; faqs: Faq[] }[] = [
   {
     title: "Your account",
     faqs: [
-      { q: "What is the demo account?", a: "A sample account that shows how orders, addresses and settings will work. It uses fictional data, needs no password and is stored only in this browser. It is not a secure sign-in." },
-      { q: "How do I reset or leave the demo?", a: <>Use “Reset demo data” or “Logout” in <Link href="/account/settings" className="font-medium text-primary underline-offset-4 hover:underline">Account Settings</Link>. Clearing this site’s data in your browser removes everything.</> },
+      { q: "How do I create an account?", a: "Sign in for the first time with a one-time code sent to your mobile number or email, or with Google. Your account is created then, and we ask for your name." },
     ],
   },
   {
@@ -54,7 +53,7 @@ export default function SupportPage() {
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Help & support" }]} />
         <div className="mt-2"><BackToAccountLink /></div>
         <Heading as="h1" variant="h1" className="mt-2 text-[1.625rem] sm:text-4xl">Help &amp; support</Heading>
-        <p className="mt-2 text-muted-foreground">Answers about orders, tracking, addresses and the demo account.</p>
+        <p className="mt-2 text-muted-foreground">Answers about orders, tracking, addresses and your account.</p>
 
         <div id="faqs" className="mt-8 scroll-mt-6 space-y-8 lg:scroll-mt-36">
           {groups.map((group) => (

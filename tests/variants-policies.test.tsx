@@ -9,13 +9,12 @@ import { PurchasePanel } from "@/components/products/PurchasePanel";
 import { QuickAddButton } from "@/components/products/QuickAddButton";
 import { canRequestCancellation, isReturnEligibleCategory, policyConfig, returnWindowEnd } from "@/config/policies";
 import { AppProviders } from "@/context/AppProviders";
-import { bundles } from "@/data/bundles";
-import { categories } from "@/data/categories";
-import { products } from "@/data/products";
+import { bundles } from "./fixtures/catalog/bundles";
+import { categories } from "./fixtures/catalog/categories";
+import { products } from "./fixtures/catalog/products";
 import { addToCart, parseCart, removeFromCart, resolveLines, setCartQuantity, summarize } from "@/lib/cart";
-import { advanceOrder, buildOrder } from "@/lib/orders";
 import { defaultVariant, lineKey, resolveSelection } from "@/lib/variants";
-import type { Address } from "@/types/order";
+import type { Address, Order, OrderStatus } from "@/types/order";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -103,18 +102,11 @@ describe("product variants: cart and orders", () => {
     expect(lines[0]!.issue).toBe("out_of_stock");
   });
 
-  it("keeps the option through browser storage and into the order snapshot", () => {
+  it("keeps the option through browser storage", () => {
     expect(parseCart([{ product_id: kurta.id, variant_id: "l", quantity: 1 }, { product_id: "x", variant_id: 5, quantity: 1 }])).toEqual([
       { product_id: kurta.id, variant_id: "l", quantity: 1 },
       { product_id: "x", quantity: 1 },
     ]);
-    const { lines } = resolveLines([{ product_id: kurta.id, variant_id: "l", quantity: 1 }, { product_id: onions.id, variant_id: "5kg", quantity: 1 }], catalog);
-    const order = buildOrder(lines, address, "MA-1", new Date("2026-10-27T10:00:00Z"));
-    expect(order.items.map((i) => [i.variant_id, i.variant_label, i.unit, i.unit_price, i.category_id])).toEqual([
-      ["l", "Size L", "2-piece set", 129900, apparelId],
-      ["5kg", undefined, "5 kg", 18500, onions.category_id],
-    ]);
-    expect(order.total).toBe(129900 + 18500);
   });
 });
 
@@ -159,15 +151,22 @@ describe("policy rules", () => {
   });
 
   it("shows the right note on an order as it progresses", () => {
-    const { lines } = resolveLines([{ product_id: kurta.id, variant_id: "m", quantity: 1 }, { product_id: onions.id, quantity: 1 }], catalog);
-    let order = buildOrder(lines, address, "MA-1", new Date("2026-10-20T10:00:00Z"));
-    const { rerender } = render(<OrderPolicyNote order={order} />);
-    expect(screen.getByText(/You can ask to cancel this order until it is packed/)).toBeInTheDocument();
-    for (let i = 0; i < 3; i++) order = advanceOrder(order, new Date("2026-10-21T10:00:00Z"));
-    rerender(<OrderPolicyNote order={order} />);
+    // An order as the backend returns it, at a given status with its history.
+    const at = (status: OrderStatus, history: [OrderStatus, string][]): Order =>
+      ({
+        id: "MA-1", created_at: "2026-10-20T10:00:00Z", status, source: "backend", address,
+        items: [
+          { product_id: kurta.id, name: kurta.name, category_id: apparelId, category_slug: "womens-apparel", quantity: 1 },
+          { product_id: onions.id, name: onions.name, category_id: onions.category_id, category_slug: "vegetables", quantity: 1 },
+        ],
+        history: history.map(([s, a]) => ({ status: s, at: a })),
+      }) as unknown as Order;
+    const placed: [OrderStatus, string] = ["order_placed", "2026-10-20T10:00:00Z"];
+    const { rerender } = render(<OrderPolicyNote order={at("order_placed", [placed])} />);
+    expect(screen.getByText(/You can cancel this order until it is packed/)).toBeInTheDocument();
+    rerender(<OrderPolicyNote order={at("ready_for_dispatch", [placed, ["ready_for_dispatch", "2026-10-21T10:00:00Z"]])} />);
     expect(screen.getByText(/can no longer be cancelled/)).toBeInTheDocument();
-    order = advanceOrder(advanceOrder(order, new Date("2026-10-22T10:00:00Z")), new Date("2026-10-22T10:00:00Z"));
-    rerender(<OrderPolicyNote order={order} />);
+    rerender(<OrderPolicyNote order={at("delivered", [placed, ["delivered", "2026-10-22T10:00:00Z"]])} />);
     const note = screen.getByText(/return requests can be made until/);
     expect(note.textContent).toContain(kurta.name);
     expect(note.textContent).not.toContain(onions.name);
@@ -205,7 +204,7 @@ describe("footer", () => {
     expect(creditLine.parentElement).toHaveClass("text-center");
     const notices = screen.getByText(/All rights reserved/);
     expect(notices.textContent!.replace(/\s+/g, " ").trim()).toBe(
-      "© Mithren Agro Pvt. Ltd. All rights reserved. · Preview storefront · Listings, prices and sellers are sample data · Policies are drafts under legal review",
+      "© Mithren Agro Pvt. Ltd. All rights reserved. · Policies are drafts under legal review",
     );
     // The credit is the footer's last line, after the notices.
     expect(container.querySelector("footer")!.lastElementChild).toContainElement(creditLine);

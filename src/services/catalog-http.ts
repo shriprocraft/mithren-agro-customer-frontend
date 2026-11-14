@@ -1,10 +1,10 @@
 import { apiEndpoints } from "@/config/api";
 import { ApiError, type ApiClient } from "@/lib/api-client";
-import { isCategorySlug, type Category, type Product, type Vendor } from "@/types/catalog";
+import type { Category, Product, Vendor } from "@/types/catalog";
 
 // The backend catalogue (GET /catalog/*, docs/BACKEND_CONTRACTS.md). Responses already have the
-// shapes in types/catalog.ts; this adapter only pages through lists and drops anything the storefront
-// can't place (a category slug it doesn't know, and the products filed under it).
+// shapes in types/catalog.ts; this adapter only pages through lists and drops products whose category
+// the API doesn't list (an unlisted category's products have nowhere to be shown).
 
 /** The API's largest page; the catalogue is read whole, a page at a time. */
 const PAGE_SIZE = 100;
@@ -30,7 +30,7 @@ export function createHttpCatalog(client: ApiClient): CatalogReader {
 
   async function categories(): Promise<Category[]> {
     const response = await client.request<{ categories: Category[] }>(apiEndpoints.catalog.categories);
-    return response.categories.filter((category) => isCategorySlug(category.slug));
+    return response.categories;
   }
 
   async function keepPlaced(items: Product[]): Promise<Product[]> {

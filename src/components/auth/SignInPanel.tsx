@@ -10,7 +10,7 @@ import { useAnnounce } from "@/context/AnnouncerContext";
 import { useAuth } from "@/context/AuthContext";
 import { normalizeMobile } from "@/lib/address";
 import { AuthError, authErrorMessage } from "@/lib/auth-errors";
-import { isValidEmail } from "@/lib/demo-account";
+import { isValidEmail } from "@/lib/email";
 import { cn } from "@/lib/utils";
 import type { AuthErrorCode, OtpChallenge, OtpChannel } from "@/types/auth";
 
@@ -257,7 +257,7 @@ function OtpStep({ challenge, destination, onChallenge, onBack }: { challenge: O
       <div>
         <h2 className="font-heading text-lg font-semibold">Enter the 6-digit code</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {challenge.development_code ? "Generated for" : "Sent to"} <span className="font-medium text-foreground">{challenge.destination_hint}</span>
+          Sent to <span className="font-medium text-foreground">{challenge.destination_hint}</span>
         </p>
         {!expiredLocally && (
           <p className="mt-1 text-xs text-muted-foreground" data-testid="code-expiry">
@@ -265,12 +265,6 @@ function OtpStep({ challenge, destination, onChallenge, onBack }: { challenge: O
           </p>
         )}
       </div>
-
-      {challenge.development_code && (
-        <p role="note" className="rounded-2xl border border-highlight bg-highlight/25 p-3 text-xs leading-relaxed text-foreground/85">
-          Development mock: no message was sent. Code for this attempt: <strong data-testid="development-code" className="font-mono text-sm font-semibold">{challenge.development_code}</strong>
-        </p>
-      )}
 
       <div className="grid gap-1.5">
         <Label htmlFor="sign-in-code">One-time code</Label>

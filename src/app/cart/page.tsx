@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { PageLoading } from "@/components/layout/PageLoading";
 import type { Metadata } from "next";
 import { CartView } from "@/components/checkout/CartView";
 import { CheckoutSteps } from "@/components/checkout/CheckoutSteps";
@@ -8,7 +10,7 @@ import { getCatalog, getVendors } from "@/services/catalog";
 
 export const metadata: Metadata = { title: "Your cart" };
 
-export default async function CartPage() {
+async function CartPageContent() {
   const [catalog, vendors] = await Promise.all([getCatalog(), getVendors()]);
   const vendorNames = Object.fromEntries(vendors.map((v) => [v.id, v.name]));
 
@@ -25,5 +27,15 @@ export default async function CartPage() {
         </div>
       </Container>
     </main>
+  );
+}
+
+// The data comes live from the backend on every request, so it loads inside this boundary: the page
+// streams with a loading state instead of blocking navigation.
+export default function CartPage() {
+  return (
+    <Suspense fallback={<PageLoading label="Loading your cart…" />}>
+      <CartPageContent />
+    </Suspense>
   );
 }

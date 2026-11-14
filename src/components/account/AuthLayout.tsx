@@ -14,7 +14,6 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <div className="absolute inset-x-0 bottom-0 p-10 text-white">
           <Leaf className="size-8" />
           <p className="mt-3 font-heading text-2xl leading-snug font-semibold">Produce, pantry staples, farm supplies and apparel from independent sellers, in one cart.</p>
-          <p className="mt-2 text-sm text-white/85">A preview storefront: listings, prices and sellers are sample data.</p>
         </div>
       </aside>
     </div>

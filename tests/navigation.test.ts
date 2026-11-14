@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { categories } from "@/data/categories";
+import { categories } from "./fixtures/catalog/categories";
 import { shopLinks } from "@/lib/navigation";
 
 describe("shopLinks", () => {

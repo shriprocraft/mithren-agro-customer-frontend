@@ -4,7 +4,7 @@ import { CartMenu } from "@/components/layout/CartMenu";
 import { WishlistMenu } from "@/components/layout/WishlistMenu";
 import { ProductCard } from "@/components/products/ProductCard";
 import { AppProviders } from "@/context/AppProviders";
-import { products } from "@/data/products";
+import { products } from "./fixtures/catalog/products";
 
 const tomatoes = products.find((p) => p.slug === "tomatoes")!;
 const jowar = products.find((p) => p.slug === "jowar")!;
@@ -54,6 +54,6 @@ describe("ProductCard", () => {
     act(() => fireEvent.click(screen.getByRole("button", { name: "Quick view: Tomatoes" })));
     expect(screen.getByRole("dialog", { name: "Tomatoes" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View full details" })).toHaveAttribute("href", "/products/p-tomatoes");
-    expect(screen.getByText(/Sample listing for this preview/)).toBeInTheDocument();
+    expect(screen.getByText(/Pay with Cash on Delivery/)).toBeInTheDocument();
   });
 });

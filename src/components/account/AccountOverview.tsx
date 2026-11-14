@@ -2,14 +2,12 @@
 
 import Link from "next/link";
 import { ArrowRight, Heart, MapPin, Package } from "lucide-react";
-import { DemoBadge } from "@/components/account/DemoBadge";
 import { OrderCard } from "@/components/account/OrderCard";
 import { MessageState } from "@/components/checkout/PageState";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/typography";
 import { useAddressBook } from "@/context/AddressBookContext";
 import { useAuth, useBackendCustomerId } from "@/context/AuthContext";
-import { useDemoAccount } from "@/context/DemoAccountContext";
 import { useOrders } from "@/context/OrdersContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { formatAddressLine } from "@/lib/address";
@@ -21,18 +19,16 @@ function formatPhone(phone: string | null | undefined): string {
   return match ? `+91 ${match[1]} ${match[2]}` : phone;
 }
 
-// Account home: greeting, three shortcuts with live counts, and the latest orders. A customer signed in
-// through the backend sees their own account (name, phone, orders, addresses, wishlist); the demo
-// account keeps its sample profile and notice.
+// Account home for the signed-in customer: greeting, three shortcuts with live counts, and the latest
+// orders, all from their account on the backend.
 export function AccountOverview() {
-  const { profile } = useDemoAccount();
   const { session } = useAuth();
   const signedIn = Boolean(useBackendCustomerId());
   const customer = signedIn && session?.source === "backend" ? session.customer : null;
-  const { orders, hydrated: ordersReady, mode: ordersMode } = useOrders();
+  const { orders, hydrated: ordersReady } = useOrders();
   const { addresses, defaultId, hydrated: addressesReady } = useAddressBook();
   const { ids, hydrated: wishlistReady } = useWishlist();
-  const name = customer ? customer.full_name?.trim() || "" : profile.full_name;
+  const name = customer?.full_name?.trim() || "";
   const firstName = name.split(/\s+/)[0] || name;
   const defaultAddress = addresses.find((a) => a.id === defaultId);
   const count = (ready: boolean, text: string) => (ready ? text : "Loading…");
@@ -49,14 +45,13 @@ export function AccountOverview() {
   return (
     <div className="space-y-8">
       <section aria-labelledby="overview-title" className="rounded-3xl bg-soft p-5 ring-1 ring-border sm:p-7">
-        {!customer && <DemoBadge />}
-        <Heading as="h1" id="overview-title" variant="h1" className={customer ? "text-[1.625rem] sm:text-3xl" : "mt-3 text-[1.625rem] sm:text-3xl"}>
+        <Heading as="h1" id="overview-title" variant="h1" className="text-[1.625rem] sm:text-3xl">
           {firstName ? `Hello, ${firstName}` : "Hello"}
         </Heading>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
           {customer
             ? `Signed in as ${customer.phone ? formatPhone(customer.phone) : customer.email ?? "a Mithren Agro customer"}. Your orders, addresses and wishlist are kept in your account.`
-            : "This is the demo account. Its orders and address are sample data, nothing here is a real purchase, and everything is saved in this browser only."}
+            : "Loading your account…"}
         </p>
         {customer && !customer.full_name && (
           <p className="mt-2 text-sm"><Link href="/account/profile" className="font-medium text-primary underline-offset-4 hover:underline">Add your name</Link> for your orders and deliveries.</p>
@@ -91,7 +86,7 @@ export function AccountOverview() {
         {orders.length === 0 ? (
           <div className="mt-3">
             <MessageState icon={Package} title="No orders yet" actions={<Button asChild><Link href="/products">Start shopping</Link></Button>}>
-              {ordersMode === "backend" ? "Orders you place appear here, with their status and tracking." : "Orders you place in this browser appear here."}
+              Orders you place appear here, with their status and tracking.
             </MessageState>
           </div>
         ) : (

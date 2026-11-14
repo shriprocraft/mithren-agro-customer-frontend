@@ -15,18 +15,12 @@ import { shopHref } from "@/lib/browse";
 import { imageShapeFor } from "@/lib/catalog-display";
 import { cn } from "@/lib/utils";
 import { hasVariants } from "@/lib/variants";
-import { getCatalog, getCategories, getProduct, getRelatedProducts, getVendors } from "@/services/catalog";
+import { getCategories, getProduct, getRelatedProducts, getVendors } from "@/services/catalog";
 
-// Every catalogue item is prerendered. Other ids render at request time (Cache Components has no
-// dynamicParams), so params are awaited inside Suspense for an instant shell, and unknown ids call
-// notFound(), which renders not-found.tsx beside this file. The fallback must stay at least a screen
-// tall (see ProductDetailSkeleton) or client navigations can land at the bottom of the page.
-// With the backend catalogue, the build reads it from the API. Cache Components needs at least one
-// param, so an empty catalogue prerenders a placeholder id, which shows "not found".
-export async function generateStaticParams() {
-  const ids = (await getCatalog()).map((p) => ({ productId: p.id }));
-  return ids.length > 0 ? ids : [{ productId: "unavailable" }];
-}
+// Rendered on every request from the live catalogue (nothing is prerendered from a build-time snapshot).
+// params are awaited inside Suspense for an instant shell, and unknown ids call notFound(), which renders
+// not-found.tsx beside this file. The fallback must stay at least a screen tall (see
+// ProductDetailSkeleton) or client navigations can land at the bottom of the page.
 
 export async function generateMetadata({ params }: PageProps<"/products/[productId]">): Promise<Metadata> {
   const product = await getProduct((await params).productId);
@@ -129,7 +123,7 @@ async function ProductContent({ params }: Pick<PageProps<"/products/[productId]"
             </dl>
             <p className="mt-4 flex gap-2 rounded-2xl bg-secondary p-3 text-xs leading-relaxed text-secondary-foreground">
               <Info className="mt-px size-4 shrink-0" aria-hidden="true" />
-              Sample listing for this preview. Delivery estimates, reviews and payment are not available yet.
+              Pay with Cash on Delivery. Delivery estimates and reviews are not available yet.
             </p>
           </section>
         </div>

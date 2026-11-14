@@ -74,7 +74,7 @@ export function CartMenu({ catalog }: { catalog: Product[] }) {
             </PopoverClose>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">Your cart is saved in this browser only. Prices are sample data.</p>
+        <p className="text-xs text-muted-foreground">Your cart is saved in this browser. Prices and stock are checked by the store at checkout.</p>
       </PopoverContent>
     </Popover>
   );

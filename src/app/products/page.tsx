@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PageLoading } from "@/components/layout/PageLoading";
 import type { Metadata } from "next";
 import { Layers, Store, Tags } from "lucide-react";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -10,7 +11,7 @@ import { getCatalog, getCategories, getVendors } from "@/services/catalog";
 
 export const metadata: Metadata = { title: "Shop all products" };
 
-export default async function ProductsPage() {
+async function ProductsPageContent() {
   const [products, categories, vendors] = await Promise.all([getCatalog(), getCategories(), getVendors()]);
   const vendorNames = Object.fromEntries(vendors.map((v) => [v.id, v.name]));
   // The summary beside the heading uses counts from the catalogue itself, nothing more.
@@ -30,7 +31,7 @@ export default async function ProductsPage() {
             <Heading as="h1" variant="h1" className="text-[1.625rem] sm:text-4xl">Shop the marketplace</Heading>
             <Text variant="muted" className="mt-1.5 sm:text-base">
               Fresh produce, pantry staples, farm supplies and apparel from independent sellers, in one cart. Search, pick a category, sort or
-              filter. All products, prices and sellers are sample data.
+              filter.
             </Text>
           </div>
           <dl aria-label="Marketplace at a glance" className="grid shrink-0 grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-soft py-2.5 sm:max-w-md lg:w-96">
@@ -55,5 +56,14 @@ export default async function ProductsPage() {
         </div>
       </Container>
     </main>
+  );
+}
+
+// The catalogue comes live from the backend on every request, so it loads inside this boundary.
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<PageLoading label="Loading products…" />}>
+      <ProductsPageContent />
+    </Suspense>
   );
 }

@@ -22,10 +22,6 @@ const sections: PolicySection[] = [
           {siteConfig.legalName} (<Placeholder>{policyPlaceholders.registeredAddress}</Placeholder>). By using the website or placing an
           order, you agree to these terms and to the policies they refer to.
         </p>
-        <p>
-          <strong>Current preview.</strong> The website is presently a preview: listings, prices and sellers are sample data, no payment is taken
-          and orders are not fulfilled. Orders placed in the preview create no obligation for either party.
-        </p>
       </>
     ),
   },
@@ -42,7 +38,6 @@ const sections: PolicySection[] = [
         <li>Keep your account and contact details accurate and up to date.</li>
         <li>Keep your sign-in details confidential and tell us promptly about any unauthorised use.</li>
         <li>You are responsible for activity on your account that results from your failure to keep it secure.</li>
-        <li>The demo account currently offered is a demonstration with sample data; it is not a secure account and must not be used for real personal information.</li>
       </ul>
     ),
   },

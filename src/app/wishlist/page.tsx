@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { PageLoading } from "@/components/layout/PageLoading";
 import type { Metadata } from "next";
 import { WishlistView } from "@/components/checkout/WishlistView";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -7,7 +9,7 @@ import { getCatalog, getVendors } from "@/services/catalog";
 
 export const metadata: Metadata = { title: "Your wishlist" };
 
-export default async function WishlistPage() {
+async function WishlistPageContent() {
   const [catalog, vendors] = await Promise.all([getCatalog(), getVendors()]);
   const vendorNames = Object.fromEntries(vendors.map((v) => [v.id, v.name]));
   return (
@@ -20,5 +22,15 @@ export default async function WishlistPage() {
         </div>
       </Container>
     </main>
+  );
+}
+
+// The data comes live from the backend on every request, so it loads inside this boundary: the page
+// streams with a loading state instead of blocking navigation.
+export default function WishlistPage() {
+  return (
+    <Suspense fallback={<PageLoading label="Loading your wishlist…" />}>
+      <WishlistPageContent />
+    </Suspense>
   );
 }

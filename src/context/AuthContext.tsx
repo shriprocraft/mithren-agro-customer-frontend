@@ -5,9 +5,8 @@ import { AuthError } from "@/lib/auth-errors";
 import { getAuthService } from "@/services/auth";
 import type { AuthMode, AuthService, AuthSession, GoogleLinkStatus, OtpChallenge, OtpChannel } from "@/types/auth";
 
-// The customer's sign-in state, separate from the demo account (context/DemoAccountContext.tsx), whose
-// marker proves nothing and never counts as signed in. The session is read from the configured adapter
-// on load. If that fails, the customer is treated as signed out, so checkout fails closed.
+// The customer's sign-in state, read from the backend (GET /auth/session) on load. If that fails, the
+// customer is treated as signed out, so checkout fails closed.
 interface AuthValue {
   /** "loading" until the session check has finished; show a loading state, not a signed-out one. */
   status: "loading" | "anonymous" | "authenticated";
@@ -23,7 +22,7 @@ interface AuthValue {
   refreshSession: () => Promise<void>;
   /**
    * True right after a backend sign-in whose customer has no name yet: the sign-in page asks for one
-   * before continuing. Never for the development mock. Skipping only lasts until the next sign-in.
+   * before continuing. Skipping only lasts until the next sign-in.
    */
   needsName: boolean;
   /** Ends the name step (saved or skipped) for this sign-in. */
@@ -130,7 +129,7 @@ export function useOptionalAuth() {
   return useContext(AuthContext);
 }
 
-/** The signed-in customer's id when the session comes from the real backend (never the development mock). */
+/** The signed-in customer's id (sessions only come from the backend). */
 export function useBackendCustomerId(): string | null {
   const auth = useOptionalAuth();
   return auth?.status === "authenticated" && auth.session?.source === "backend" ? auth.session.customer.id : null;

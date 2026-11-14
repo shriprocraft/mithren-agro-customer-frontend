@@ -82,7 +82,7 @@ export function ProductQuickView({ product, vendorName }: ProductQuickViewProps)
             </DialogClose>
             <p className="flex gap-2 rounded-xl bg-secondary p-3 text-xs text-secondary-foreground">
               <Info className="mt-px size-4 shrink-0" aria-hidden="true" />
-              Sample listing for this preview. Delivery estimates and payment are not available yet.
+              Pay with Cash on Delivery. Delivery estimates are not available yet.
             </p>
           </div>
         </div>

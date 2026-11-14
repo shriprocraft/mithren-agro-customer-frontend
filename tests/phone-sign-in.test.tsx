@@ -273,10 +273,10 @@ describe("phone sign-in errors", () => {
 });
 
 describe("sign-up with the backend", () => {
-  it("points to phone sign-in instead of the preview form", async () => {
+  it("points to sign-in instead of a sign-up form", async () => {
     const { service } = fakeBackend();
     render(<AppProviders authService={service}><RegisterView /></AppProviders>);
-    expect(await screen.findByRole("link", { name: "Sign in with your mobile number" })).toHaveAttribute("href", "/login");
+    expect(await screen.findByRole("link", { name: "Go to sign in" })).toHaveAttribute("href", "/login");
     expect(screen.queryByRole("button", { name: /Create account \(preview\)/ })).toBeNull();
   });
 

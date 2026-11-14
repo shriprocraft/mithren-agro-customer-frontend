@@ -184,17 +184,6 @@ describe("address book storage", () => {
     expect(service.create).not.toHaveBeenCalled();
     expect(JSON.parse(localStorage.getItem("mithren.addresses")!)).toHaveLength(1);
   });
-
-  it("demo sample addresses stay in browser storage even for a signed-in customer", async () => {
-    const service = fakeAddressService();
-    renderBook(signedIn, service);
-    await waitFor(() => expect(book.hydrated).toBe(true));
-
-    act(() => { book.addSample(input); });
-
-    expect(service.create).not.toHaveBeenCalled();
-    expect(JSON.parse(localStorage.getItem("mithren.addresses")!)[0]).toMatchObject({ is_sample: true });
-  });
 });
 
 describe("account profile view", () => {

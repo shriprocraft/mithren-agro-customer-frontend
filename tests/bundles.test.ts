@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { bundles, comboBoxes, comboOffers } from "@/data/bundles";
-import { products } from "@/data/products";
+import { bundles, comboBoxes, comboOffers } from "./fixtures/catalog/bundles";
+import { products } from "./fixtures/catalog/products";
 import { buildBundle, bundleStock, resolveBundleItems } from "@/lib/bundles";
 import { addToCart, resolveLines, summarize } from "@/lib/cart";
 import { effectivePrice } from "@/lib/formatters";
