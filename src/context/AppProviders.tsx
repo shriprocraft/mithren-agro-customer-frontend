@@ -10,6 +10,7 @@ import { CheckoutProvider } from "@/context/CheckoutContext";
 import { OrdersProvider } from "@/context/OrdersContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import type { CartService } from "@/services/cart";
 import type { OrdersService } from "@/services/orders";
 import type { WishlistService } from "@/services/wishlist";
 import type { AuthService } from "@/types/auth";
@@ -19,11 +20,13 @@ import type { AuthService } from "@/types/auth";
 export function AppProviders({
   children,
   authService,
+  cartService,
   ordersService,
   wishlistService,
 }: {
   children: ReactNode;
   authService?: AuthService;
+  cartService?: CartService | null;
   ordersService?: OrdersService | null;
   wishlistService?: WishlistService | null;
 }) {
@@ -31,9 +34,9 @@ export function AppProviders({
     <MotionConfig reducedMotion="user">
       <AnnouncerProvider>
         <ToastProvider>
-          <CartProvider>
-            {/* Outside the address book and wishlist: both come from the account once signed in. */}
-            <AuthProvider service={authService}>
+          {/* Outside the cart, address book and wishlist: all three come from the account once signed in. */}
+          <AuthProvider service={authService}>
+            <CartProvider {...(cartService !== undefined && { service: cartService })}>
               <WishlistProvider {...(wishlistService !== undefined && { service: wishlistService })}>
                 <AddressBookProvider>
                   <CheckoutProvider>
@@ -41,8 +44,8 @@ export function AppProviders({
                   </CheckoutProvider>
                 </AddressBookProvider>
               </WishlistProvider>
-            </AuthProvider>
-          </CartProvider>
+            </CartProvider>
+          </AuthProvider>
         </ToastProvider>
       </AnnouncerProvider>
     </MotionConfig>

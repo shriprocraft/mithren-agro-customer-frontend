@@ -2,7 +2,7 @@
 
 What the customer frontend expects from the backend. Endpoint names live only in `src/config/api.ts`, and API calls only in `src/lib/api-client.ts` and `src/services/*`, so UI components don't change when these do.
 
-**Status:** the backend (FastAPI, `mithren-agro-backend`) implements the session endpoints (`GET /auth/session`, `POST /auth/sign-out`), phone and email OTP sign-in, Google sign-in, the customer profile, the address book and the public catalogue, as documented below. No SMS provider is connected yet: phone codes are delivered only by the backend's development fake sender. Cash on Delivery orders are implemented as documented below. Email OTP, Google sign-in and reverse geocoding are still proposals.
+**Status:** the backend (FastAPI, `mithren-agro-backend`) implements the session endpoints (`GET /auth/session`, `POST /auth/sign-out`), phone and email OTP sign-in, Google sign-in, the customer profile, the address book and the public catalogue, as documented below. No SMS provider is connected yet: phone codes are delivered only by the backend's development fake sender. Cash on Delivery orders, the wishlist, the cart, catalogue search and reverse geocoding are implemented as documented below. Every product, price and account record comes from the API: the storefront has no sample data and no fallback.
 
 ## Conventions
 
@@ -95,18 +95,19 @@ Sending codes is a backend job. No provider has been chosen or connected, and pr
 
 ## Catalogue (`src/services/catalog.ts`, `src/services/catalog-http.ts`; implemented)
 
-Used when `NEXT_PUBLIC_CATALOG_SOURCE=backend`; otherwise the sample catalogue in `src/data` is used. Public: no cookie, no sign-in. Responses are `Cache-Control: public, max-age=60`, and the storefront caches them for a few minutes (`"use cache"`).
+Public: no cookie, no sign-in. Responses are `Cache-Control: public, max-age=60`. Pages read the catalogue on the Next.js server on every request (no `"use cache"`); the marketplace's search, filters and sort call `/catalog/products` from the browser (`src/services/catalog-search.ts`, `src/hooks/useCatalogSearch.ts`). When the API fails, pages show an error (`app/error.tsx`), never sample data.
 
 | Method | Path | Success |
 |---|---|---|
 | GET | `/catalog/categories` | `200 { "categories": Category[] }`, in display order |
 | GET | `/catalog/vendors` | `200 { "vendors": Vendor[] }`: only vendors with something on sale |
-| GET | `/catalog/products?category=<slug>&seasonal=true&limit=1..100&offset=0` | `200 { "products": Product[], "total", "limit", "offset" }`: single products, not combo boxes |
-| GET | `/catalog/products/:id` | `200 Product` for a product or a combo box; `404 product_not_found` for anything else, including a sample id such as `p-tomatoes` |
+| GET | `/catalog/products?q=&category=<slug>[,<slug>…]&seasonal=true&min_price=&max_price=&stock=in_stock[,out_of_stock]&vendor=<id>[,…]&unit=<unit>[,…]&on_sale=true&include_bundles=true&sort=relevance\|price_asc\|price_desc\|name_asc\|newest&limit=1..100&offset=0` | `200 { "products": Product[], "total", "limit", "offset" }`: single products, plus combo boxes with `include_bundles=true` |
+| GET | `/catalog/products/:id` | `200 Product` for a product or a combo box; `404 product_not_found` for anything else, including an id that isn't a UUID |
 | GET | `/catalog/products/:id/related?limit=1..8` | `200 { "products": Product[] }` from the same category (default 4) |
 | GET | `/catalog/bundles?combo_box=true` | `200 { "products": Product[] }`: combo boxes with `bundle_items` and `bundle_contents`; `combo_box=true` gives the homepage boxes |
 
-- Shapes are exactly `Category`, `Vendor` and `Product` in `src/types/catalog.ts`. Optional fields are left out, never `null`. Ids are UUIDs, so a cart or wishlist saved with sample ids simply drops those items.
+- Shapes are exactly `Category`, `Vendor` and `Product` in `src/types/catalog.ts`. Optional fields are left out, never `null`. Ids are UUIDs.
+- **Search** (`/catalog/products`): `q` needs every word in the product's name, seller or category name (any case). Prices are the selling price in **paise** (the marketplace URL uses whole rupees). Filters combine with AND, values within one filter with OR (the rules of `lib/marketplace.ts`). `relevance` keeps display order; `newest` is by listing date. Malformed values give `422 validation_error`.
 - `stock_status` is worked out on the server (0 is `out_of_stock`, 1 to 5 `low_stock`); exact stock, seller ids and SKUs are never sent. `vendor_id` is a public vendor id, not the seller's.
 - `price` is the list price and `discounted_price` the selling price, when lower. A product with options describes its default option; combo boxes are priced from their items, as in `lib/bundles.ts`.
 - Only listed, active products of approved sellers appear; a combo box appears only if all its items do.
@@ -114,7 +115,7 @@ Used when `NEXT_PUBLIC_CATALOG_SOURCE=backend`; otherwise the sample catalogue i
 
 ## Checkout quote (`src/services/checkout.ts`, `src/hooks/useCheckoutQuote.ts`; implemented)
 
-Used with the backend catalogue only (sample product ids mean nothing to the API; sample mode keeps pricing in `lib/cart.ts`). The cart and address steps ask without an address; the review step asks with the chosen address when it is in the customer's account.
+The only source of prices at checkout: without the API, the cart and checkout show an error. The cart and address steps ask without an address; the review step asks with the chosen address when it is in the customer's account.
 
 | Method | Path | Request | Success |
 |---|---|---|---|
@@ -128,7 +129,7 @@ Used with the backend catalogue only (sample product ids mean nothing to the API
 
 ## Orders (`src/services/orders.ts`; implemented, Cash on Delivery)
 
-Used when the backend catalogue is on (`NEXT_PUBLIC_CATALOG_SOURCE=backend`) and the customer is signed in through the backend. The sample catalogue and the demo account keep their orders in this browser (`OrdersContext`, mode `"browser"`), unchanged.
+Needs a customer signed in through the backend; orders exist only in the account (`OrdersContext`).
 
 | Method | Path | Request | Success |
 |---|---|---|---|
@@ -144,7 +145,7 @@ Used when the backend catalogue is on (`NEXT_PUBLIC_CATALOG_SOURCE=backend`) and
 
 ## Wishlist (`src/services/wishlist.ts`; implemented)
 
-Used with the backend catalogue for a customer signed in through the backend; guests, the sample catalogue and the demo account keep the wishlist in this browser (`WishlistContext`).
+For a customer signed in through the backend; guests keep the wishlist in this browser (`WishlistContext`) until they sign in.
 
 | Method | Path | Request | Success |
 |---|---|---|---|
@@ -154,6 +155,21 @@ Used with the backend catalogue for a customer signed in through the backend; gu
 | POST | `/customer/wishlist/merge` | `{ "product_ids": [...] }` | `200` the list; adds, never removes; skips unknown ids |
 
 On sign-in, hearts saved in this browser are merged into the account and then cleared here. A heart shows at once; if the store refuses the change, it is undone with an error toast. `/account/wishlist` and the account overview open for signed-in customers.
+
+## Cart (`src/services/cart.ts`, `CartContext`; implemented)
+
+For a customer signed in through the backend; guests keep the cart in this browser (`mithren.cart` in localStorage) until they sign in. Prices are never stored: the checkout quote prices the cart.
+
+| Method | Path | Request | Success |
+|---|---|---|---|
+| GET | `/customer/cart` | none | `200 { "items": [{ "product_id", "variant_id", "quantity", "added_at", "updated_at" }] }`, in the order lines were added |
+| PUT | `/customer/cart/{product_id}` | `{ "variant_id"?: string \| null, "quantity": 1..20 }` | `200` the whole cart. Sets the quantity (not an increment). `404 product_not_found` or `variant_not_found`, `409 cart_full` (50 lines) |
+| DELETE | `/customer/cart/{product_id}?variant_id=` | none | `204` (also when the line isn't there) |
+| DELETE | `/customer/cart` | none | `204`: empties the cart (after an order) |
+| POST | `/customer/cart/merge` | `{ "items": [{ "product_id", "variant_id"?, "quantity" }] }` (up to 50) | `200` the cart; adds, never removes; a line already there keeps the larger quantity; skips unknown or hidden items |
+
+- A line is a product with one of its options (or none), or a combo box. Lines for items no longer shown are kept: the quote lists them as `unavailable` and the cart page offers to remove them.
+- On sign-in, the browser's cart is merged into the account and then cleared here. Every change shows at once and is sent to the API; if the store refuses it, it is undone with an error toast. `401 session_expired`, `403 origin_not_allowed`, `422 validation_error` and `503` as elsewhere.
 
 ## Customer profile (`src/services/profile.ts`; implemented)
 
@@ -191,9 +207,9 @@ How the fields map to the model proposed in the brief:
 | `isDefault` | `default_address_id` on the list |
 | `createdAt`, `updatedAt` | Added by the server |
 
-`AddressBookContext` uses these endpoints when a customer is signed in through the backend. Guests and the demo account keep addresses in browser storage; those are never uploaded or deleted when someone signs in. The address chosen in the header (`useDeliveryAddress`) is still a per-browser preference.
+`AddressBookContext` uses these endpoints when a customer is signed in through the backend. Guests keep addresses in browser storage; those are never uploaded or deleted when someone signs in. The address chosen in the header (`useDeliveryAddress`) is still a per-browser preference.
 
-## Reverse geocoding (`src/services/geocoding.ts`)
+## Reverse geocoding (`src/services/geocoding.ts`; implemented)
 
 `GET /geocoding/reverse?lat=13.06&lng=80.25`
 
@@ -202,8 +218,8 @@ How the fields map to the model proposed in the brief:
 ```
 
 - Return `{ "address": null }` when nothing is found.
-- Require the provider's key on the backend, and rate-limit the endpoint.
-- Treat coordinates as personal data: don't log them.
+- The backend uses OpenStreetMap Nominatim (no key): at most one provider call a second, an identifying `User-Agent` (`GEOCODING_USER_AGENT`), answers cached briefly, and each client IP rate-limited (`429 rate_limited` with `retry_after_seconds`). `GEOCODING_PROVIDER=none` makes it answer `503` (shown as "unavailable"); a provider failure is `502 geocoding_failed`.
+- Coordinates are personal data: they are never logged (the access log's query string is redacted).
 - `state` must be a full state name to prefill the form.
 
 The customer always reviews and saves the result. A result doesn't mean delivery is available: serviceability needs its own rule and endpoint, which don't exist yet.

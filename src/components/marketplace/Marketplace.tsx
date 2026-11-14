@@ -2,19 +2,19 @@
 
 import { useOptimistic, useState, useTransition, type FormEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowDownUp, LayoutGrid, LoaderCircle, Search, SearchX, X } from "lucide-react";
+import { ArrowDownUp, CircleAlert, LayoutGrid, LoaderCircle, Search, SearchX, X } from "lucide-react";
 import { FilterDrawer } from "@/components/marketplace/FilterDrawer";
 import { ProductCard } from "@/components/products/ProductCard";
 import { ProductGridSkeleton } from "@/components/products/ProductGridSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCatalogSearch } from "@/hooks/useCatalogSearch";
 import { useDelayedFlag } from "@/hooks/useDelayedFlag";
 import { imageShapeFor } from "@/lib/catalog-display";
 import { formatPrice } from "@/lib/formatters";
 import {
   activeFilterCount,
-  applyCriteria,
   clearFilters,
   criteriaToSearch,
   facetsFor,
@@ -32,7 +32,9 @@ interface MarketplaceProps {
 }
 
 // Search, filter and sort the whole catalogue. Reads and writes the URL, so the header search,
-// category links and the back button all drive the same results.
+// category links and the back button all drive the same results. The results come from the backend
+// (GET /catalog/products, called from the browser: useCatalogSearch); the server-rendered catalogue
+// only supplies the filter choices (price range, sellers, pack sizes) and the first, unfiltered view.
 //
 // Loading: the results follow the URL, so they change when the router has committed the new URL.
 // While that navigation is pending the controls already show the new choice (useOptimistic) and,
@@ -46,10 +48,12 @@ export function Marketplace({ products, categories, vendorNames }: MarketplacePr
   const [search, setOptimisticSearch] = useOptimistic(params.toString());
   const committed = parseCriteria(new URLSearchParams(params.toString()));
   const criteria = parseCriteria(new URLSearchParams(search));
-  const results = applyCriteria(products, committed, { categories, vendorNames });
+  const { state: found, retry } = useCatalogSearch(committed, products);
+  const results = found.products;
+  const searching = pending || found.status === "loading";
   const facets = facetsFor(products, vendorNames);
   const filterCount = activeFilterCount(committed);
-  const showSkeleton = useDelayedFlag(pending);
+  const showSkeleton = useDelayedFlag(searching);
   const categoryCounts = categories.map((category) => ({ category, count: products.filter((p) => p.category_id === category.id).length }));
 
   const update = (next: MarketplaceCriteria) => {
@@ -84,7 +88,7 @@ export function Marketplace({ products, categories, vendorNames }: MarketplacePr
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p aria-live="polite" className="min-w-0 text-sm break-words text-muted-foreground">
-          {pending ? (
+          {searching ? (
             <span className="inline-flex items-center gap-2"><LoaderCircle className="size-4 animate-spin text-primary motion-reduce:animate-none" aria-hidden="true" />Updating results…</span>
           ) : (
             <>
@@ -98,7 +102,14 @@ export function Marketplace({ products, categories, vendorNames }: MarketplacePr
 
       <ActiveChips criteria={criteria} categories={categories} vendorNames={vendorNames} onChange={update} />
 
-      {showSkeleton ? (
+      {found.status === "error" ? (
+        <div role="alert" className="surface-card mt-6 flex flex-col items-center gap-3 rounded-3xl px-6 py-12 text-center">
+          <CircleAlert className="size-8 text-destructive" aria-hidden="true" />
+          <h2 className="font-heading text-lg font-medium">Search isn’t available</h2>
+          <p className="max-w-sm text-sm text-muted-foreground">{found.message}</p>
+          <Button onClick={retry}>Try again</Button>
+        </div>
+      ) : showSkeleton ? (
         <ProductGridSkeleton className="mt-4 sm:mt-5" count={Math.min(10, Math.max(4, results.length))} label="Updating products" />
       ) : results.length === 0 ? (
         <div className="surface-card mt-6 flex flex-col items-center gap-3 rounded-3xl px-6 py-12 text-center">

@@ -25,7 +25,8 @@ export function searchHref(query: string): string {
 }
 
 // Opens the marketplace with the search term (a new search starts without other filters). Both sizes
-// share this submit logic; lib/marketplace.ts matches the term against product, seller and category names.
+// share this submit logic; the backend (GET /catalog/products?q=) matches the term against product, seller
+// and category names.
 export function HeaderSearch({ className, size = "compact" }: HeaderSearchProps) {
   const router = useRouter();
   const [value, setValue] = useState("");

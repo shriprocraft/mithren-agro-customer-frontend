@@ -43,6 +43,11 @@ export const apiEndpoints = {
   checkout: {
     quote: "/checkout/quote",
   },
+  cart: {
+    list: "/customer/cart",
+    item: (productId: string) => `/customer/cart/${encodeURIComponent(productId)}`,
+    merge: "/customer/cart/merge",
+  },
   wishlist: {
     list: "/customer/wishlist",
     item: (productId: string) => `/customer/wishlist/${encodeURIComponent(productId)}`,
