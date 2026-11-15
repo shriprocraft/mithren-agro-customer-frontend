@@ -43,11 +43,9 @@ export function ProductQuickView({ product, vendorName }: ProductQuickViewProps)
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] gap-0 overflow-y-auto p-0 sm:max-w-3xl">
         <div className="grid md:grid-cols-2">
-          {image && (
-            <div className={`relative aspect-square md:aspect-auto md:min-h-full ${image.studio ? "bg-white" : "bg-muted"}`}>
-              <CatalogImage image={image} sizes="(min-width: 768px) 384px, 100vw" />
-            </div>
-          )}
+          <div className={`relative aspect-square md:aspect-auto md:min-h-full ${image?.studio ? "bg-white" : "bg-muted"}`}>
+            <CatalogImage image={image} sizes="(min-width: 768px) 384px, 100vw" />
+          </div>
           <div className="flex flex-col gap-4 p-6">
             <div className="space-y-2 pr-8">
               <DialogTitle className="text-2xl leading-tight">{product.name}</DialogTitle>

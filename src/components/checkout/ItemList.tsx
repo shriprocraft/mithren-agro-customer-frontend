@@ -25,7 +25,7 @@ export function ItemList({ items, label }: { items: ItemRow[]; label: string }) 
       {items.map((item) => (
         <li key={item.key} className="flex items-center gap-4 py-3">
           <div className={cn("relative size-16 shrink-0 overflow-hidden rounded-xl", item.image.studio ? "bg-white ring-1 ring-border" : "bg-muted")}>
-            {item.image.src && <CatalogImage image={item.image} alt="" sizes="64px" />}
+            <CatalogImage image={item.image} alt="" sizes="64px" />
           </div>
           <div className="min-w-0 flex-1">
             <Link href={`/products/${item.product_id}`} className="font-medium hover:text-primary hover:underline">{item.name}</Link>

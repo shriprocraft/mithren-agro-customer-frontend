@@ -46,13 +46,11 @@ export function ProductCard({
           imageShape === "portrait" ? "aspect-[4/5]" : "aspect-square",
         )}
       >
-        {image && (
-          <CatalogImage
-            image={image}
-            sizes={sizes}
-            className="transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-          />
-        )}
+        <CatalogImage
+          image={image}
+          sizes={sizes}
+          className="transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+        />
         {product.is_seasonal && (
           <span className="absolute top-2 left-2 rounded-full bg-card/95 px-2.5 py-0.5 shadow-card text-[0.6875rem] font-medium text-brand">
             Seasonal

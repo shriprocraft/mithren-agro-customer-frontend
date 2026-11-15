@@ -20,7 +20,7 @@ export function CompactProductCard({ product, vendorName, className }: CompactPr
   return (
     <article className={cn("surface-card relative flex gap-3 rounded-2xl p-2.5 text-card-foreground", className)}>
       <div className={cn("relative size-24 shrink-0 overflow-hidden rounded-xl sm:size-26", image?.studio ? "bg-white" : "bg-muted")}>
-        {image && <CatalogImage image={image} sizes="112px" />}
+        <CatalogImage image={image} sizes="112px" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
         <h3 className="line-clamp-2 text-sm font-medium leading-snug">

@@ -74,7 +74,7 @@ async function ProductContent({ params }: Pick<PageProps<"/products/[productId]"
               image?.studio ? "bg-white" : "bg-muted",
             )}
           >
-            {image && <CatalogImage image={image} sizes="(min-width: 1024px) 600px, 100vw" />}
+            <CatalogImage image={image} sizes="(min-width: 1024px) 600px, 100vw" />
             {product.is_seasonal && (
               <span className="absolute top-3 left-3 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-brand">Seasonal</span>
             )}

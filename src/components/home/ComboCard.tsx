@@ -45,7 +45,7 @@ export function ComboCard({ bundle, vendorName, layout }: ComboCardProps) {
       )}
 
       <div className={cn("relative overflow-hidden", isBox ? "aspect-[16/9]" : "aspect-[4/3]", image?.studio ? "bg-white" : "bg-muted")}>
-        {image && <CatalogImage image={image} sizes={isBox ? "(min-width: 768px) 420px, 100vw" : "(min-width: 1024px) 420px, (min-width: 768px) 50vw, 100vw"} />}
+        <CatalogImage image={image} sizes={isBox ? "(min-width: 768px) 420px, 100vw" : "(min-width: 1024px) 420px, (min-width: 768px) 50vw, 100vw"} />
         {!isBox && bundle.badge && (
           <span className="absolute top-3 left-3 rounded-full bg-highlight px-3 py-1 text-xs font-semibold text-foreground">{bundle.badge}</span>
         )}

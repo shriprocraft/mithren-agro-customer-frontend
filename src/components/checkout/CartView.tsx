@@ -89,7 +89,7 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
             return (
               <li key={key} className="flex gap-3 p-3 sm:gap-4 sm:p-4">
                 <Link href={`/products/${product.id}`} className={cn("relative size-18 shrink-0 overflow-hidden rounded-xl sm:size-24", image?.studio ? "bg-white ring-1 ring-border" : "bg-muted")} tabIndex={-1} aria-hidden="true">
-                  {image && <CatalogImage image={image} alt="" sizes="96px" />}
+                  <CatalogImage image={image} alt="" sizes="96px" />
                 </Link>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">

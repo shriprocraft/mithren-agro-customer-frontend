@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { CatalogImage } from "@/components/products/CatalogImage";
 import Link from "next/link";
 import { ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,9 +41,9 @@ export function CartMenu({ catalog }: { catalog: Product[] }) {
             <ul className="-mx-1 max-h-72 divide-y overflow-y-auto">
               {lines.map(({ key, product, selection, quantity, unit_price }) => (
                 <li key={key} className="flex items-center gap-3 px-1 py-2">
-                  {product.images[0] && (
-                    <Image src={product.images[0].src} alt="" width={48} height={48} className={`size-12 rounded-lg ${product.images[0].studio ? "bg-white object-contain p-0.5 ring-1 ring-border" : "object-cover"}`} />
-                  )}
+                  <span className={`relative size-12 shrink-0 overflow-hidden rounded-lg ${product.images[0]?.studio ? "bg-white ring-1 ring-border" : "bg-muted"}`}>
+                    <CatalogImage image={product.images[0]} alt="" sizes="48px" className={product.images[0]?.studio ? "p-0.5" : undefined} />
+                  </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{product.name}</p>
                     <p className="truncate text-xs text-muted-foreground">
