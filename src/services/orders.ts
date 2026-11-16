@@ -44,7 +44,9 @@ export interface ApiOrder {
   total: number;
   history: { status: OrderStatus; at: string }[];
   cancellable: boolean;
+  cancel_unavailable?: Order["cancel_unavailable"];
   cancelled_at?: string;
+  cancelled_by?: Order["cancelled_by"];
   cancel_reason?: string;
 }
 
@@ -84,7 +86,9 @@ export function toOrder(order: ApiOrder): Order {
     payment_method: order.payment_method,
     payment_status: order.payment_status,
     cancellable: order.cancellable,
+    ...(order.cancel_unavailable && { cancel_unavailable: order.cancel_unavailable }),
     ...(order.cancelled_at && { cancelled_at: order.cancelled_at }),
+    ...(order.cancelled_by && { cancelled_by: order.cancelled_by }),
     ...(order.cancel_reason && { cancel_reason: order.cancel_reason }),
   };
 }

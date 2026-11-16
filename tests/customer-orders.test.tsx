@@ -186,3 +186,72 @@ describe("the customer's orders from the account", () => {
     expect(orders.get).toHaveBeenCalledWith("MA-20261112-ABC234");
   });
 });
+
+describe("cancelling and tracking while sellers work on the order", () => {
+  const ORDER = "MA-20261112-ABC234";
+  async function openOrder(orders: OrdersService) {
+    const params = Promise.resolve({ orderId: ORDER });
+    await act(async () => {
+      render(<AppProviders authService={signedIn} ordersService={orders}><Suspense fallback={null}><AccountOrderView params={params} /></Suspense></AppProviders>);
+    });
+  }
+  const accepted = () => toOrder(apiOrder({ status: "order_confirmed", cancellable: false, cancel_unavailable: "seller_accepted",
+    history: [{ status: "order_placed", at: "2026-11-12T06:00:00Z" }, { status: "order_confirmed", at: "2026-11-12T06:30:00Z" }] }));
+
+  it("maps who cancelled and why an order can't be cancelled", () => {
+    expect(toOrder(apiOrder({ cancellable: false, cancel_unavailable: "packed" }))).toMatchObject({ cancellable: false, cancel_unavailable: "packed" });
+    expect(toOrder(apiOrder({ status: "cancelled", cancellable: false, cancelled_by: "seller" }))).toMatchObject({ cancelled_by: "seller" });
+    expect(toOrder(apiOrder())).not.toHaveProperty("cancel_unavailable");
+  });
+
+  it("offers no cancel button once a seller has accepted, and says why", async () => {
+    const orders = fakeOrders({ list: vi.fn(async () => [accepted()]), get: vi.fn(async () => accepted()) });
+    await openOrder(orders);
+    expect(await screen.findByText(/seller has already accepted this order/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel order" })).toBeNull();
+  });
+
+  it("shows the store's message when a seller accepts just before the customer cancels, then the new status", async () => {
+    const message = "This order can no longer be cancelled online because a seller has already accepted it. Please contact support.";
+    const get = vi.fn(async () => toOrder(apiOrder()));
+    const orders = fakeOrders({
+      list: vi.fn(async () => [toOrder(apiOrder())]),
+      get,
+      cancel: vi.fn(async () => { throw new ApiError("cannot_cancel", message, 409); }),
+    });
+    await openOrder(orders);
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(1)); // refreshed on opening
+    get.mockImplementation(async () => accepted());
+    await act(async () => fireEvent.click(await screen.findByRole("button", { name: "Cancel order" })));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Yes, cancel order" })));
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Cancel order" })).toBeNull());
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(screen.getAllByText("Order Confirmed").length).toBeGreaterThan(0);
+  });
+
+  it("refreshes an open order so a seller's progress shows without reloading", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const get = vi.fn(async () => toOrder(apiOrder()));
+      await openOrder(fakeOrders({ list: vi.fn(async () => [toOrder(apiOrder())]), get }));
+      await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
+      get.mockImplementation(async () => accepted());
+      await act(async () => vi.advanceTimersByTime(30_000));
+      await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+      expect(await screen.findByText(/seller has already accepted this order/i)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("says who cancelled the order", async () => {
+    const cancelled = () => toOrder(apiOrder({ status: "cancelled", payment_status: "void", cancellable: false, cancelled_by: "seller",
+      cancel_reason: "Out of stock today", history: [{ status: "order_placed", at: "2026-11-12T06:00:00Z" }, { status: "cancelled", at: "2026-11-12T07:00:00Z" }] }));
+    const get = vi.fn(async () => cancelled());
+    await openOrder(fakeOrders({ list: vi.fn(async () => [cancelled()]), get }));
+    expect(await screen.findByText("This order was cancelled by the seller")).toBeInTheDocument();
+    expect(screen.getByText(/Out of stock today/)).toBeInTheDocument();
+    expect(get).not.toHaveBeenCalled(); // a finished order isn't fetched again
+  });
+});

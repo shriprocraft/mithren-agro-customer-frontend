@@ -98,8 +98,15 @@ export interface Order {
   source?: "backend";
   payment_method?: "cod";
   payment_status?: "pending" | "paid" | "failed" | "refund_pending" | "refunded" | "void";
-  /** Backend orders: whether the customer can still cancel it online. */
+  /** Whether the customer can still cancel it online: before it is packed, and while no seller has accepted it. */
   cancellable?: boolean;
+  /** Why an open order can no longer be cancelled online; absent when it can, or once it has ended. */
+  cancel_unavailable?: CancelUnavailableReason;
   cancelled_at?: string;
+  /** Who cancelled it: the customer, a seller, or Mithren Agro. */
+  cancelled_by?: CancelledBy;
   cancel_reason?: string;
 }
+
+export type CancelUnavailableReason = "seller_accepted" | "packed";
+export type CancelledBy = "customer" | "seller" | "platform";

@@ -2,7 +2,13 @@ import { BadgeCheck, Check, ClipboardCheck, House, Package, PackageOpen, Truck, 
 import { formatOrderTime } from "@/components/orders/OrderDetails";
 import { orderStatusDescriptions, orderStatusLabels } from "@/lib/orders";
 import { cn } from "@/lib/utils";
-import { orderStatuses, type Order } from "@/types/order";
+import { orderStatuses, type CancelledBy, type Order } from "@/types/order";
+
+const cancelledBy: Record<CancelledBy, string> = {
+  customer: "by you",
+  seller: "by the seller",
+  platform: "by Mithren Agro",
+};
 
 const icons: Record<(typeof orderStatuses)[number], LucideIcon> = {
   order_placed: ClipboardCheck,
@@ -26,7 +32,7 @@ export function TrackingTimeline({ order }: { order: Order }) {
       <p role="status" className="flex gap-3 rounded-2xl bg-secondary p-4 text-sm text-secondary-foreground">
         <XCircle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
         <span>
-          <span className="font-semibold">This order was cancelled</span>
+          <span className="font-semibold">This order was cancelled{order.cancelled_by && ` ${cancelledBy[order.cancelled_by]}`}</span>
           {at && <> on <time dateTime={at}>{formatOrderTime(at)}</time></>}. Nothing will be delivered and nothing is due.
           {order.cancel_reason && <span className="mt-1 block">Reason: {order.cancel_reason}</span>}
         </span>
