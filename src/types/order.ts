@@ -51,6 +51,8 @@ export interface TrackingEvent {
 
 /** A snapshot of the line at the time of ordering, so later catalogue changes do not alter the order. */
 export interface OrderItem {
+  /** A product, or a combo box (backend orders). */
+  kind?: "product" | "bundle";
   product_id: string;
   /** The option bought, for products with options. */
   variant_id?: string;

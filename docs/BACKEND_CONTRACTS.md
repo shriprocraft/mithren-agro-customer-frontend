@@ -172,6 +172,19 @@ For a customer signed in through the backend; guests keep the cart in this brows
 - A line is a product with one of its options (or none), or a combo box. Lines for items no longer shown are kept: the quote lists them as `unavailable` and the cart page offers to remove them.
 - On sign-in, the browser's cart is merged into the account and then cleared here. Every change shows at once and is sent to the API; if the store refuses it, it is undone with an error toast. `401 session_expired`, `403 origin_not_allowed`, `422 validation_error` and `503` as elsewhere.
 
+## Product reviews (`src/services/reviews.ts`, `components/reviews/ProductReviews.tsx`; implemented)
+
+Stored in `product_reviews`, the table the Seller Portal reads: each review carries the product's `seller_id`, so it appears in that seller's portal, which can hide it (`status: hidden`) and reply (`seller_reply`).
+
+| Method | Path | Request | Success |
+|---|---|---|---|
+| GET | `/products/{product_id}/reviews?limit=1..50&offset=` | none (public, `Cache-Control: no-cache`) | `200 { "reviews": Review[], "average_rating"?, "review_count", "rating_counts": {"5".."1"}, "limit", "offset" }`: published reviews, newest first |
+| GET | `/products/{product_id}/reviews/mine` | session | `200 { "can_review", "review"?, "status"? }` |
+| POST | `/products/{product_id}/reviews` | session, Origin; `{ "rating": 1..5, "title"?: ≤120, "body"?: ≤2000 }` | `201` written / `200` edited: `{ "can_review": true, "review", "status" }`. `403 review_not_allowed` unless the customer has an order of the product that isn't cancelled; `404 product_not_found` |
+
+- `Review`: `id`, `product_id`, `rating`, `title?`, `body?`, `customer_name` (first name and last initial, e.g. "Asha R."), `created_at`, `updated_at`, `verified_purchase`, `seller_reply?`, `seller_replied_at?`.
+- One review per customer and product; writing again edits it (a review the seller hid stays hidden). Combo boxes can't be reviewed. Order pages link each product of an order that isn't cancelled to its review form (`/products/{id}#reviews`).
+
 ## Customer profile (`src/services/profile.ts`; implemented)
 
 | Method | Path | Request | Success |

@@ -31,6 +31,8 @@ export function OrderDetails({ order }: { order: Order }) {
               key: `${item.product_id}::${item.variant_id ?? ""}`,
               unit: item.variant_label ? `${item.unit} · ${item.variant_label}` : item.unit,
               image: { src: item.image_src, alt: item.image_alt, studio: item.image_studio },
+              // Products (not combo boxes) of an order that isn't cancelled can be reviewed.
+              reviewable: order.status !== "cancelled" && item.kind === "product",
             }))}
           />
         </section>

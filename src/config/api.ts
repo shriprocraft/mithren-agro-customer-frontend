@@ -53,6 +53,10 @@ export const apiEndpoints = {
     item: (productId: string) => `/customer/wishlist/${encodeURIComponent(productId)}`,
     merge: "/customer/wishlist/merge",
   },
+  reviews: {
+    list: (productId: string) => `/products/${encodeURIComponent(productId)}/reviews`,
+    mine: (productId: string) => `/products/${encodeURIComponent(productId)}/reviews/mine`,
+  },
   orders: {
     list: "/customer/orders",
     order: (orderNumber: string) => `/customer/orders/${encodeURIComponent(orderNumber)}`,

@@ -10,6 +10,7 @@ import { ProductCard } from "@/components/products/ProductCard";
 import { ProductDetailSkeleton } from "@/components/products/ProductDetailSkeleton";
 import { PurchasePanel } from "@/components/products/PurchasePanel";
 import { WishlistButton } from "@/components/products/WishlistButton";
+import { ProductReviews } from "@/components/reviews/ProductReviews";
 import { Heading } from "@/components/ui/typography";
 import { shopHref } from "@/lib/browse";
 import { imageShapeFor } from "@/lib/catalog-display";
@@ -123,11 +124,14 @@ async function ProductContent({ params }: Pick<PageProps<"/products/[productId]"
             </dl>
             <p className="mt-4 flex gap-2 rounded-2xl bg-secondary p-3 text-xs leading-relaxed text-secondary-foreground">
               <Info className="mt-px size-4 shrink-0" aria-hidden="true" />
-              Pay with Cash on Delivery. Delivery estimates and reviews are not available yet.
+              Pay with Cash on Delivery. Delivery estimates are not available yet.
             </p>
           </section>
         </div>
       </div>
+
+      {/* Reviews belong to a seller's product; combo boxes have none. */}
+      {!product.bundle_items && <ProductReviews productId={product.id} />}
 
       {related.length > 0 && (
         <section aria-labelledby="related-title" className="mt-12 border-t border-border pt-8 sm:mt-14">

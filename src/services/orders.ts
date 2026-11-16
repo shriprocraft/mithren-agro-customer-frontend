@@ -63,6 +63,7 @@ export function toOrder(order: ApiOrder): Order {
     id: order.order_number,
     created_at: order.created_at,
     items: order.items.map((item) => ({
+      kind: item.kind,
       product_id: item.product_id,
       ...(item.variant_id && { variant_id: item.variant_id }),
       ...(item.category_slug && { category_slug: item.category_slug }),

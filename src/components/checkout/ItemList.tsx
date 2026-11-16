@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Star } from "lucide-react";
 import { CatalogImage } from "@/components/products/CatalogImage";
 import { formatPrice } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,8 @@ export interface ItemRow {
   quantity: number;
   /** Paise. */
   line_total: number;
+  /** Shows "Write a review" (orders: products from an order that isn't cancelled). */
+  reviewable?: boolean;
 }
 
 /** Read-only list of items with thumbnail, pack size, quantity and line total (review, confirmation, tracking). */
@@ -32,6 +35,11 @@ export function ItemList({ items, label }: { items: ItemRow[]; label: string }) 
             <p className="text-sm text-muted-foreground">
               {item.unit} · Qty {item.quantity} × {formatPrice(item.unit_price)}
             </p>
+            {item.reviewable && (
+              <Link href={`/products/${item.product_id}#reviews`} className="mt-0.5 inline-flex min-h-8 items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline">
+                <Star className="size-3.5" aria-hidden="true" />Write a review<span className="sr-only">: {item.name}</span>
+              </Link>
+            )}
           </div>
           <p className="font-heading font-semibold">{formatPrice(item.line_total)}</p>
         </li>
