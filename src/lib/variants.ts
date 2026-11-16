@@ -18,6 +18,9 @@ export interface Selection {
   price: number;
   discounted_price: number | undefined;
   stock_status: StockStatus;
+  /** How many can still be bought; undefined when the catalogue didn't say. */
+  available_stock: number | undefined;
+  is_low_stock: boolean;
 }
 
 export const variantTypeLabels: Record<VariantType, string> = {
@@ -52,6 +55,8 @@ export function resolveSelection(product: Product, variantId?: string): Selectio
       price: product.price,
       discounted_price: product.discounted_price,
       stock_status: product.stock_status,
+      available_stock: product.available_stock,
+      is_low_stock: Boolean(product.is_low_stock),
     };
   }
   const variant = variantId === undefined ? defaultVariant(product) : product.variants.find((v) => v.id === variantId);
@@ -67,6 +72,8 @@ export function resolveSelection(product: Product, variantId?: string): Selectio
     price: variant.price,
     discounted_price: variant.discounted_price,
     stock_status: variant.stock_status,
+    available_stock: variant.available_stock,
+    is_low_stock: Boolean(variant.is_low_stock),
   };
 }
 

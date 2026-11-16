@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useBackendCustomerId, useOptionalAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { ApiError } from "@/lib/api-client";
 import { usePersistentState } from "@/hooks/usePersistentState";
 import { addToCart, countItems, itemKey, parseCart, removeFromCart, setCartQuantity, type AddResult } from "@/lib/cart";
 import { cartService as defaultCartService, type CartService } from "@/services/cart";
@@ -23,9 +24,10 @@ interface CartContextValue {
   hydrated: boolean;
   /** "unsaved": added for this visit, but the browser would not store it (private mode, quota). */
   /** `defaultVariantId`: the product's default option, so a line saved before options existed is reused. */
-  addItem: (productId: string, quantity?: number, variantId?: string, defaultVariantId?: string) => AddResult | "unsaved";
+  /** `max`: the most this line may hold (stock and the seller's limits, lib/cart.ts quantityLimits). */
+  addItem: (productId: string, quantity?: number, variantId?: string, defaultVariantId?: string, max?: number) => AddResult | "unsaved";
   /** `key` is the line key (CartLine.key): product plus chosen option. */
-  setQuantity: (key: string, quantity: number) => void;
+  setQuantity: (key: string, quantity: number, max?: number) => void;
   /** Returns false when the change could not be saved in this browser. */
   removeItem: (key: string) => boolean;
   /** Removes several lines by key, e.g. the ones just ordered. */
@@ -85,16 +87,16 @@ export function CartProvider({ children, service = defaultCartService }: { child
         items,
         count: countItems(items),
         hydrated: hydrated && !sessionPending,
-        addItem: (productId, quantity = 1, variantId, defaultVariantId) => {
+        addItem: (productId, quantity = 1, variantId, defaultVariantId, max) => {
           let result: AddResult = "added";
           const persisted = setItems((current) => {
-            const next = addToCart(current, productId, quantity, variantId, defaultVariantId);
+            const next = addToCart(current, productId, quantity, variantId, defaultVariantId, max);
             result = next.result;
             return next.items;
           });
           return result === "added" && !persisted ? "unsaved" : result;
         },
-        setQuantity: (key, quantity) => setItems((current) => setCartQuantity(current, key, quantity)),
+        setQuantity: (key, quantity, max) => setItems((current) => setCartQuantity(current, key, quantity, max)),
         removeItem: (key) => setItems((current) => removeFromCart(current, key)),
         removeItems: (keys) => setItems((current) => current.filter((item) => !keys.includes(itemKey(item)))),
       };
@@ -113,9 +115,11 @@ export function CartProvider({ children, service = defaultCartService }: { child
         (server) => {
           if (server && change === latestChange.current) replace(server);
         },
-        () => {
+        (error: unknown) => {
           if (change === latestChange.current) replace(before);
-          toast.error("Your cart couldn't be updated", { id: "cart:update", description: "Please try again." });
+          // The store's own reason when it refused the change ("Only 4 available.", "This item is out of stock.").
+          const reason = error instanceof ApiError && error.status !== null && error.status >= 400 && error.status < 500 && error.code !== "session_expired" ? error.message : null;
+          toast.error("Your cart couldn't be updated", { id: "cart:update", description: reason || "Please try again." });
         },
       );
     };
@@ -125,8 +129,8 @@ export function CartProvider({ children, service = defaultCartService }: { child
       items: list,
       count: countItems(list),
       hydrated: Boolean(accountCart?.loaded),
-      addItem: (productId, quantity = 1, variantId, defaultVariantId) => {
-        const next = addToCart(list, productId, quantity, variantId, defaultVariantId);
+      addItem: (productId, quantity = 1, variantId, defaultVariantId, max) => {
+        const next = addToCart(list, productId, quantity, variantId, defaultVariantId, max);
         if (next.result !== "added") return next.result;
         const line = next.items.find((item) => itemKey(item) === itemKey({ product_id: productId, variant_id: variantId, quantity }))!;
         // A line saved before the product had options was joined: the account line moves to the option.
@@ -137,8 +141,8 @@ export function CartProvider({ children, service = defaultCartService }: { child
         });
         return "added";
       },
-      setQuantity: (key, quantity) => {
-        const next = setCartQuantity(list, key, quantity);
+      setQuantity: (key, quantity, max) => {
+        const next = setCartQuantity(list, key, quantity, max);
         const line = next.find((item) => itemKey(item) === key);
         if (line && line.quantity !== find(key)?.quantity) send(next, () => backend.set(line));
       },

@@ -3,15 +3,37 @@ import { lineKey, resolveSelection, type Selection } from "@/lib/variants";
 import type { Product } from "@/types/catalog";
 import type { CartItem } from "@/types/cart";
 
-/** Placeholder until per-seller stock rules are confirmed (see docs/REQUIREMENTS_REGISTER.md). */
+/** The most one cart line can ever hold (the API's limit); sellers may set a lower one. */
 export const MAX_QUANTITY_PER_ITEM = 20;
 
 export type AddResult = "added" | "limit_reached";
 
-/** Keeps a requested quantity within 1…MAX_QUANTITY_PER_ITEM (whole numbers only). */
-export function clampQuantity(quantity: number): number {
-  if (!Number.isFinite(quantity)) return 1;
-  return Math.min(MAX_QUANTITY_PER_ITEM, Math.max(1, Math.floor(quantity)));
+/** Keeps a requested quantity within min…max (whole numbers only); by default 1…MAX_QUANTITY_PER_ITEM. */
+export function clampQuantity(quantity: number, max = MAX_QUANTITY_PER_ITEM, min = 1): number {
+  const top = Math.max(1, Math.min(MAX_QUANTITY_PER_ITEM, max));
+  const bottom = Math.min(Math.max(1, min), top);
+  if (!Number.isFinite(quantity)) return bottom;
+  return Math.min(top, Math.max(bottom, Math.floor(quantity)));
+}
+
+export interface QuantityLimits {
+  min: number;
+  /** 0 when nothing can be bought. */
+  max: number;
+  /** True when stock (not the seller's or the cart's limit) sets the maximum. */
+  byStock: boolean;
+}
+
+/** How many of this product option one cart line may hold: stock available and the seller's limits. */
+export function quantityLimits(product: Pick<Product, "min_quantity" | "max_quantity">, selection: { available_stock?: number }): QuantityLimits {
+  const rule = Math.min(MAX_QUANTITY_PER_ITEM, product.max_quantity ?? MAX_QUANTITY_PER_ITEM);
+  const stock = selection.available_stock ?? Number.POSITIVE_INFINITY;
+  return { min: Math.max(1, product.min_quantity ?? 1), max: Math.max(0, Math.min(rule, stock)), byStock: stock < rule };
+}
+
+/** "Only 4 available" when stock is the limit, otherwise the seller's or the cart's per-order limit. */
+export function limitMessage(limits: QuantityLimits): string {
+  return limits.byStock ? `Only ${limits.max} available` : `Up to ${limits.max} per order`;
 }
 
 /** The cart line an item belongs to (product + option). */
@@ -30,20 +52,22 @@ export function addToCart(
   quantity = 1,
   variantId?: string,
   defaultVariantId?: string,
+  max = MAX_QUANTITY_PER_ITEM,
 ): { items: CartItem[]; result: AddResult } {
   const key = lineKey(productId, variantId);
   const isLegacyDefault = (item: CartItem) =>
     variantId !== undefined && variantId === defaultVariantId && item.product_id === productId && item.variant_id === undefined;
   const matches = (item: CartItem) => itemKey(item) === key || isLegacyDefault(item);
   const existing = items.find(matches);
+  if (max < 1) return { items, result: "limit_reached" };
   if (!existing) {
-    const item: CartItem = { product_id: productId, ...(variantId && { variant_id: variantId }), quantity: clampQuantity(quantity) };
+    const item: CartItem = { product_id: productId, ...(variantId && { variant_id: variantId }), quantity: clampQuantity(quantity, max) };
     return { items: [...items, item], result: "added" };
   }
-  if (existing.quantity >= MAX_QUANTITY_PER_ITEM) {
+  if (existing.quantity >= Math.min(max, MAX_QUANTITY_PER_ITEM)) {
     return { items, result: "limit_reached" };
   }
-  const next = clampQuantity(existing.quantity + quantity);
+  const next = clampQuantity(existing.quantity + quantity, max);
   return {
     items: items.map((item) => (item === existing ? { product_id: productId, ...(variantId && { variant_id: variantId }), quantity: next } : item)),
     result: "added",
@@ -51,8 +75,8 @@ export function addToCart(
 }
 
 /** `key` is a line key (`lineKey` / `CartLine.key`); for a product without options it is the product id. */
-export function setCartQuantity(items: CartItem[], key: string, quantity: number): CartItem[] {
-  return items.map((item) => (itemKey(item) === key ? { ...item, quantity: clampQuantity(quantity) } : item));
+export function setCartQuantity(items: CartItem[], key: string, quantity: number, max = MAX_QUANTITY_PER_ITEM): CartItem[] {
+  return items.map((item) => (itemKey(item) === key ? { ...item, quantity: clampQuantity(quantity, max) } : item));
 }
 
 export function removeFromCart(items: CartItem[], key: string): CartItem[] {
@@ -82,7 +106,7 @@ export function parseCart(value: unknown): CartItem[] | null {
 }
 
 /** "insufficient_stock" comes only from the server quote: the sample catalogue has no stock numbers. */
-export type LineIssue = "out_of_stock" | "insufficient_stock";
+export type LineIssue = "out_of_stock" | "insufficient_stock" | "above_max_quantity" | "below_min_quantity";
 
 export interface CartLine {
   /** Identifies the line as stored (product + option); use it to change or remove the line. */
@@ -142,6 +166,9 @@ export function checkoutBlocker(lines: CartLine[]): string | null {
   if (lines.length === 0) return "Your cart is empty.";
   if (lines.some((line) => line.issue === "out_of_stock")) return "Remove out-of-stock items to continue.";
   if (lines.some((line) => line.issue === "insufficient_stock")) return "There isn't enough stock for some items. Lower their quantity to continue.";
+  if (lines.some((line) => line.issue === "above_max_quantity" || line.issue === "below_min_quantity")) {
+    return "Some quantities are outside what the seller allows per order. Adjust them to continue.";
+  }
   if (lines.some((line) => line.quantity < 1 || line.quantity > MAX_QUANTITY_PER_ITEM)) {
     return `Quantities must be between 1 and ${MAX_QUANTITY_PER_ITEM}.`;
   }

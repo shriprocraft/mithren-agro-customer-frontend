@@ -5,6 +5,7 @@ import { CatalogImage } from "@/components/products/CatalogImage";
 import { PriceDisplay } from "@/components/products/PriceDisplay";
 import { ProductLink } from "@/components/products/ProductLink";
 import { StockBadge } from "@/components/products/StockBadge";
+import { quantityLimits } from "@/lib/cart";
 import { effectivePrice, formatPrice } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types/catalog";
@@ -90,7 +91,7 @@ export function ComboCard({ bundle, vendorName, layout }: ComboCardProps) {
             ) : (
               <PriceDisplay price={bundle.price} discountedPrice={bundle.discounted_price} className="text-xl" />
             )}
-            <StockBadge status={bundle.stock_status} />
+            <StockBadge status={bundle.stock_status} available={bundle.available_stock} />
           </div>
           {onSale && (
             <p className="mt-1 text-xs text-muted-foreground">
@@ -99,7 +100,7 @@ export function ComboCard({ bundle, vendorName, layout }: ComboCardProps) {
           )}
           <p className="mt-1 text-xs text-muted-foreground">Sold by {vendorName}</p>
           <div className="relative z-10 mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
-            <AddToCartButton productId={bundle.id} productName={bundle.name} stockStatus={bundle.stock_status} />
+            <AddToCartButton productId={bundle.id} productName={bundle.name} stockStatus={bundle.stock_status} limits={quantityLimits(bundle, bundle)} />
             <Link
               href={`/products/${bundle.id}`}
               className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-border bg-card px-4 text-sm font-medium text-primary transition-colors outline-none hover:border-primary/35 hover:bg-soft focus-visible:ring-2 focus-visible:ring-ring"

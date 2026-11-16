@@ -76,7 +76,7 @@ export function ProductCard({
         <p className="mt-0.5 truncate text-xs text-muted-foreground">Sold by {vendorName}</p>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 pt-2">
           <PriceDisplay price={product.price} discountedPrice={product.discounted_price} />
-          <StockBadge status={product.stock_status} />
+          <StockBadge status={product.stock_status} available={product.available_stock} />
         </div>
         <QuickAddButton product={product} className="relative z-10 mt-2.5 px-3" />
       </div>

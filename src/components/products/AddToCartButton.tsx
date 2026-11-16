@@ -5,7 +5,7 @@ import { Check, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
-import { MAX_QUANTITY_PER_ITEM } from "@/lib/cart";
+import { limitMessage, MAX_QUANTITY_PER_ITEM, type QuantityLimits } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 import { lineKey } from "@/lib/variants";
 import type { StockStatus } from "@/types/catalog";
@@ -22,12 +22,14 @@ interface AddToCartButtonProps {
   stockStatus: StockStatus;
   /** How many to add (product details page); defaults to 1. */
   quantity?: number;
+  /** Stock and the seller's limits for one cart line (lib/cart.ts quantityLimits). */
+  limits?: QuantityLimits;
   className?: string;
 }
 
 const FEEDBACK_MS = 1600;
 
-export function AddToCartButton({ productId, productName, variantId, defaultVariantId, optionLabel, stockStatus, quantity = 1, className }: AddToCartButtonProps) {
+export function AddToCartButton({ productId, productName, variantId, defaultVariantId, optionLabel, stockStatus, quantity = 1, limits, className }: AddToCartButtonProps) {
   const { addItem } = useCart();
   const toast = useToast();
   const [justAdded, setJustAdded] = useState(false);
@@ -35,7 +37,7 @@ export function AddToCartButton({ productId, productName, variantId, defaultVari
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
-  if (stockStatus === "out_of_stock") {
+  if (stockStatus === "out_of_stock" || (limits && limits.max < 1)) {
     return (
       <Button variant="secondary" disabled className={cn("w-full", className)}>
         Out of stock
@@ -46,13 +48,15 @@ export function AddToCartButton({ productId, productName, variantId, defaultVari
   // The toast appears only after the cart has accepted the item. Its id is per product option, so repeated
   // clicks replace one notification instead of stacking several; the toast region announces it.
   const handleAdd = () => {
-    const result = addItem(productId, quantity, variantId, defaultVariantId);
+    const result = addItem(productId, quantity, variantId, defaultVariantId, limits?.max);
     const id = `cart:${lineKey(productId, variantId)}`;
     const name = optionLabel ? `${productName} (${optionLabel})` : productName;
     if (result === "limit_reached") {
       toast.error("Couldn’t add to cart", {
         id,
-        description: `You can add up to ${MAX_QUANTITY_PER_ITEM} of ${name} in this preview.`,
+        description: limits
+          ? `${limitMessage(limits)} of ${name}, and your cart already has that many.`
+          : `You can add up to ${MAX_QUANTITY_PER_ITEM} of ${name}.`,
         action: { href: "/cart", label: "View cart" },
       });
       return;

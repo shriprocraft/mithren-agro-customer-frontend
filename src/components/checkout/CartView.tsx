@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { AlertTriangle, ArrowRight, ShoppingCart, Trash2 } from "lucide-react";
 import { LoadingState, MessageState } from "@/components/checkout/PageState";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
@@ -11,9 +12,10 @@ import { Button } from "@/components/ui/button";
 import { useAnnounce } from "@/context/AnnouncerContext";
 import { useCart } from "@/context/CartContext";
 import { useCheckout } from "@/context/CheckoutContext";
+import { useToast } from "@/context/ToastContext";
 import { useCheckoutQuote } from "@/hooks/useCheckoutQuote";
 import { useRemovedFromCartToast } from "@/hooks/useRemovedFromCartToast";
-import { resolveLines, summarize } from "@/lib/cart";
+import { itemKey, limitMessage, quantityLimits, resolveLines, summarize } from "@/lib/cart";
 import { applyQuote } from "@/lib/checkout-quote";
 import { formatPrice } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -28,6 +30,20 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
   const removed = useRemovedFromCartToast();
   // The server prices the cart (a guest quote: no address); without it nothing can be checked out.
   const { state: quote, refresh } = useCheckoutQuote(items, null, hydrated);
+  const toast = useToast();
+  // Items the store no longer sells (archived, deleted or switched off by the seller) leave the cart on
+  // their own, with a short notice: only what the server reports unavailable, never what this page's
+  // catalogue merely lacks.
+  const gone = (quote.quote?.unavailable ?? []).map((entry) => items[entry.item_index]).filter((item) => item !== undefined).map(itemKey);
+  const goneKey = gone.join("|");
+  useEffect(() => {
+    if (!goneKey) return;
+    removeItems(goneKey.split("|"));
+    toast.info(goneKey.includes("|") ? "Some items were removed" : "An item was removed", {
+      id: "cart:gone",
+      description: "The seller no longer sells it, so it was taken out of your cart.",
+    });
+  }, [goneKey, removeItems, toast]);
 
   if (!hydrated) return <LoadingState label="Loading your cart…" />;
 
@@ -42,9 +58,6 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
       : quote.status === "loading" || !quoted
         ? "Checking prices and stock…"
         : quoted.blocker;
-  // Only what the server reports unavailable, so an item merely missing from the page's catalogue is
-  // never removed by mistake.
-  const missing = quoted?.unavailableKeys ?? [];
 
   if (lines.length === 0) {
     return (
@@ -68,14 +81,7 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
       {/* min-w-0: grid items default to their content width, and the one-line seller text would overflow. */}
       <section aria-labelledby="cart-items-title" className="min-w-0">
         <h2 id="cart-items-title" className="sr-only">Items in your cart</h2>
-        {missing.length > 0 && (
-          <div role="status" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-secondary p-3 text-sm text-secondary-foreground">
-            <span>{missing.length === 1 ? "One item is" : `${missing.length} items are`} no longer available. Remove them to continue.</span>
-            <Button variant="outline" onClick={() => { removeItems(missing); announce("Unavailable items removed from your cart."); }}>
-              Remove unavailable items
-            </Button>
-          </div>
-        )}
+
         {quoted?.pricesChanged && (
           <p role="status" className="mb-3 rounded-2xl bg-secondary p-3 text-sm text-secondary-foreground">
             Prices were updated. The amounts below are the store’s current prices.
@@ -84,6 +90,7 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
         <ul className="surface-card divide-y rounded-3xl">
           {lines.map(({ key, product, selection, quantity, unit_price, line_total, issue }) => {
             const image = product.images[0];
+            const limits = quantityLimits(product, selection);
             // One layout at every width: thumbnail, then name/pack/seller/unit price with Remove at the
             // top right, then the quantity stepper with the line total opposite it.
             return (
@@ -110,12 +117,21 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
                   )}
                   {issue === "insufficient_stock" && (
                     <p className="mt-1 flex items-center gap-1 text-sm text-destructive">
-                      <AlertTriangle className="size-4" aria-hidden="true" /> Not enough stock for this quantity: lower it to continue
+                      <AlertTriangle className="size-4" aria-hidden="true" /> {limits.byStock && limits.max > 0 ? `Only ${limits.max} available: lower the quantity to continue` : "Not enough stock for this quantity: lower it to continue"}
                     </p>
+                  )}
+                  {(issue === "above_max_quantity" || issue === "below_min_quantity") && (
+                    <p className="mt-1 flex items-center gap-1 text-sm text-destructive">
+                      <AlertTriangle className="size-4" aria-hidden="true" /> {issue === "above_max_quantity" ? `The seller allows up to ${limits.max} per order` : `The seller sells at least ${limits.min} per order`}: adjust it to continue
+                    </p>
+                  )}
+                  {!issue && quantity >= limits.max && limits.byStock && (
+                    <p className="mt-1 text-sm text-warning">{limitMessage(limits)}</p>
                   )}
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                     <QuantityStepper value={quantity} label={`Quantity of ${product.name}, ${selection.description}`} disabled={issue === "out_of_stock"}
-                      onChange={(q) => { setQuantity(key, q); announce(`${product.name}: quantity ${q}.`); }} />
+                      min={limits.min} max={Math.max(limits.max, 1)}
+                      onChange={(q) => { setQuantity(key, q, limits.max); announce(`${product.name}: quantity ${q}.`); }} />
                     <p className="font-heading font-semibold"><span className="sr-only">Line total </span>{formatPrice(line_total)}</p>
                   </div>
                 </div>

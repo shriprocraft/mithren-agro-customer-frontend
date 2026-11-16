@@ -9,7 +9,7 @@ import { QuantityStepper } from "@/components/products/QuantityStepper";
 import { StockBadge } from "@/components/products/StockBadge";
 import { Button } from "@/components/ui/button";
 import { useCheckout } from "@/context/CheckoutContext";
-import { MAX_QUANTITY_PER_ITEM } from "@/lib/cart";
+import { limitMessage, quantityLimits } from "@/lib/cart";
 import { effectivePrice, formatPrice } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { defaultVariant, hasVariants, resolveSelection, variantTypeLabels } from "@/lib/variants";
@@ -25,11 +25,14 @@ export function PurchasePanel({ product, seller }: { product: Product; seller?: 
   const router = useRouter();
   const { start } = useCheckout();
   const [variantId, setVariantId] = useState(() => defaultVariant(product)?.id);
-  const [quantity, setQuantity] = useState(1);
+  const [chosen, setQuantity] = useState(product.min_quantity ?? 1);
   const [opening, startOpening] = useTransition();
   // A missing option (catalogue changed under an open page) falls back to the default one.
   const selection = resolveSelection(product, variantId) ?? resolveSelection(product)!;
-  const outOfStock = selection.stock_status === "out_of_stock";
+  const limits = quantityLimits(product, selection);
+  const outOfStock = selection.stock_status === "out_of_stock" || limits.max < Math.max(1, limits.min);
+  // Another option (or fresh stock) may allow fewer than chosen: never offer more than can be bought.
+  const quantity = Math.min(Math.max(chosen, limits.min), Math.max(limits.max, 1));
   const saving = selection.discounted_price !== undefined && selection.discounted_price < selection.price ? selection.price - selection.discounted_price : 0;
 
   const buyNow = () => {
@@ -47,7 +50,7 @@ export function PurchasePanel({ product, seller }: { product: Product; seller?: 
         )}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-        <StockBadge status={selection.stock_status} className="text-sm" />
+        <StockBadge status={selection.stock_status} available={selection.available_stock} className="text-sm" />
         {seller && (
           <span className="inline-flex items-center gap-1.5 text-muted-foreground">
             <Store className="size-4" aria-hidden="true" />
@@ -105,10 +108,12 @@ export function PurchasePanel({ product, seller }: { product: Product; seller?: 
           </p>
         ) : (
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <QuantityStepper value={quantity} onChange={setQuantity} label={`Quantity of ${product.name}`} />
+            <QuantityStepper value={quantity} onChange={setQuantity} min={limits.min} max={limits.max} label={`Quantity of ${product.name}`} />
             <p className="text-right text-sm text-muted-foreground">
               Total <span className="font-semibold text-foreground">{formatPrice(effectivePrice(selection) * quantity)}</span>
-              <span className="block text-xs">Up to {MAX_QUANTITY_PER_ITEM} per order in this preview</span>
+              <span className={cn("block text-xs", quantity >= limits.max && limits.byStock && "font-medium text-warning")} aria-live="polite">
+                {limitMessage(limits)}{limits.min > 1 ? ` · at least ${limits.min}` : ""}
+              </span>
             </p>
           </div>
         )}
@@ -119,8 +124,9 @@ export function PurchasePanel({ product, seller }: { product: Product; seller?: 
             variantId={selection.variant?.id}
             defaultVariantId={defaultVariant(product)?.id}
             optionLabel={selection.variant ? selection.description : undefined}
-            stockStatus={selection.stock_status}
+            stockStatus={outOfStock ? "out_of_stock" : selection.stock_status}
             quantity={quantity}
+            limits={limits}
             className="h-12 px-3"
           />
           <Button variant="buy" className="h-12 px-3" disabled={outOfStock} loading={opening} onClick={buyNow}>

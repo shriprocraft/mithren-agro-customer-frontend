@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { AddToCartButton } from "@/components/products/AddToCartButton";
 import { Button } from "@/components/ui/button";
+import { quantityLimits } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 import { defaultVariant, resolveSelection } from "@/lib/variants";
 import type { Product } from "@/types/catalog";
@@ -33,6 +34,7 @@ export function QuickAddButton({ product, className }: { product: Product; class
       defaultVariantId={variant?.id}
       optionLabel={variant ? selection?.description : undefined}
       stockStatus={selection?.stock_status ?? product.stock_status}
+      limits={selection ? quantityLimits(product, selection) : undefined}
       className={className}
     />
   );

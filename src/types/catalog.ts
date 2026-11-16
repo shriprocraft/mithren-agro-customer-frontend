@@ -49,6 +49,10 @@ export interface ProductVariant {
   /** Paise. */
   discounted_price?: number;
   stock_status: StockStatus;
+  /** How many new orders can still take (stock minus open-order reservations). */
+  available_stock?: number;
+  /** At or below the seller's low-stock threshold (and above 0). */
+  is_low_stock?: boolean;
 }
 
 /** One catalogue item inside a combo box: which product, which option and how many. */
@@ -73,6 +77,15 @@ export interface Product {
   /** Sale price in paise, when the listing has one. */
   discounted_price?: number;
   stock_status: StockStatus;
+  /**
+   * How many new orders can still take (stock minus open-order reservations): for a product with
+   * options, the default option's; for a combo box, how many boxes its items can still make.
+   */
+  available_stock?: number;
+  is_low_stock?: boolean;
+  /** How many one cart line may hold (the seller's limits, at most 20). */
+  min_quantity?: number;
+  max_quantity?: number;
   is_seasonal?: boolean;
   /** Present on combo boxes and bundles: what the box holds, as shown to customers. */
   bundle_contents?: string[];

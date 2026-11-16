@@ -31,7 +31,7 @@ export function CompactProductCard({ product, vendorName, className }: CompactPr
         <p className="mt-0.5 truncate text-xs text-muted-foreground">{product.unit} · {vendorName}</p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
           <PriceDisplay price={product.price} discountedPrice={product.discounted_price} />
-          <StockBadge status={product.stock_status} />
+          <StockBadge status={product.stock_status} available={product.available_stock} />
         </div>
         <div className="relative z-10 mt-auto pt-2">
           <QuickAddButton product={product} className="w-fit px-4" />

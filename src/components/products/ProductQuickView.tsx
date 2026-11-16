@@ -56,7 +56,7 @@ export function ProductQuickView({ product, vendorName }: ProductQuickViewProps)
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <PriceDisplay price={product.price} discountedPrice={product.discounted_price} className="text-xl" />
-              <StockBadge status={product.stock_status} />
+              <StockBadge status={product.stock_status} available={product.available_stock} />
             </div>
             <p className="text-sm leading-relaxed text-muted-foreground">{product.description}</p>
             {product.bundle_contents && (

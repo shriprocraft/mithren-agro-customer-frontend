@@ -9,8 +9,10 @@ const stockStyles: Record<StockStatus, { label: string; className: string; Icon:
   out_of_stock: { label: "Out of stock", className: "text-destructive", Icon: CircleX },
 };
 
-export function StockBadge({ status, className }: { status: StockStatus; className?: string }) {
-  const { label, className: tone, Icon } = stockStyles[status];
+/** `available`, when the catalogue sends it, turns "Low stock" into "Only 3 left in stock". */
+export function StockBadge({ status, available, className }: { status: StockStatus; available?: number; className?: string }) {
+  const { label: plain, className: tone, Icon } = stockStyles[status];
+  const label = status === "low_stock" && available !== undefined && available > 0 ? `Only ${available} left in stock` : plain;
   return (
     <span className={cn("inline-flex items-center gap-1 text-xs font-medium", tone, className)}>
       <Icon className="size-3.5" aria-hidden="true" />

@@ -9,8 +9,8 @@ export interface QuoteItemInput {
   quantity: number;
 }
 
-export type QuoteLineIssue = "out_of_stock" | "insufficient_stock";
-export type QuoteBlockerCode = "empty" | "unavailable_items" | "out_of_stock" | "insufficient_stock";
+export type QuoteLineIssue = "out_of_stock" | "insufficient_stock" | "above_max_quantity" | "below_min_quantity";
+export type QuoteBlockerCode = "empty" | "unavailable_items" | "out_of_stock" | "insufficient_stock" | "quantity_limits";
 
 export interface QuoteLine {
   /** Position of the item in the request. */
