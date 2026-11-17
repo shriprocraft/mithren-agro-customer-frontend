@@ -73,7 +73,45 @@ export interface OrderItem {
   quantity: number;
   /** Paise: unit_price × quantity. */
   line_total: number;
+  /** Products: where this product's seller has got with it (combo boxes can span sellers, so have none). */
+  seller_status?: SellerPartStatus;
 }
+
+/** One seller's part of the order as the customer sees it. "rejected": declined before accepting. */
+export const sellerPartStatuses = ["awaiting_acceptance", "accepted", "packed", "shipped", "delivered", "rejected", "cancelled"] as const;
+export type SellerPartStatus = (typeof sellerPartStatuses)[number];
+
+export interface SellerPartItem {
+  product_id?: string;
+  variant_id?: string;
+  name: string;
+  variant_label?: string;
+  quantity: number;
+  /** Paise: this seller's share of the line (a combo box component carries its share of the box). */
+  line_total: number;
+  image_src?: string;
+}
+
+/** Each seller's part of a split (multi-seller) order, with its own status. */
+export interface SellerPart {
+  /** The seller's order number, e.g. SO-000123. */
+  reference: string;
+  vendor_id?: string;
+  seller_name: string;
+  status: SellerPartStatus;
+  /** For a cancelled or rejected part: who did it. */
+  cancelled_by?: "customer" | "seller";
+  /** The seller's reason, when the seller rejected or cancelled it. */
+  cancel_reason?: string;
+  /** ISO timestamp of the part's last change. */
+  updated_at: string;
+  /** Paise. */
+  amount: number;
+  items: SellerPartItem[];
+}
+
+/** For multi-seller orders whose sellers don't all agree (absent when they do). */
+export type SplitStatus = "partially_accepted" | "partially_cancelled";
 
 /** A configured charge such as delivery. None are configured in this preview. */
 export interface OrderCharge {
@@ -108,6 +146,11 @@ export interface Order {
   /** Who cancelled it: the customer, a seller, or Mithren Agro. */
   cancelled_by?: CancelledBy;
   cancel_reason?: string;
+  /** Each seller's part (one per seller). `status` follows the parts still going ahead. */
+  seller_parts?: SellerPart[];
+  split_status?: SplitStatus;
+  /** Paise: what is due on delivery, without parts sellers rejected or cancelled (0 once cancelled). */
+  payable_total?: number;
 }
 
 export type CancelUnavailableReason = "seller_accepted" | "packed";

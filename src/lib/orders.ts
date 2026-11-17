@@ -1,4 +1,4 @@
-import type { OrderStatus } from "@/types/order";
+import type { OrderStatus, SellerPart, SellerPartStatus } from "@/types/order";
 
 export const orderStatusLabels: Record<OrderStatus, string> = {
   order_placed: "Order Placed",
@@ -19,3 +19,23 @@ export const orderStatusDescriptions: Record<OrderStatus, string> = {
   delivered: "Your order has been delivered.",
   cancelled: "This order was cancelled.",
 };
+
+/** Each seller part of a split order, in the customer's words. */
+export const sellerPartStatusLabels: Record<SellerPartStatus, string> = {
+  awaiting_acceptance: "Waiting for the seller",
+  accepted: "Accepted",
+  packed: "Packed",
+  shipped: "On its way",
+  delivered: "Delivered",
+  rejected: "Rejected by the seller",
+  cancelled: "Cancelled",
+};
+
+/** A part that will not be delivered (and is not charged). */
+export const isDroppedPart = (status: SellerPartStatus) => status === "rejected" || status === "cancelled";
+
+/** The label for one seller part, saying who cancelled it. */
+export function sellerPartLabel(part: Pick<SellerPart, "status" | "cancelled_by">): string {
+  if (part.status === "cancelled") return part.cancelled_by === "customer" ? "Cancelled by you" : "Cancelled by the seller";
+  return sellerPartStatusLabels[part.status];
+}

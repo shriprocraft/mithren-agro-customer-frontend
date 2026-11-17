@@ -1,5 +1,6 @@
 import { BadgeCheck, Check, ClipboardCheck, House, Package, PackageOpen, Truck, XCircle, type LucideIcon } from "lucide-react";
 import { formatOrderTime } from "@/components/orders/OrderDetails";
+import { SplitNotice } from "@/components/orders/SellerParts";
 import { orderStatusDescriptions, orderStatusLabels } from "@/lib/orders";
 import { cn } from "@/lib/utils";
 import { orderStatuses, type CancelledBy, type Order } from "@/types/order";
@@ -42,6 +43,9 @@ export function TrackingTimeline({ order }: { order: Order }) {
   const currentIndex = orderStatuses.indexOf(order.status);
 
   return (
+    <>
+    {/* Split orders: a seller rejecting its part is said here, not hidden behind the stages. */}
+    <SplitNotice order={order} />
     <ol aria-label="Order progress" className="grid gap-0 md:grid-cols-6">
       {orderStatuses.map((status, index) => {
         const state = index < currentIndex ? "completed" : index === currentIndex ? "current" : "pending";
@@ -84,5 +88,6 @@ export function TrackingTimeline({ order }: { order: Order }) {
         );
       })}
     </ol>
+    </>
   );
 }

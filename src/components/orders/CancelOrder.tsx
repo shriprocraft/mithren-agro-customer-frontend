@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAnnounce } from "@/context/AnnouncerContext";
 import { useOrders } from "@/context/OrdersContext";
 import { ApiError } from "@/lib/api-client";
+import { formatPrice } from "@/lib/formatters";
 import type { CancelUnavailableReason, Order } from "@/types/order";
 
 export const cancelUnavailableMessages: Record<CancelUnavailableReason, string> = {
@@ -88,5 +89,7 @@ export function CancelOrder({ order }: { order: Order }) {
 export function orderNotice(order: Order): string {
   if (order.status === "cancelled") return "Cash on Delivery order, cancelled. Nothing is due.";
   if (order.status === "delivered") return "Cash on Delivery order, delivered.";
+  if (order.split_status === "partially_cancelled" && order.payable_total !== undefined)
+    return `Cash on Delivery: pay ${formatPrice(order.payable_total)} when the rest of your order arrives. Items a seller rejected aren't charged.`;
   return "Cash on Delivery: pay when your order arrives. The status updates as the seller prepares and sends it.";
 }

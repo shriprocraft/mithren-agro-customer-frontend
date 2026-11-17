@@ -19,6 +19,8 @@ export interface ItemRow {
   line_total: number;
   /** Shows "Write a review" (orders: products from an order that isn't cancelled). */
   reviewable?: boolean;
+  /** Split orders: where this item's seller has got; `dropped` when the seller rejected or cancelled it. */
+  status?: { label: string; dropped: boolean };
 }
 
 /** Read-only list of items with thumbnail, pack size, quantity and line total (review, confirmation, tracking). */
@@ -35,13 +37,27 @@ export function ItemList({ items, label }: { items: ItemRow[]; label: string }) 
             <p className="text-sm text-muted-foreground">
               {item.unit} · Qty {item.quantity} × {formatPrice(item.unit_price)}
             </p>
+            {item.status && (
+              <p
+                className={cn(
+                  "mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold",
+                  item.status.dropped ? "bg-destructive/10 text-destructive" : "bg-secondary text-secondary-foreground",
+                )}
+              >
+                {item.status.label}
+                {item.status.dropped && " · not delivered or charged"}
+              </p>
+            )}
             {item.reviewable && (
               <Link href={`/products/${item.product_id}#reviews`} className="mt-0.5 inline-flex min-h-8 items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline">
                 <Star className="size-3.5" aria-hidden="true" />Write a review<span className="sr-only">: {item.name}</span>
               </Link>
             )}
           </div>
-          <p className="font-heading font-semibold">{formatPrice(item.line_total)}</p>
+          <p className={cn("font-heading font-semibold", item.status?.dropped && "text-muted-foreground line-through")}>
+            {formatPrice(item.line_total)}
+            {item.status?.dropped && <span className="sr-only"> (not charged)</span>}
+          </p>
         </li>
       ))}
     </ul>

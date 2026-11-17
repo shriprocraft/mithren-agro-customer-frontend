@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Suspense } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountOrderView } from "@/components/account/AccountOrderView";
@@ -253,5 +253,92 @@ describe("cancelling and tracking while sellers work on the order", () => {
     expect(await screen.findByText("This order was cancelled by the seller")).toBeInTheDocument();
     expect(screen.getByText(/Out of stock today/)).toBeInTheDocument();
     expect(get).not.toHaveBeenCalled(); // a finished order isn't fetched again
+  });
+});
+
+describe("split orders: one seller accepts, another rejects", () => {
+  const ORDER = "MA-20261112-ABC234";
+  const tomatoes = { kind: "product" as const, product_id: "p-tomatoes", variant_id: "1kg", vendor_id: "v1", name: "Tomatoes", unit: "1 kg",
+    image_src: "/t.jpg", image_alt: "Tomatoes", unit_price: 4000, list_unit_price: 4000, quantity: 2, line_total: 8000 };
+  const honey = { kind: "product" as const, product_id: "p-honey", vendor_id: "v2", name: "Wild Honey", unit: "500 g",
+    image_src: "/h.jpg", image_alt: "Honey", unit_price: 30000, list_unit_price: 30000, quantity: 1, line_total: 30000 };
+  const split = (extra: Partial<ApiOrder> = {}) =>
+    apiOrder({
+      status: "order_confirmed",
+      items: [{ ...tomatoes, seller_status: "accepted" }, { ...honey, seller_status: "rejected" }],
+      subtotal: 38000, total: 38000, payable_total: 8000, split_status: "partially_cancelled",
+      cancellable: false, cancel_unavailable: "seller_accepted",
+      history: [{ status: "order_placed", at: "2026-11-12T06:00:00Z" }, { status: "order_confirmed", at: "2026-11-12T06:30:00Z" }],
+      seller_parts: [
+        { reference: "SO-000101", vendor_id: "v1", seller_name: "Green Valley Farm", status: "accepted", updated_at: "2026-11-12T06:30:00Z",
+          amount: 8000, items: [{ product_id: "p-tomatoes", variant_id: "1kg", name: "Tomatoes", quantity: 2, line_total: 8000 }] },
+        { reference: "SO-000102", vendor_id: "v2", seller_name: "Hill Bee Co", status: "rejected", cancelled_by: "seller",
+          cancel_reason: "Out of stock today", updated_at: "2026-11-12T06:40:00Z",
+          amount: 30000, items: [{ product_id: "p-honey", name: "Wild Honey", quantity: 1, line_total: 30000 }] },
+      ],
+      ...extra,
+    });
+
+  async function openOrder(order: Order) {
+    const params = Promise.resolve({ orderId: ORDER });
+    const orders = fakeOrders({ list: vi.fn(async () => [order]), get: vi.fn(async () => order) });
+    await act(async () => {
+      render(<AppProviders authService={signedIn} ordersService={orders}><Suspense fallback={null}><AccountOrderView params={params} /></Suspense></AppProviders>);
+    });
+  }
+
+  it("maps each seller part, the split status and what is due", () => {
+    const order = toOrder(split());
+    expect(order.split_status).toBe("partially_cancelled");
+    expect(order.payable_total).toBe(8000);
+    expect(order.seller_parts?.map((part) => [part.seller_name, part.status])).toEqual([["Green Valley Farm", "accepted"], ["Hill Bee Co", "rejected"]]);
+    expect(order.items.map((item) => item.seller_status)).toEqual(["accepted", "rejected"]);
+    // Older responses without parts still map.
+    expect(toOrder(apiOrder())).toMatchObject({ seller_parts: [] });
+  });
+
+  it("shows the accepted part as accepted and the rejected part as rejected by the seller, with the reason", async () => {
+    await openOrder(toOrder(split()));
+    const sellers = await screen.findByRole("list", { name: "Sellers in this order" });
+    const accepted = within(sellers).getByRole("listitem", { name: "Green Valley Farm: Accepted" });
+    const rejected = within(sellers).getByRole("listitem", { name: "Hill Bee Co: Rejected by the seller" });
+    expect(within(accepted).getByText("Tomatoes × 2")).toBeInTheDocument();
+    expect(within(rejected).getByText(/won’t be delivered and you won’t be charged/)).toBeInTheDocument();
+    expect(within(rejected).getByText(/Out of stock today/)).toBeInTheDocument();
+    expect(within(rejected).getByText("Not charged")).toBeInTheDocument();
+
+    // Above the timeline: the rejection is said plainly, with what is still due.
+    const notice = screen.getAllByRole("status").find((element) => /won’t be delivered/.test(element.textContent ?? ""));
+    expect(notice).toHaveTextContent("Hill Bee Co rejected 1 item");
+    expect(notice).toHaveTextContent("pay ₹80 on delivery");
+    // The overall status follows the part still going ahead, and the badge says part was cancelled.
+    expect(screen.getAllByText("Order Confirmed").length).toBeGreaterThan(0);
+    expect(screen.getByText("Partly cancelled by seller")).toBeInTheDocument();
+    // Items: each product says where its seller has got.
+    const items = screen.getByRole("list", { name: "Items in this order" });
+    expect(within(items).getByText("Accepted")).toBeInTheDocument();
+    expect(within(items).getByText(/Rejected by the seller · not delivered or charged/)).toBeInTheDocument();
+    expect(within(items).getAllByRole("link", { name: /write a review/i })).toHaveLength(1); // not for the rejected honey
+    // Summary: the rejected amount comes off what is paid on delivery.
+    expect(screen.getByText("To pay on delivery").nextSibling).toHaveTextContent("₹80");
+  });
+
+  it("says how many sellers have accepted while others haven't yet", async () => {
+    await openOrder(toOrder(split({
+      status: "order_placed", split_status: "partially_accepted", payable_total: 38000,
+      items: [{ ...tomatoes, seller_status: "accepted" }, { ...honey, seller_status: "awaiting_acceptance" }],
+      seller_parts: split().seller_parts!.map((part, index) =>
+        index === 1 ? { ...part, status: "awaiting_acceptance", cancelled_by: undefined, cancel_reason: undefined } : part),
+    })));
+    expect(await screen.findByText("1 of 2 sellers have accepted their part.")).toBeInTheDocument();
+    expect(screen.getByRole("listitem", { name: "Hill Bee Co: Waiting for the seller" })).toBeInTheDocument();
+    expect(screen.queryByText("Partly cancelled by seller")).toBeNull();
+    expect(screen.queryByText("To pay on delivery")).toBeNull();
+  });
+
+  it("keeps a single-seller order as it was (no seller breakdown)", async () => {
+    await openOrder(toOrder(apiOrder({ seller_parts: split().seller_parts!.slice(0, 1), payable_total: 8000 })));
+    expect(await screen.findByRole("heading", { name: "Order details" })).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Sellers in this order" })).toBeNull();
   });
 });

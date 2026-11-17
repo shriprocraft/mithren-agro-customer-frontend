@@ -1,7 +1,7 @@
 import { apiBaseUrl, apiEndpoints } from "@/config/api";
 import { createApiClient, type ApiClient } from "@/lib/api-client";
 import type { Quote, QuoteItemInput } from "@/types/checkout";
-import type { Order, OrderStatus } from "@/types/order";
+import type { Order, OrderStatus, SellerPart, SellerPartStatus, SplitStatus } from "@/types/order";
 
 // Cash on Delivery orders in the customer's account (GET/POST /customer/orders, docs/BACKEND_CONTRACTS.md).
 // Needs a signed-in customer: orders exist only in the customer's account on the backend.
@@ -37,6 +37,7 @@ export interface ApiOrder {
     list_unit_price: number;
     quantity: number;
     line_total: number;
+    seller_status?: SellerPartStatus;
   }[];
   address: Omit<Order["address"], "id"> & { id?: string };
   subtotal: number;
@@ -48,6 +49,9 @@ export interface ApiOrder {
   cancelled_at?: string;
   cancelled_by?: Order["cancelled_by"];
   cancel_reason?: string;
+  seller_parts?: SellerPart[];
+  split_status?: SplitStatus;
+  payable_total?: number;
 }
 
 export interface OrdersService {
@@ -75,6 +79,7 @@ export function toOrder(order: ApiOrder): Order {
       unit_price: item.unit_price,
       quantity: item.quantity,
       line_total: item.line_total,
+      ...(item.seller_status && { seller_status: item.seller_status }),
     })),
     // The order keeps its own copy of the address; the saved address may have changed or gone since.
     address: { ...order.address, id: order.address.id ?? "", landmark: order.address.landmark ?? null },
@@ -91,6 +96,9 @@ export function toOrder(order: ApiOrder): Order {
     ...(order.cancelled_at && { cancelled_at: order.cancelled_at }),
     ...(order.cancelled_by && { cancelled_by: order.cancelled_by }),
     ...(order.cancel_reason && { cancel_reason: order.cancel_reason }),
+    seller_parts: order.seller_parts ?? [],
+    ...(order.split_status && { split_status: order.split_status }),
+    ...(order.payable_total !== undefined && { payable_total: order.payable_total }),
   };
 }
 

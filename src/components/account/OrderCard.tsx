@@ -10,9 +10,15 @@ import type { Order } from "@/types/order";
 export function OrderStatusBadge({ order }: { order: Order }) {
   const delivered = order.status === "delivered";
   return (
-    <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", delivered ? "bg-secondary text-secondary-foreground" : "bg-highlight/50 text-foreground")}>
-      {orderStatusLabels[order.status]}
-    </span>
+    <>
+      <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", delivered ? "bg-secondary text-secondary-foreground" : "bg-highlight/50 text-foreground")}>
+        {orderStatusLabels[order.status]}
+      </span>
+      {/* Split orders: a seller rejecting its part shows next to the overall status, never hidden by it. */}
+      {order.status !== "cancelled" && order.split_status === "partially_cancelled" && (
+        <span className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-semibold text-destructive">Partly cancelled by seller</span>
+      )}
+    </>
   );
 }
 
