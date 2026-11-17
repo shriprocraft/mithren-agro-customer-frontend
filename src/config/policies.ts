@@ -45,7 +45,6 @@ export function returnWindowEnd(deliveredAt: string): Date {
 /** Placeholders for details the business has not supplied yet; shown highlighted on the pages. */
 export const policyPlaceholders = {
   registeredAddress: "[Registered office address — to be added]",
-  supportEmail: "[Customer support email — to be added]",
   supportPhone: "[Customer support phone number and hours — to be added]",
   grievanceOfficer: "[Grievance Officer name, designation and contact details — to be added]",
   jurisdiction: "[City for courts’ jurisdiction — to be confirmed]",

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LifeBuoy } from "lucide-react";
+import { LifeBuoy, Mail, MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { supportEmail, supportMailto, supportWhatsApp, supportWhatsAppLink } from "@/config/support";
 import { BackToAccountLink } from "@/components/account/BackToAccountLink";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Container } from "@/components/layout/Container";
@@ -11,8 +13,9 @@ import { orderStatusLabels } from "@/lib/orders";
 
 export const metadata: Metadata = { title: "Help & support" };
 
-// Answers describe what this preview actually does. No phone number, email, address, refund promise
-// or delivery promise is given: none has been supplied, so the contact section says so.
+// Answers describe what this preview actually does. No phone number, address, refund promise or delivery
+// promise is given: none has been supplied. Contact us offers the support email (config/support.ts), and
+// a WhatsApp button once a support number is set there.
 const groups: { title: string; faqs: Faq[] }[] = [
   {
     title: "Orders and tracking",
@@ -65,11 +68,27 @@ export default function SupportPage() {
 
           <section id="contact" aria-labelledby="contact-title" className="scroll-mt-6 lg:scroll-mt-36 flex gap-4 rounded-3xl bg-soft p-5 ring-1 ring-border sm:p-6">
             <LifeBuoy className="size-6 shrink-0 text-brand" aria-hidden="true" />
-            <div>
+            <div className="min-w-0">
               <h2 id="contact-title" className="font-heading text-lg font-semibold">Contact us</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Official customer support contact details will be added here before launch. This preview has no support phone line or email address yet.
+                Can’t find your answer? Email our customer support team. Include your order ID (MA-…) if your question is about an order.
               </p>
+              <p className="mt-3 text-sm">
+                <span className="text-muted-foreground">Email: </span>
+                <a href={supportMailto} className="font-medium break-all text-primary underline-offset-4 hover:underline">{supportEmail}</a>
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button asChild>
+                  <a href={supportMailto}><Mail aria-hidden="true" />Email support</a>
+                </Button>
+                {supportWhatsApp && (
+                  <Button asChild variant="outline">
+                    <a href={supportWhatsAppLink(supportWhatsApp)} target="_blank" rel="noopener noreferrer">
+                      <MessageCircle aria-hidden="true" />Chat on WhatsApp<span className="sr-only"> (opens WhatsApp)</span>
+                    </a>
+                  </Button>
+                )}
+              </div>
             </div>
           </section>
         </div>

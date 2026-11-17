@@ -37,7 +37,7 @@ export function AccountMenu() {
     <Popover>
       <PopoverTrigger
         aria-label={customerName ? `Account: signed in as ${customerName}` : "Account: sign in"}
-        className="inline-flex h-11 items-center gap-2 rounded-full p-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-full sm:min-w-0 sm:pr-3"
+        className="inline-flex h-11 items-center gap-2 rounded-full p-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-full sm:min-w-0 sm:pr-4"
       >
         <span className="relative grid size-9 place-items-center rounded-full bg-linear-to-b from-white/70 to-secondary text-brand shadow-[inset_0_0_0_1px_rgb(255_255_255/0.85),0_6px_16px_-10px_rgb(var(--shadow-tint)/0.4)]">
           {customerName ? (
@@ -49,7 +49,8 @@ export function AccountMenu() {
         <span className="hidden max-w-36 truncate sm:inline" aria-hidden="true">
           {pillName}
         </span>
-        {/* At the pill's right end, lined up with the location pill's chevron below. */}
+        {/* At the pill's right end, lined up with the location pill's chevron below: both pills end at the
+            same edge with the same right padding (sm:pr-4, as in DeliveryLocationSelector). Keep them in step. */}
         <ChevronDown className="hidden size-4 shrink-0 text-muted-foreground sm:ml-auto sm:block" aria-hidden="true" />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[min(20rem,calc(100vw-2rem))] gap-3 p-4">

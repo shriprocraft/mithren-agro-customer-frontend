@@ -7,6 +7,7 @@ import { policyLinks } from "@/components/policies/policy-links";
 import { Heading } from "@/components/ui/typography";
 import { policyConfig, policyPlaceholders } from "@/config/policies";
 import { siteConfig } from "@/config/site";
+import { supportEmail, supportMailto } from "@/config/support";
 
 export interface PolicySection {
   id: string;
@@ -31,7 +32,7 @@ export function ContactDetails() {
   return (
     <ul>
       <li><strong>Company:</strong> {siteConfig.legalName}, <Placeholder>{policyPlaceholders.registeredAddress}</Placeholder> (<Placeholder>{policyPlaceholders.cin}</Placeholder>)</li>
-      <li><strong>Customer support:</strong> <Placeholder>{policyPlaceholders.supportEmail}</Placeholder>; <Placeholder>{policyPlaceholders.supportPhone}</Placeholder></li>
+      <li><strong>Customer support:</strong> <a href={supportMailto}>{supportEmail}</a>; <Placeholder>{policyPlaceholders.supportPhone}</Placeholder></li>
       <li><strong>Grievance Officer:</strong> <Placeholder>{policyPlaceholders.grievanceOfficer}</Placeholder></li>
     </ul>
   );

@@ -19,7 +19,7 @@ const CARD_WIDTH = "w-[9.75rem] shrink-0 min-[480px]:w-[10.5rem] sm:w-[10.75rem]
 const CARD_SIZES = "(min-width: 1280px) 192px, (min-width: 640px) 180px, 168px";
 
 // The store's categories in their configured order, each opening the marketplace filtered to it
-// (/products?category=<slug>), moving slowly and continuously from left to right in a seamless loop
+// (/products?category=<slug>), gliding gently and continuously from left to right in a seamless 60s loop
 // (CSS only, animate-marquee-right in globals.css).
 //
 // The track holds two identical halves and slides from -50% back to 0, so when it starts over the first
@@ -82,7 +82,7 @@ export function CategoryGrid({ categories, productCounts }: CategoryGridProps) {
           id="categories-row"
           className="group/marquee -mx-4 overflow-hidden pt-1 pb-3 sm:-mx-1 motion-safe:sm:[mask-image:linear-gradient(90deg,transparent,black_2rem,black_calc(100%-2rem),transparent)] motion-reduce:snap-x motion-reduce:snap-mandatory motion-reduce:scroll-px-4 motion-reduce:overflow-x-auto motion-reduce:px-4 motion-reduce:scrollbar-none sm:motion-reduce:scroll-px-1 sm:motion-reduce:px-1"
         >
-          <div className="flex w-max animate-marquee-right [--marquee-duration:30s] group-hover/marquee:[animation-play-state:paused] group-focus-within/marquee:[animation-play-state:paused] group-active/marquee:[animation-play-state:paused] motion-reduce:animate-none">
+          <div className="flex w-max animate-marquee-right [--marquee-duration:60s] group-hover/marquee:[animation-play-state:paused] group-focus-within/marquee:[animation-play-state:paused] group-active/marquee:[animation-play-state:paused] motion-reduce:animate-none">
             <ul aria-label="Categories" className="flex shrink-0 gap-3 pr-3 md:gap-4 md:pr-4">
               {cards(false)}
             </ul>
