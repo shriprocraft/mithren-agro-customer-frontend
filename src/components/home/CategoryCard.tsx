@@ -12,14 +12,17 @@ interface CategoryCardProps {
   detail?: string;
   className?: string;
   sizes?: string;
+  /** A visual copy (marquee loop): still clickable, but skipped by the keyboard and screen readers. */
+  copy?: boolean;
 }
 
 // Small tile: inset photo on a white surface on top, name (and an arrow from md) below. The whole tile
 // is one link with a visible focus ring; the lift and zoom on hover are dropped for reduced motion.
-export function CategoryCard({ href, name, image, detail, className, sizes = "(min-width: 1024px) 180px, 40vw" }: CategoryCardProps) {
+export function CategoryCard({ href, name, image, detail, className, sizes = "(min-width: 1024px) 180px, 40vw", copy }: CategoryCardProps) {
   return (
     <Link
       href={href}
+      {...(copy && { tabIndex: -1 })}
       className={cn(
         "group surface-card relative flex h-full flex-col rounded-2xl p-1.5 outline-none transition duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[var(--elevation-overlay)] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0",
         className,

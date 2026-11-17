@@ -368,3 +368,18 @@
 @utility animate-marquee {
   animation: marquee var(--marquee-duration, 50s) linear infinite;
 }
+
+/* The same loop moving left to right (Shop by category): the track starts shifted left by one copy
+   and slides back to 0, where the first copy sits exactly where the second one began. */
+@keyframes marquee-right {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@utility animate-marquee-right {
+  animation: marquee-right var(--marquee-duration, 30s) linear infinite;
+}

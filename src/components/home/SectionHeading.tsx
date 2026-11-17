@@ -35,11 +35,12 @@ export function SectionHeading({ id, title, description, eyebrow, action, contro
         )}
       </div>
       {(action || controls) && (
-        <div className="flex items-center gap-4">
+        // Never shrinks or wraps, so the link (and its arrow) always shows in full at the right.
+        <div className="flex shrink-0 items-center gap-4">
           {action && (
             <Link
               href={action.href}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-1 text-[0.8125rem] font-medium text-brand underline-offset-4 outline-none hover:text-primary-hover hover:underline focus-visible:ring-2 focus-visible:ring-ring sm:text-foreground sm:hover:text-brand"
+              className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-1 whitespace-nowrap text-[0.8125rem] font-medium text-brand underline-offset-4 outline-none hover:text-primary-hover hover:underline focus-visible:ring-2 focus-visible:ring-ring sm:text-foreground sm:hover:text-brand"
             >
               {action.label}
               <ArrowRight className="size-4" aria-hidden="true" />

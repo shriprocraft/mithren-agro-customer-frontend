@@ -99,21 +99,47 @@ describe("homepage", () => {
     );
   });
 
-  it("shows each category once in a swipeable row, every card a link to its filter", async () => {
+  it("moves the categories left to right in a seamless loop; every card, copies too, links to its filter", async () => {
     render(<AppProviders>{await Home()}</AppProviders>);
     const row = document.getElementById("categories-row")!;
-    expect(row.tagName).toBe("UL");
-    expect(row).toHaveAttribute("aria-label", "Categories");
-    expect(row).toHaveClass("overflow-x-auto", "snap-x");
-    expect(row.querySelector("[inert]")).toBeNull();
-    expect([...row.children].every((card) => !card.hasAttribute("aria-hidden"))).toBe(true);
-    expect(document.querySelector(".animate-marquee")).toBeNull();
-    const links = within(row).getAllByRole("link");
+    const track = row.querySelector(".animate-marquee-right")!;
+    expect(track).not.toBeNull();
+    expect(track.className).toContain("group-hover/marquee:[animation-play-state:paused]");
+    expect(track.className).toContain("motion-reduce:animate-none");
+    // Two identical halves: the first is the announced list, the second a hidden copy.
+    const [list, copy] = [...track.children] as [Element, Element];
+    expect(list).toHaveAttribute("aria-label", "Categories");
+    expect(copy).toHaveAttribute("aria-hidden", "true");
+    const cardsOf = (half: Element) =>
+      [...half.querySelectorAll("li")].map((li) => [[...li.classList].filter((c) => c !== "motion-reduce:hidden").join(" "), li.querySelector("a")!.getAttribute("href")]);
+    expect(cardsOf(copy)).toEqual(cardsOf(list)); // same cards, same widths: the loop can't jump
+    // Each half ends with its own gap-sized padding, so the two halves are exactly the same width.
+    for (const half of [list, copy]) expect(half).toHaveClass("flex", "shrink-0", "gap-3", "pr-3", "md:gap-4", "md:pr-4");
+    // Screen readers and the keyboard meet each category once…
+    const links = within(screen.getByRole("list", { name: "Categories" })).getAllByRole("link");
     const hrefs = links.map((a) => a.getAttribute("href"));
-    expect(new Set(hrefs).size).toBe(hrefs.length); // no category twice
+    expect(new Set(hrefs).size).toBe(hrefs.length);
     expect(hrefs).toHaveLength(9);
     expect(hrefs.every((href) => href?.startsWith("/products?category="))).toBe(true);
+    // …while the copies stay ordinary, clickable links (not inert), just out of the tab order.
+    const copies = [...copy.querySelectorAll("a")];
+    expect(copies.map((a) => a.getAttribute("href"))).toEqual(hrefs);
+    expect(copies.every((a) => a.getAttribute("tabindex") === "-1" && !a.closest("[inert]"))).toBe(true);
+    expect(row.querySelector("[inert]")).toBeNull();
     expect(screen.queryByRole("button", { name: /pause|resume|play/i })).toBeNull();
+  });
+
+  it("repeats a short category list inside each half so the loop never shows a gap", async () => {
+    const { CategoryGrid } = await import("@/components/home/CategoryGrid");
+    const { categories } = await import("./fixtures/catalog/categories");
+    const few = categories.slice(0, 3);
+    render(<CategoryGrid categories={few} productCounts={{}} />);
+    const [list, copy] = [...document.querySelector("#categories-row .animate-marquee-right")!.children] as [Element, Element];
+    // 3 categories: 3 rounds (9 cards) per half, only the first round announced.
+    expect(list.querySelectorAll("li")).toHaveLength(9);
+    expect(copy.querySelectorAll("li")).toHaveLength(9);
+    expect(within(screen.getByRole("list", { name: "Categories" })).getAllByRole("link")).toHaveLength(3);
+    expect([...list.querySelectorAll("a")].slice(3).every((a) => a.getAttribute("tabindex") === "-1")).toBe(true);
   });
 
   it("puts the search directly above Shop by category, and the hero has no delivery card", async () => {

@@ -12,7 +12,12 @@ const nextConfig: NextConfig = {
   // Investing isn't available: the earlier plan and project pages (app/_investor-journey) are unrouted,
   // and their old URLs show the Coming Soon page. Temporary, so the URLs can return later.
   async redirects() {
-    return [{ source: "/investors/:path+", destination: "/investors", permanent: false }];
+    return [
+      { source: "/investors/:path+", destination: "/investors", permanent: false },
+      // The marketplace (with its search and category filter) lives at /products; /search?category=<slug>
+      // and /search?q=… lead there with the same query string.
+      { source: "/search", destination: "/products", permanent: false },
+    ];
   },
   turbopack: {
     rules: {

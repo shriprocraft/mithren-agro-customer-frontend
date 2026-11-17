@@ -82,7 +82,13 @@ describe("Investor Opportunities page", () => {
 
   it("sends the old plan and project URLs to the Coming Soon page", async () => {
     const { default: config } = await import("../next.config");
-    await expect(config.redirects!()).resolves.toEqual([{ source: "/investors/:path+", destination: "/investors", permanent: false }]);
+    await expect(config.redirects!()).resolves.toContainEqual({ source: "/investors/:path+", destination: "/investors", permanent: false });
+  });
+
+  it("sends /search (with its category or query) to the marketplace", async () => {
+    const { default: config } = await import("../next.config");
+    // Next.js passes the query string on, so /search?category=fruits opens /products?category=fruits.
+    await expect(config.redirects!()).resolves.toContainEqual({ source: "/search", destination: "/products", permanent: false });
   });
 
   it("has no route or link to the Investor Portal anywhere in the app", () => {
