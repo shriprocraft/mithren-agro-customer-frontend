@@ -62,13 +62,13 @@ export function CartMenu({ catalog }: { catalog: Product[] }) {
             </p>
           </>
         )}
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2">
           <PopoverClose asChild>
-            <Button asChild variant="outline"><Link href="/cart">View cart</Link></Button>
+            <Button asChild className="w-full justify-center text-center"><Link href="/cart">View cart</Link></Button>
           </PopoverClose>
           {lines.length > 0 && (
             <PopoverClose asChild>
-              <Button asChild>
+              <Button asChild variant="buy" className="w-full justify-center text-center">
                 <Link href={blocked ? "/cart" : "/checkout/address"} onClick={() => { if (!blocked) start({ kind: "cart" }); }}>Checkout</Link>
               </Button>
             </PopoverClose>

@@ -99,25 +99,21 @@ describe("homepage", () => {
     );
   });
 
-  it("moves the categories as a marquee whose second copy is hidden from keyboards and screen readers", async () => {
+  it("shows each category once in a swipeable row, every card a link to its filter", async () => {
     render(<AppProviders>{await Home()}</AppProviders>);
-    const track = document.querySelector("#categories-row > div")!;
-    expect(track).toHaveClass("animate-marquee", "motion-reduce:animate-none");
-    const [original, copy] = [...track.children];
-    expect(track.children).toHaveLength(2);
-    expect(original).toHaveAttribute("aria-label", "Categories");
-    expect(copy).toHaveAttribute("aria-hidden", "true");
-    expect(copy).toHaveAttribute("inert");
-    expect(copy!.innerHTML).toBe(original!.innerHTML);
-    // Only the nine real links are reachable.
-    expect(within(screen.getByRole("region", { name: "Shop by category" })).getAllByRole("link").filter((a) => a.getAttribute("href")?.startsWith("/products?category="))).toHaveLength(9);
-    // No visible animation control. Hovering, focus and touch still hold the row.
+    const row = document.getElementById("categories-row")!;
+    expect(row.tagName).toBe("UL");
+    expect(row).toHaveAttribute("aria-label", "Categories");
+    expect(row).toHaveClass("overflow-x-auto", "snap-x");
+    expect(row.querySelector("[inert]")).toBeNull();
+    expect([...row.children].every((card) => !card.hasAttribute("aria-hidden"))).toBe(true);
+    expect(document.querySelector(".animate-marquee")).toBeNull();
+    const links = within(row).getAllByRole("link");
+    const hrefs = links.map((a) => a.getAttribute("href"));
+    expect(new Set(hrefs).size).toBe(hrefs.length); // no category twice
+    expect(hrefs).toHaveLength(9);
+    expect(hrefs.every((href) => href?.startsWith("/products?category="))).toBe(true);
     expect(screen.queryByRole("button", { name: /pause|resume|play/i })).toBeNull();
-    expect(track).toHaveClass("group-hover/marquee:[animation-play-state:paused]", "group-focus-within/marquee:[animation-play-state:paused]");
-    // Reduced motion: the row stops, the copy goes, and it can be swiped or paged by arrows.
-    expect(copy).toHaveClass("motion-reduce:hidden");
-    expect(document.getElementById("categories-row")).toHaveClass("overflow-hidden", "motion-reduce:overflow-x-auto");
-    expect(document.querySelector('#categories [class*="motion-reduce:block"]')).toHaveClass("hidden");
   });
 
   it("puts the search directly above Shop by category, and the hero has no delivery card", async () => {

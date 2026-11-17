@@ -29,6 +29,8 @@ export function AccountMenu() {
   const { orders, hydrated: ordersReady } = useOrders();
   const customer = signedIn ? auth.session?.customer : undefined;
   const customerName = customer ? (customer.full_name ?? customer.phone ?? customer.email ?? "customer") : null;
+  // The pill shows who is signed in: the first name, or (no name saved yet) the email's name part.
+  const pillName = customer ? (customer.full_name?.trim().split(/\s+/)[0] || customer.email?.split("@")[0] || "My account") : "Account";
   const recent = orders.slice(0, 3);
 
   return (
@@ -44,8 +46,8 @@ export function AccountMenu() {
             <UserRound className="size-5" aria-hidden="true" />
           )}
         </span>
-        <span className="hidden max-w-28 truncate sm:inline" aria-hidden="true">
-          {customer?.full_name ? customer.full_name.split(/\s+/)[0] : "Account"}
+        <span className="hidden max-w-36 truncate sm:inline" aria-hidden="true">
+          {pillName}
         </span>
         <ChevronDown className="hidden size-4 text-muted-foreground sm:block" aria-hidden="true" />
       </PopoverTrigger>

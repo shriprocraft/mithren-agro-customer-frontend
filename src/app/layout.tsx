@@ -3,13 +3,13 @@ import { Montserrat, Playfair_Display } from "next/font/google";
 import { Suspense, type ReactNode } from "react";
 import { CircleAlert } from "lucide-react";
 import { unstable_rethrow } from "next/navigation";
-import { LoadingState } from "@/components/checkout/PageState";
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
 import { Container } from "@/components/layout/Container";
 import { NavigationProgress } from "@/components/layout/NavigationProgress";
 import { PageBackdrop } from "@/components/layout/PageBackdrop";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { StoreLoadingBody } from "@/components/layout/StoreLoadingBody";
 import { siteConfig } from "@/config/site";
 import { AppProviders } from "@/context/AppProviders";
 import { CatalogCategoriesProvider } from "@/context/CatalogCategoriesContext";
@@ -103,11 +103,7 @@ function StoreLoading() {
     <>
       <AnnouncementBar />
       <SiteHeader catalog={[]} />
-      <main id="main-content" className="flex-1">
-        <Container className="pt-4 pb-10 sm:pt-6">
-          <LoadingState label="Loading the store…" fullHeight />
-        </Container>
-      </main>
+      <StoreLoadingBody />
     </>
   );
 }

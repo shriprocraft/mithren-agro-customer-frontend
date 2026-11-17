@@ -23,9 +23,10 @@ const heroPhoto = {
 //
 // Phones and tablets: the photograph is a full-bleed band (the header over its sky), centred on the
 // crate, fading into the page; the copy and actions follow below it. From lg the photograph fills the
-// whole first screen (minus the announcement bar, capped 44–58rem) and the copy sits on the open field
-// (the photo is positioned left of centre, and from xl its box starts 7% in, so the crate sits towards
-// the right) on the left behind a soft light wash that clears before the crate. From xl the copy lines up
+// whole first screen (minus the announcement bar, capped 34–58rem so the benefits strip shows on short
+// laptop screens) and the copy sits on the open field on the left behind a soft light wash that clears
+// before the crate. From xl the photo's box starts 12% in and runs 5% past the right edge, anchored to
+// its right, so the whole crate sits on the right (checked at 1280–1920 wide) and the copy stays clear. From xl the copy lines up
 // with the logo (the header's xl:px-10 gutter). The benefits strip runs along the
 // bottom. One image element at every width, so the LCP image is never downloaded twice.
 export function HeroSection() {
@@ -33,9 +34,9 @@ export function HeroSection() {
     <section
       id="home-hero"
       aria-labelledby="hero-title"
-      className="relative isolate -mt-28 overflow-hidden bg-background lg:-mt-30 lg:flex lg:h-[calc(100svh-1.875rem)] lg:max-h-[58rem] lg:min-h-[44rem] lg:flex-col"
+      className="relative isolate -mt-28 overflow-hidden bg-background lg:-mt-30 lg:flex lg:h-[calc(100svh-1.875rem)] lg:max-h-[58rem] lg:min-h-[34rem] lg:flex-col"
     >
-      <div className="relative h-[23rem] min-[480px]:h-[27rem] sm:h-[32rem] md:h-[34rem] lg:absolute lg:inset-y-0 lg:right-0 lg:left-0 lg:-z-10 lg:h-auto xl:left-[7%] xl:[mask-image:linear-gradient(to_right,transparent,black_16%)]">
+      <div className="relative h-[23rem] min-[480px]:h-[27rem] sm:h-[32rem] md:h-[34rem] lg:absolute lg:inset-y-0 lg:right-0 lg:left-0 lg:-z-10 lg:h-auto xl:-right-[5%] xl:left-[12%] xl:[mask-image:linear-gradient(to_right,transparent,black_16%)]">
         <Image
           src={heroPhoto.src}
           alt={heroPhoto.alt}
@@ -43,10 +44,11 @@ export function HeroSection() {
           preload
           fetchPriority="high"
           sizes="100vw"
-          className="object-cover object-[62%_60%] sm:object-[56%_60%] lg:object-[38%_60%] xl:object-[16%_60%]"
+          className="object-cover object-[62%_60%] sm:object-[56%_60%] lg:object-[38%_60%] xl:object-[100%_60%]"
         />
-        {/* A light wash under the header keeps the logo and controls crisp against the sky. */}
-        <div aria-hidden="true" className="absolute inset-x-0 top-0 h-32 bg-linear-to-b from-white/85 via-white/45 to-transparent sm:from-white/70 sm:via-white/30 lg:h-40" />
+        {/* A light wash under the header keeps the logo crisp against the sky. From lg it covers the left
+            only (the controls are frosted chips): it never washes out the crate or the right of the hero. */}
+        <div aria-hidden="true" className="absolute inset-x-0 top-0 h-32 bg-linear-to-b from-white/85 via-white/45 to-transparent sm:from-white/70 sm:via-white/30 lg:h-28 lg:[mask-image:linear-gradient(to_right,black_30%,transparent_60%)]" />
         {/* Phones and tablets: the band fades into the page where the copy begins. */}
         <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-background via-background/70 to-transparent lg:hidden" />
       </div>
@@ -56,7 +58,7 @@ export function HeroSection() {
         className="absolute inset-0 -z-10 hidden bg-[linear-gradient(90deg,color-mix(in_oklab,var(--background),transparent_4%)_0%,color-mix(in_oklab,var(--background),transparent_18%)_30%,color-mix(in_oklab,var(--background),transparent_70%)_46%,transparent_60%)] lg:block"
       />
 
-      <Container className="relative -mt-12 pb-5 sm:-mt-16 sm:pb-7 lg:mt-0 lg:flex lg:flex-1 lg:items-center lg:pt-32 lg:pb-6 xl:px-10">
+      <Container className="relative -mt-12 pb-5 sm:-mt-16 sm:pb-7 lg:mt-0 lg:flex lg:flex-1 lg:items-center lg:pt-28 lg:pb-4 xl:px-10">
         <div className="max-w-xl animate-in duration-500 fade-in slide-in-from-bottom-3 motion-reduce:animate-none lg:max-w-[30rem] xl:max-w-xl">
           <Heading as="h1" id="hero-title" variant="display">
             Good Food
@@ -85,7 +87,8 @@ export function HeroSection() {
         </div>
       </Container>
 
-      <div className="relative lg:pb-6 xl:pb-7">
+      {/* Lifted off the bottom edge so the whole strip shows above the fold. */}
+      <div className="relative lg:pb-10 xl:pb-12">
         <ValueStrip />
       </div>
     </section>
