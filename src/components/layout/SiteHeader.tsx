@@ -38,7 +38,9 @@ export function SiteHeader({ catalog }: SiteHeaderProps) {
             <div className="glass-chip flex size-11 items-center justify-center rounded-full">
               <CartMenu catalog={catalog} />
             </div>
-            <div className="glass-chip flex h-11 items-center rounded-full">
+            {/* From sm the account pill takes up the rest of the row, so the row is exactly as wide as the
+                "Delivering to" pill below: both rows share their left and right edges, chevron over chevron. */}
+            <div className="glass-chip flex h-11 items-center rounded-full sm:min-w-0 sm:flex-1">
               <AccountMenu />
             </div>
           </div>

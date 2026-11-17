@@ -42,7 +42,7 @@ export function CategoryGrid({ categories, productCounts }: CategoryGridProps) {
         <ul
           id="categories-row"
           aria-label="Categories"
-          className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-3 scrollbar-none sm:-mx-1 sm:scroll-px-1 sm:px-1 md:gap-4"
+          className="-mx-4 flex flex-nowrap snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overflow-y-hidden overscroll-x-contain scroll-smooth px-4 pt-1 pb-3 scrollbar-none motion-reduce:scroll-auto sm:-mx-1 sm:scroll-px-1 sm:px-1 md:gap-4"
         >
           {unique.map((tile) => (
             <li key={tile.href} className="w-[9.75rem] shrink-0 snap-start min-[480px]:w-[10.5rem] sm:w-[10.75rem] lg:w-[11.25rem] xl:w-[12rem]">
