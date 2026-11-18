@@ -13,8 +13,9 @@ import { bundles } from "./fixtures/catalog/bundles";
 import { categories } from "./fixtures/catalog/categories";
 import { products } from "./fixtures/catalog/products";
 import { addToCart, parseCart, removeFromCart, resolveLines, setCartQuantity, summarize } from "@/lib/cart";
-import { defaultVariant, lineKey, resolveSelection } from "@/lib/variants";
+import { cleanUnitText, defaultVariant, lineKey, resolveSelection, unitIsASize } from "@/lib/variants";
 import type { Address, Order, OrderStatus } from "@/types/order";
+import type { Product } from "@/types/catalog";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -65,8 +66,28 @@ describe("product variants: data", () => {
   it("resolves unknown option ids to null, never to another option", () => {
     expect(resolveSelection(onions, "3kg")).toBeNull();
     expect(resolveSelection(byId("p-papaya"), "1kg")).toBeNull();
-    expect(resolveSelection(kurta, "m")!.description).toBe("2-piece set · Size M");
+    expect(resolveSelection(kurta, "m")!.description).toBe("2-piece set · Size: M");
     expect(defaultVariant(kurta)!.label).toBe("M");
+  });
+
+  it("names a size once when the listing's unit is only a size label (Seller Portal listings)", () => {
+    const sizes = (unit: string, ...labels: string[]): Product => ({
+      ...kurta, unit, variant_type: "size", default_variant_id: "0",
+      variants: labels.map((label, i) => ({ ...kurta.variants![0]!, id: String(i), label })),
+    });
+    const kurti = sizes("Free size (fits 36-42)", "Free size (fits 36-42)");
+    expect(unitIsASize(kurti)).toBe(true);
+    expect(resolveSelection(kurti)!.description).toBe("Size: Free size (fits 36-42)");
+    // Choosing another size never shows the default one next to it.
+    const bangles = sizes("M(fits 19-23 age)", "M(fits 19-23 age)", "S(fits 12-14 age)");
+    expect(resolveSelection(bangles, "1")!.description).toBe("Size: S(fits 12-14 age)");
+    expect(unitIsASize(kurta)).toBe(false);
+  });
+
+  it("tidies the pack text stored on older order lines", () => {
+    expect(cleanUnitText("Free size (fits 36-42) · Size Free size (fits 36-42)")).toBe("Size: Free size (fits 36-42)");
+    expect(cleanUnitText("2-piece set · Size M")).toBe("2-piece set · Size: M");
+    expect(cleanUnitText("500 g")).toBe("500 g");
   });
 });
 
@@ -163,14 +184,30 @@ describe("policy rules", () => {
       }) as unknown as Order;
     const placed: [OrderStatus, string] = ["order_placed", "2026-10-20T10:00:00Z"];
     const { rerender } = render(<OrderPolicyNote order={at("order_placed", [placed])} />);
-    expect(screen.getByText(/You can cancel this order until it is packed/)).toBeInTheDocument();
+    expect(screen.getByText(/You can cancel this order until a seller accepts it/)).toBeInTheDocument();
+    expect(screen.queryByText(/until it is packed/)).toBeNull();
+    // The store says a seller accepted it: it can't be cancelled online, though it isn't packed yet.
+    rerender(<OrderPolicyNote order={{ ...at("order_placed", [placed]), cancellable: false, cancel_unavailable: "seller_accepted" }} />);
+    expect(screen.getByText(/A seller has accepted this order, so it can no longer be cancelled online/)).toBeInTheDocument();
     rerender(<OrderPolicyNote order={at("ready_for_dispatch", [placed, ["ready_for_dispatch", "2026-10-21T10:00:00Z"]])} />);
-    expect(screen.getByText(/can no longer be cancelled/)).toBeInTheDocument();
+    expect(screen.getByText(/has been packed, so it can no longer be cancelled/)).toBeInTheDocument();
     rerender(<OrderPolicyNote order={at("delivered", [placed, ["delivered", "2026-10-22T10:00:00Z"]])} />);
     const note = screen.getByText(/return requests can be made until/);
     expect(note.textContent).toContain(kurta.name);
     expect(note.textContent).not.toContain(onions.name);
     expect(note.textContent).toContain("1 Nov 2026");
+  });
+
+  it("gives no return window to an item its seller rejected", () => {
+    const order = {
+      id: "MA-2", created_at: "2026-10-20T10:00:00Z", status: "order_confirmed", source: "backend", address,
+      items: [{ product_id: kurta.id, name: kurta.name, category_slug: "womens-apparel", quantity: 1, seller_status: "rejected" }],
+      history: [{ status: "order_placed", at: "2026-10-20T10:00:00Z" }], cancellable: false, cancel_unavailable: "seller_accepted",
+    } as unknown as Order;
+    const { rerender } = render(<OrderPolicyNote order={order} />);
+    expect(screen.queryByText(/eligible for return|return requests/)).toBeNull();
+    rerender(<OrderPolicyNote order={{ ...order, items: [{ ...order.items[0]!, seller_status: "accepted" }] }} />);
+    expect(screen.getByText(/eligible for return within 10 days/)).toHaveTextContent(kurta.name);
   });
 
   it("every footer policy link opens its own page", () => {

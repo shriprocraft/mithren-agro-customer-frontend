@@ -15,7 +15,7 @@ import { Heading } from "@/components/ui/typography";
 import { shopHref } from "@/lib/browse";
 import { imageShapeFor } from "@/lib/catalog-display";
 import { cn } from "@/lib/utils";
-import { hasVariants } from "@/lib/variants";
+import { hasVariants, unitIsASize } from "@/lib/variants";
 import { getCategories, getProduct, getRelatedProducts, getVendors } from "@/services/catalog";
 
 // Rendered on every request from the live catalogue (nothing is prerendered from a build-time snapshot).
@@ -111,8 +111,9 @@ async function ProductContent({ params }: Pick<PageProps<"/products/[productId]"
               {[
                 hasVariants(product) && product.variants.length > 1
                   ? [product.variant_type === "size" ? "Sizes" : "Options", product.variants.map((v) => v.label).join(", ")]
-                  : ["Pack size", product.unit],
-                ...(product.variant_type === "size" ? [["Set", product.unit]] : []),
+                  : [unitIsASize(product) ? "Size" : "Pack size", product.unit],
+                // A set name ("2-piece set"), unless the unit is only a size label (then it would repeat it).
+                ...(product.variant_type === "size" && !unitIsASize(product) ? [["Set", product.unit]] : []),
                 ...(category ? [["Category", category.name]] : []),
                 ...(seller ? [["Seller", seller]] : []),
               ].map(([term, value]) => (

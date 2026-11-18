@@ -107,7 +107,8 @@ describe("placing a COD order with a backend account", () => {
     quoteMock.mockResolvedValue(priced(4000));
     const orders = fakeOrders();
     renderReview(orders);
-    expect(await screen.findByText(/cash on delivery/i)).toBeInTheDocument();
+    // The cancellation rule as it really is: until a seller accepts it (not "until it is packed").
+    expect(await screen.findByText(/You can cancel it until a seller accepts it\./)).toBeInTheDocument();
     const button = await screen.findByRole("button", { name: /place order/i });
     await act(async () => fireEvent.click(button));
 
@@ -271,7 +272,7 @@ describe("split orders: one seller accepts, another rejects", () => {
       history: [{ status: "order_placed", at: "2026-11-12T06:00:00Z" }, { status: "order_confirmed", at: "2026-11-12T06:30:00Z" }],
       seller_parts: [
         { reference: "SO-000101", vendor_id: "v1", seller_name: "Green Valley Farm", status: "accepted", updated_at: "2026-11-12T06:30:00Z",
-          amount: 8000, items: [{ product_id: "p-tomatoes", variant_id: "1kg", name: "Tomatoes", quantity: 2, line_total: 8000 }] },
+          amount: 8000, items: [{ product_id: "p-tomatoes", variant_id: "1kg", name: "Tomatoes", variant_label: "S", quantity: 2, line_total: 8000 }] },
         { reference: "SO-000102", vendor_id: "v2", seller_name: "Hill Bee Co", status: "rejected", cancelled_by: "seller",
           cancel_reason: "Out of stock today", updated_at: "2026-11-12T06:40:00Z",
           amount: 30000, items: [{ product_id: "p-honey", name: "Wild Honey", quantity: 1, line_total: 30000 }] },
@@ -302,7 +303,8 @@ describe("split orders: one seller accepts, another rejects", () => {
     const sellers = await screen.findByRole("list", { name: "Sellers in this order" });
     const accepted = within(sellers).getByRole("listitem", { name: "Green Valley Farm: Accepted" });
     const rejected = within(sellers).getByRole("listitem", { name: "Hill Bee Co: Rejected by the seller" });
-    expect(within(accepted).getByText("Tomatoes × 2")).toBeInTheDocument();
+    // The pack as the customer bought it ("1 kg"), not the seller's option name ("S").
+    expect(within(accepted).getByText("Tomatoes · 1 kg × 2")).toBeInTheDocument();
     expect(within(rejected).getByText(/won’t be delivered and you won’t be charged/)).toBeInTheDocument();
     expect(within(rejected).getByText(/Out of stock today/)).toBeInTheDocument();
     expect(within(rejected).getByText("Not charged")).toBeInTheDocument();
@@ -334,6 +336,17 @@ describe("split orders: one seller accepts, another rejects", () => {
     expect(screen.getByRole("listitem", { name: "Hill Bee Co: Waiting for the seller" })).toBeInTheDocument();
     expect(screen.queryByText("Partly cancelled by seller")).toBeNull();
     expect(screen.queryByText("To pay on delivery")).toBeNull();
+  });
+
+  it("shows what is still due on the order card in My Orders", async () => {
+    const orders = fakeOrders({ list: vi.fn(async () => [toOrder(split())]) });
+    render(<AppProviders authService={signedIn} ordersService={orders}><OrdersList /></AppProviders>);
+    const card = (await screen.findByText(ORDER)).closest("article")!;
+    expect(card).toHaveTextContent("To pay ₹80");
+    expect(card).toHaveTextContent("was ₹380");
+    expect(within(card).getByText("Partly cancelled by seller")).toBeInTheDocument();
+    // An order nobody dropped anything from keeps its plain total.
+    expect(within(card).queryByText(/^Total/)).toBeNull();
   });
 
   it("keeps a single-seller order as it was (no seller breakdown)", async () => {

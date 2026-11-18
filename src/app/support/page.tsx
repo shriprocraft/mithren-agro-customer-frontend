@@ -22,7 +22,7 @@ const groups: { title: string; faqs: Faq[] }[] = [
     faqs: [
       { q: "Where can I see my orders?", a: <>In <Link href="/account/orders" className="font-medium text-primary underline-offset-4 hover:underline">My Orders</Link>, or from the account menu in the header. Orders are kept in your account, so you can see them on any device after signing in.</> },
       { q: "How do I track an order?", a: <>Use “Track order” on the confirmation page or in My Orders, or enter the order ID in <Link href="/account/track" className="font-medium text-primary underline-offset-4 hover:underline">Track Orders</Link>. The status updates as the seller prepares and sends your order; there is no live location or delivery estimate yet.</> },
-      { q: "How do I pay?", a: "Orders are Cash on Delivery: pay in cash when your order arrives. You can cancel an order until it is packed." },
+      { q: "How do I pay?", a: "Orders are Cash on Delivery: pay in cash when your order arrives. You can cancel an order until a seller accepts it." },
     ],
   },
   {

@@ -5,6 +5,7 @@ import { SellerParts, droppedParts, isSplitOrder } from "@/components/orders/Sel
 import { addressTypeLabels, formatAddressLine } from "@/lib/address";
 import { formatPrice } from "@/lib/formatters";
 import { isDroppedPart, sellerPartStatusLabels } from "@/lib/orders";
+import { cleanUnitText } from "@/lib/variants";
 import type { Order } from "@/types/order";
 
 export const formatOrderTime = (iso: string) =>
@@ -39,7 +40,7 @@ export function OrderDetails({ order }: { order: Order }) {
               return {
                 ...item,
                 key: `${item.product_id}::${item.variant_id ?? ""}`,
-                unit: item.variant_label ? `${item.unit} · ${item.variant_label}` : item.unit,
+                unit: cleanUnitText(item.variant_label ? `${item.unit} · ${item.variant_label}` : item.unit),
                 image: { src: item.image_src, alt: item.image_alt, studio: item.image_studio },
                 // Products (not combo boxes) of an order that isn't cancelled, and that their seller didn't drop, can be reviewed.
                 reviewable: order.status !== "cancelled" && item.kind === "product" && !dropped,

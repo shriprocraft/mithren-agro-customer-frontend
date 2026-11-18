@@ -10,9 +10,9 @@ export interface Selection {
   variant: ProductVariant | undefined;
   /** Pack size as sold: "500 g", "6 pieces", or the product's unit for sizes ("2-piece set"). */
   unit: string;
-  /** "Size M" for apparel; undefined otherwise (the unit already names the weight or pack). */
+  /** "Size: M" for apparel; undefined otherwise (the unit already names the weight or pack). */
   variantLabel: string | undefined;
-  /** Unit and size together, for one-line display: "500 g" or "2-piece set · Size M". */
+  /** Unit and size together, for one-line display: "500 g", "2-piece set · Size: M", or "Size: M" alone. */
   description: string;
   /** Paise. */
   price: number;
@@ -32,6 +32,24 @@ export const variantTypeLabels: Record<VariantType, string> = {
 
 export function hasVariants(product: Product): product is Product & { variants: ProductVariant[] } {
   return Array.isArray(product.variants) && product.variants.length > 0;
+}
+
+const sameText = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/** Whether a size product's `unit` is really one of its size labels (Seller Portal listings), not a set name. */
+export function unitIsASize(product: Product): boolean {
+  return product.variant_type === "size" && hasVariants(product) && product.variants.some((v) => sameText(v.label, product.unit));
+}
+
+/**
+ * An order line's stored pack text without a size repeated in it: orders placed before the fix above
+ * stored "Free size (fits 36-42) · Size Free size (fits 36-42)", shown now as "Size: Free size (fits 36-42)".
+ */
+export function cleanUnitText(unit: string): string {
+  const match = unit.match(/^(.*?) · Size:? (.*)$/);
+  if (!match) return unit;
+  const [, set, size] = match as unknown as [string, string, string];
+  return sameText(set, size) ? `Size: ${size}` : `${set} · Size: ${size}`;
 }
 
 /** The option a listing shows and a quick "Add to cart" adds. */
@@ -62,13 +80,15 @@ export function resolveSelection(product: Product, variantId?: string): Selectio
   const variant = variantId === undefined ? defaultVariant(product) : product.variants.find((v) => v.id === variantId);
   if (!variant) return null;
   const isSize = product.variant_type === "size";
-  const unit = isSize ? product.unit : (variant.unit ?? variant.label);
-  const variantLabel = isSize ? `Size ${variant.label}` : undefined;
+  // A size product's unit names the set ("2-piece set"); Seller Portal listings put a size label there
+  // instead, which would only repeat (or contradict) the chosen size, so it is left out.
+  const unit = isSize ? (unitIsASize(product) ? "" : product.unit) : (variant.unit ?? variant.label);
+  const variantLabel = isSize ? `Size: ${variant.label}` : undefined;
   return {
     variant,
     unit,
     variantLabel,
-    description: variantLabel ? `${unit} · ${variantLabel}` : unit,
+    description: variantLabel ? [unit, variantLabel].filter(Boolean).join(" · ") : unit,
     price: variant.price,
     discounted_price: variant.discounted_price,
     stock_status: variant.stock_status,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { BadgeCheck, MessageSquareReply, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -152,8 +152,20 @@ export function ProductReviews({ productId, service = defaultService }: { produc
     };
   }, [service, customerId, productId]);
 
-  if (!service) return null;
   const current = list?.id === productId ? list : null;
+  // Opened at #reviews (e.g. "Write a review" on an order): the browser jumps there before the reviews
+  // (and the customer's own) have loaded, while the section is still short, so it can land past it. Once
+  // they are in, bring the section to the top, once per product.
+  const ready = Boolean(current) && (!customerId || mine?.key === `${customerId}:${productId}`);
+  const scrolledFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!ready || scrolledFor.current === productId || window.location.hash !== "#reviews") return;
+    scrolledFor.current = productId;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    requestAnimationFrame(() => document.getElementById("reviews")?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" }));
+  }, [ready, productId]);
+
+  if (!service) return null;
   const myReview = customerId && mine?.key === `${customerId}:${productId}` ? mine.data : null;
   const summary = current?.data;
   const here = `/products/${productId}#reviews`;

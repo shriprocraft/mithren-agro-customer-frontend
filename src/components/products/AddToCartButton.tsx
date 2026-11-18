@@ -17,7 +17,7 @@ interface AddToCartButtonProps {
   variantId?: string;
   /** The product's default option (see CartContext.addItem). */
   defaultVariantId?: string;
-  /** Names the option in the toast and for screen readers, e.g. "500 g" or "2-piece set · Size M". */
+  /** Names the option in the toast and for screen readers, e.g. "500 g" or "2-piece set · Size: M". */
   optionLabel?: string;
   stockStatus: StockStatus;
   /** How many to add (product details page); defaults to 1. */

@@ -201,7 +201,7 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
           {busy ? "Placing order…" : "Place order"}
         </Button>
         <p className="mt-3 text-xs text-muted-foreground">
-          Cash on Delivery: pay in cash when your order arrives. You can cancel it until it is packed.
+          Cash on Delivery: pay in cash when your order arrives. You can cancel it until a seller accepts it.
         </p>
       </OrderSummary>
     </div>

@@ -31,6 +31,7 @@ export function itemsSummary(order: Order, shown = 2): string {
 
 /** One order in the account: ID, date, status, items, total, and links to details and tracking. */
 export function OrderCard({ order }: { order: Order }) {
+  const partlyDropped = order.status !== "cancelled" && order.payable_total !== undefined && order.payable_total < order.total;
   return (
     <article aria-labelledby={`order-${order.id}`} className="surface-card rounded-2xl p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
@@ -44,9 +45,21 @@ export function OrderCard({ order }: { order: Order }) {
       </div>
       <p className="mt-3 text-sm">{itemsSummary(order)}</p>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
-        <p className="text-sm text-muted-foreground">
-          Total <span className="font-heading font-semibold text-foreground">{formatPrice(order.total)}</span>
-        </p>
+        {/* A seller rejected part of it: what is actually due comes first, the original total after. */}
+        {partlyDropped ? (
+          <p className="flex flex-wrap items-baseline gap-x-2 text-sm text-muted-foreground">
+            <span>
+              To pay <span className="font-heading font-semibold text-foreground">{formatPrice(order.payable_total!)}</span>
+            </span>
+            <span className="text-xs">
+              (was <s>{formatPrice(order.total)}</s><span className="sr-only"> before a seller cancelled part of it</span>)
+            </span>
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Total <span className="font-heading font-semibold text-foreground">{formatPrice(order.total)}</span>
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline"><Link href={`/account/orders/${order.id}`}>View details<span className="sr-only">: order {order.id}</span></Link></Button>
           <Button asChild variant="secondary"><Link href={`/orders/${order.id}/tracking`}><Truck aria-hidden="true" />Track<span className="sr-only"> order {order.id}</span></Link></Button>

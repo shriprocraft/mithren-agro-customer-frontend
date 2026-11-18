@@ -9,7 +9,7 @@ export interface ItemRow {
   key: string;
   product_id: string;
   name: string;
-  /** Pack size and option, e.g. "500 g" or "2-piece set · Size M". */
+  /** Pack size and option, e.g. "500 g" or "2-piece set · Size: M". */
   unit: string;
   image: { src: string; alt: string; studio?: boolean };
   /** Paise. */

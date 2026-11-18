@@ -2,7 +2,8 @@ import { AlertTriangle, Ban, CheckCircle2, Clock, Store, Users, type LucideIcon 
 import { formatPrice } from "@/lib/formatters";
 import { isDroppedPart, sellerPartLabel } from "@/lib/orders";
 import { cn } from "@/lib/utils";
-import type { Order, SellerPart } from "@/types/order";
+import { cleanUnitText } from "@/lib/variants";
+import type { Order, SellerPart, SellerPartItem } from "@/types/order";
 
 const partIcon = (part: SellerPart): LucideIcon =>
   isDroppedPart(part.status) ? Ban : part.status === "awaiting_acceptance" ? Clock : CheckCircle2;
@@ -65,6 +66,14 @@ export function SplitNotice({ order }: { order: Order }) {
 export function SellerParts({ order }: { order: Order }) {
   if (!isSplitOrder(order)) return null;
   const parts = order.seller_parts ?? [];
+  // The pack or size as the customer bought it ("500 g", "Size: M"), from the order's own line; the
+  // seller's option name ("S") only for combo box components, which have no line of their own.
+  const packOf = (item: SellerPartItem) => {
+    const line = order.items.find(
+      (orderItem) => orderItem.kind !== "bundle" && orderItem.product_id === item.product_id && (orderItem.variant_id ?? undefined) === (item.variant_id ?? undefined),
+    );
+    return line ? cleanUnitText(line.unit) : item.variant_label;
+  };
   return (
     <section aria-labelledby="seller-parts-title" className="surface-card rounded-3xl p-5">
       <h2 id="seller-parts-title" className="font-heading text-lg font-semibold">Sellers in this order</h2>
@@ -115,7 +124,7 @@ export function SellerParts({ order }: { order: Order }) {
                   <li key={`${item.product_id ?? item.name}-${item.variant_id ?? ""}-${index}`} className="flex justify-between gap-3">
                     <span className={cn("min-w-0", dropped && "text-muted-foreground line-through")}>
                       {item.name}
-                      {item.variant_label && ` · ${item.variant_label}`} × {item.quantity}
+                      {packOf(item) && ` · ${packOf(item)}`} × {item.quantity}
                     </span>
                     <span className={cn("shrink-0", dropped && "text-muted-foreground line-through")}>{formatPrice(item.line_total)}</span>
                   </li>

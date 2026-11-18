@@ -3,22 +3,29 @@ import { RotateCcw, XCircle } from "lucide-react";
 import { canRequestCancellation, isReturnEligibleCategory, policyConfig, returnWindowEnd } from "@/config/policies";
 import { useCatalogCategories } from "@/context/CatalogCategoriesContext";
 import { categorySlugOf } from "@/lib/catalog-display";
-import { orderStatusLabels } from "@/lib/orders";
+import { isDroppedPart } from "@/lib/orders";
 import type { Order } from "@/types/order";
 
 const formatDate = (date: Date) => new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(date);
 const linkClass = "font-medium text-primary underline-offset-4 hover:underline";
 
 // What the cancellation and return policies mean for this order, from the same rules the policy pages
-// state (config/policies.ts): cancellation can be requested until the order is packed; the return
-// window applies only to eligible apparel, counted from the delivery date. There is no self-service
+// state (config/policies.ts): the order can be cancelled online until a seller accepts it (the store's
+// `cancellable`); the return window applies only to eligible apparel that is actually delivered (not
+// items a seller rejected), counted from the delivery date. There is no self-service
 // return yet, so the note points to support for returns.
 export function OrderPolicyNote({ order }: { order: Order }) {
   const categories = useCatalogCategories();
-  const packed = orderStatusLabels[policyConfig.cancellation.packedStatus];
+  // The store says whether it can still be cancelled (no seller has accepted it yet); without that answer
+  // (older responses), the packing rule from the policy decides.
+  const cancellable = order.cancellable ?? canRequestCancellation(order.status);
+  const packed = order.cancel_unavailable ? order.cancel_unavailable === "packed" : !canRequestCancellation(order.status);
   const deliveredAt = order.history.find((event) => event.status === "delivered")?.at;
   const slugOf = (id: string | undefined) => categorySlugOf(id, categories);
-  const returnable = order.items.filter((item) => isReturnEligibleCategory(item.category_slug ?? slugOf(item.category_id)));
+  // Items a seller rejected or cancelled are never delivered, so they have no return window.
+  const returnable = order.items.filter(
+    (item) => !(item.seller_status && isDroppedPart(item.seller_status)) && isReturnEligibleCategory(item.category_slug ?? slugOf(item.category_id)),
+  );
   const windowEnd = deliveredAt ? returnWindowEnd(deliveredAt) : null;
 
   return (
@@ -29,11 +36,13 @@ export function OrderPolicyNote({ order }: { order: Order }) {
         <span>
           {order.status === "cancelled"
             ? "This order was cancelled."
-            : canRequestCancellation(order.status)
-            ? `You can cancel this order until it is packed (“${packed}”) with “Cancel order” on its order details or tracking page.`
             : order.status === "delivered"
               ? "This order has been delivered."
-              : `This order has been packed, so it can no longer be cancelled. If something is wrong, contact support.`}
+              : cancellable
+                ? "You can cancel this order until a seller accepts it, with “Cancel order” on its order details or tracking page."
+                : packed
+                  ? "This order has been packed, so it can no longer be cancelled. If something is wrong, contact support."
+                  : "A seller has accepted this order, so it can no longer be cancelled online. If something is wrong, contact support."}
         </span>
       </p>
       {returnable.length > 0 && (

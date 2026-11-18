@@ -67,6 +67,40 @@ describe("product reviews", () => {
     await waitFor(() => expect(service.list).toHaveBeenCalledTimes(2)); // the list is read again
   });
 
+  it("opened at #reviews, brings the reviews into view once they (and the customer's own) have loaded", async () => {
+    const scrolled = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element, ...args: unknown[]) { scrolled(this.id, ...args); } as typeof original;
+    window.history.replaceState(null, "", "/products/p1#reviews");
+    let releaseMine: (value: MyReview) => void = () => {};
+    const service = fake({ can_review: true }, { mine: vi.fn(() => new Promise<MyReview>((resolve) => { releaseMine = resolve; })) });
+    try {
+      render(<AppProviders authService={signedIn}><ProductReviews productId="p1" service={service} /></AppProviders>);
+      await screen.findByText("4.0");
+      // The list is in, but the customer's own review isn't yet: the form would still grow the section.
+      expect(scrolled).not.toHaveBeenCalled();
+      await act(async () => releaseMine({ can_review: true }));
+      await waitFor(() => expect(scrolled).toHaveBeenCalledWith("reviews", expect.objectContaining({ block: "start" })));
+      expect(scrolled).toHaveBeenCalledTimes(1);
+    } finally {
+      Element.prototype.scrollIntoView = original;
+      window.history.replaceState(null, "", "/");
+    }
+  });
+
+  it("doesn't scroll when the page wasn't opened at #reviews", async () => {
+    const scrolled = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrolled as typeof original;
+    try {
+      render(<AppProviders authService={unavailableAuthService}><ProductReviews productId="p1" service={fake({ can_review: false })} /></AppProviders>);
+      await screen.findByText("4.0");
+      expect(scrolled).not.toHaveBeenCalled();
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
   it("explains when the customer hasn't ordered it, and shows the store's refusal", async () => {
     render(<AppProviders authService={signedIn}><ProductReviews productId="p1" service={fake({ can_review: false })} /></AppProviders>);
     expect(await screen.findByText(/once you’ve ordered it/)).toBeInTheDocument();

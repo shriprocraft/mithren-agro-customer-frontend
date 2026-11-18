@@ -56,7 +56,7 @@ export interface OrderItem {
   product_id: string;
   /** The option bought, for products with options. */
   variant_id?: string;
-  /** e.g. "Size M"; the weight or pack of weight/pack options is already in `unit`. */
+  /** e.g. "Size: M"; the weight or pack of weight/pack options is already in `unit`. */
   variant_label?: string;
   /** Category at the time of ordering (decides return eligibility). */
   category_id?: string;
