@@ -32,7 +32,7 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
   const { session, finish } = useCheckout();
   const { removeItems } = useCart();
   const { placeServerOrder, hydrated: ordersReady } = useOrders();
-  const { lines, items, isBuyNow, ready } = useCheckoutLines(catalog);
+  const { lines, items, missing, isBuyNow, ready } = useCheckoutLines(catalog);
   const backendCustomerId = useBackendCustomerId();
   const address = addresses.find((a) => a.id === session.address_id);
   // The server prices this order for this address. Only an address from the customer's account is
@@ -58,18 +58,20 @@ export function ReviewStep({ catalog }: { catalog: Product[] }) {
   const shownLines = quoted?.lines ?? lines;
   const blocker = !hasItems
     ? checkoutBlocker(lines)
-    : quote.status === "error" && !quote.quote
+    : missing.length > 0
+      ? "Some items in your cart couldn’t be shown here. Return to your cart to check them."
+      : quote.status === "error" && !quote.quote
       ? quote.message
       : quoted
         ? quoted.blocker
         : checkoutBlocker(lines);
   if (blocker) {
     return (
-      <MessageState icon={ShoppingCart} title={lines.length === 0 ? "There’s nothing to review" : "Your cart needs attention"}
+      <MessageState icon={ShoppingCart} title={!hasItems ? "There’s nothing to review" : "Your cart needs attention"}
         actions={
           <>
             {hasItems && quote.status === "error" && <Button variant="outline" onClick={() => void refresh().catch(() => undefined)}>Try again</Button>}
-            <Button asChild><Link href={lines.length === 0 ? "/products" : "/cart"}>{lines.length === 0 ? "Browse products" : "Return to cart"}</Link></Button>
+            <Button asChild><Link href={!hasItems ? "/products" : "/cart"}>{!hasItems ? "Browse products" : "Return to cart"}</Link></Button>
           </>
         }>
         {blocker}

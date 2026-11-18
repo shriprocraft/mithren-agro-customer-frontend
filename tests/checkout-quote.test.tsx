@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CartView } from "@/components/checkout/CartView";
 import { ReviewStep } from "@/components/checkout/ReviewStep";
 import { AppProviders } from "@/context/AppProviders";
 import { useCart } from "@/context/CartContext";
@@ -21,8 +22,9 @@ vi.mock("@/services/checkout", async (original) => ({
   checkoutQuotes: { quote: (...args: unknown[]) => quoteMock(...args) },
 }));
 const push = vi.fn();
+const refresh = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push, replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
+  useRouter: () => ({ push, refresh, replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
   usePathname: () => "/checkout/review",
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -83,6 +85,19 @@ describe("quote helpers", () => {
     const { lines } = resolveLines(items.slice(0, 2), products);
     const agree = quote(lines.map((l, i) => line(i, { unit_price: l.unit_price, line_total: l.line_total })));
     expect(applyQuote(lines, items, agree).pricesChanged).toBe(false);
+  });
+
+  it("never prices, flags or removes a line by position alone (an answer for an older cart)", () => {
+    // The quote was asked for [tomatoes, p-gone]; the customer has since removed tomatoes and added papaya.
+    const now: CartItem[] = [{ product_id: papaya.id, quantity: 1 }, items[0]!];
+    const { lines } = resolveLines(now, products);
+    const old = quote([line(0, { unit_price: 9999, line_total: 19998, issue: "out_of_stock" })], { unavailable: [{ item_index: 1, product_id: "p-gone" }] });
+    const result = applyQuote(lines, now, old);
+    expect(result.lines).toEqual([]); // tomatoes' price and issue are not given to papaya
+    expect(result.unavailableKeys).toEqual([]); // and tomatoes is not removed in p-gone's place
+    // A line saved before the product had options is matched by product (priced as its default option).
+    const legacy: CartItem[] = [{ product_id: tomatoes.id, quantity: 2 }];
+    expect(applyQuote(resolveLines(legacy, products).lines, legacy, quote([line(0)])).lines).toHaveLength(1);
   });
 
   it("fingerprints what the customer reviewed", () => {
@@ -201,5 +216,67 @@ describe("review step with a server quote", () => {
     expect(await screen.findByText(/isn't enough stock/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /place order/i })).toBeNull();
     expect(JSON.parse(localStorage.getItem("mithren.cart")!)[0].quantity).toBe(2);
+  });
+});
+
+describe("cart page", () => {
+  const render_ = () => render(<AppProviders authService={unavailableAuthService}><CartView catalog={products} vendorNames={{}} /></AppProviders>);
+  const keep = (cart: CartItem[]) => localStorage.setItem("mithren.cart", JSON.stringify(cart));
+  const stored = () => (JSON.parse(localStorage.getItem("mithren.cart") ?? "[]") as CartItem[]).map(itemKey);
+
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    quoteMock.mockReset();
+    refresh.mockReset();
+  });
+
+  it("keeps an out-of-stock line in the cart with a clear message instead of removing it", async () => {
+    keep([items[0]!, items[1]!]);
+    quoteMock.mockImplementation(async (sent: CartItem[]) =>
+      quote(sent.map((item, i) => ({ ...line(i), product_id: item.product_id, ...(item.variant_id && { variant_id: item.variant_id }), quantity: item.quantity, ...(i === 1 && { issue: "out_of_stock" as const, stock_status: "out_of_stock" as const }) })), {
+        blockers: [{ code: "out_of_stock", message: "Remove out-of-stock items to continue." }], can_checkout: false,
+      }));
+    render_();
+    expect(await screen.findByText(/Out of stock: remove to continue/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: papaya.name })).toBeInTheDocument();
+    expect(stored()).toEqual(["p-tomatoes::1kg", "p-papaya"]);
+    expect(screen.getByRole("button", { name: /Proceed to checkout/ })).toBeDisabled();
+  });
+
+  it("removes only what the store reports it no longer sells, by name", async () => {
+    keep([items[0]!, items[1]!]);
+    quoteMock.mockImplementation(async (sent: CartItem[]) =>
+      sent.length === 2
+        ? quote([line(0)], { unavailable: [{ item_index: 1, product_id: papaya.id }], blockers: [{ code: "unavailable_items", message: "x" }], can_checkout: false })
+        : quote([line(0)]));
+    render_();
+    expect(await screen.findByText("An item was removed from your cart")).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`${papaya.name}: the seller no longer sells it`))).toBeInTheDocument();
+    await waitFor(() => expect(stored()).toEqual(["p-tomatoes::1kg"]));
+  });
+
+  it("never removes a line because an answer's position points at it", async () => {
+    keep([items[0]!, items[1]!]);
+    // The store names p-gone at position 1, but papaya is there now: nothing is removed.
+    quoteMock.mockResolvedValue(quote([line(0)], { unavailable: [{ item_index: 1, product_id: "p-gone" }], blockers: [{ code: "unavailable_items", message: "x" }], can_checkout: false }));
+    render_();
+    await waitFor(() => expect(quoteMock).toHaveBeenCalled());
+    await screen.findByText("x");
+    expect(stored()).toEqual(["p-tomatoes::1kg", "p-papaya"]);
+    expect(screen.queryByText(/was removed from your cart/)).toBeNull();
+  });
+
+  it("shows a line this page's catalogue doesn't have yet, reloads the catalogue once, and blocks checkout meanwhile", async () => {
+    keep([items[0]!, { product_id: "p-new-listing", quantity: 1 }]);
+    quoteMock.mockImplementation(async (sent: CartItem[]) => quote(sent.map((item, i) => ({ ...line(0), item_index: i, product_id: item.product_id, ...(item.variant_id ? { variant_id: item.variant_id } : { variant_id: undefined }) }))));
+    render_();
+    expect(await screen.findByText("An item in your cart")).toBeInTheDocument();
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText(/Some items are still loading/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Proceed to checkout/ })).toBeDisabled();
+    expect(stored()).toEqual(["p-tomatoes::1kg", "p-new-listing"]);
+    fireEvent.click(screen.getByRole("button", { name: "Remove this item from cart" }));
+    await waitFor(() => expect(stored()).toEqual(["p-tomatoes::1kg"]));
   });
 });

@@ -20,8 +20,10 @@ export function CartMenu({ catalog }: { catalog: Product[] }) {
   const { start } = useCheckout();
   const removed = useRemovedFromCartToast();
   // Same lines as the cart page: each product option with its own price.
-  const { lines } = resolveLines(items, catalog);
-  const blocked = checkoutBlocker(lines) !== null;
+  // Lines this header's catalogue can't show (listed after the page loaded) are counted, never hidden;
+  // the cart page loads them.
+  const { lines, missing } = resolveLines(items, catalog);
+  const blocked = missing.length > 0 || checkoutBlocker(lines) !== null;
   const subtotal = lines.reduce((sum, line) => sum + line.line_total, 0);
 
   return (
@@ -34,7 +36,7 @@ export function CartMenu({ catalog }: { catalog: Product[] }) {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[min(22rem,calc(100vw-2rem))] gap-3 p-4">
         <p className="font-heading text-base font-medium">Your cart</p>
-        {lines.length === 0 ? (
+        {lines.length === 0 && missing.length === 0 ? (
           <p className="text-sm text-muted-foreground">Your cart is empty. Use “Add to cart” on any product to see it here.</p>
         ) : (
           <>
@@ -56,6 +58,11 @@ export function CartMenu({ catalog }: { catalog: Product[] }) {
                 </li>
               ))}
             </ul>
+            {missing.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {missing.length === 1 ? "1 more item" : `${missing.length} more items`} in your cart can’t be shown here. Open the cart to see {missing.length === 1 ? "it" : "them"}.
+              </p>
+            )}
             <p className="flex justify-between border-t pt-3 text-sm">
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-semibold">{formatPrice(subtotal)}</span>
@@ -66,7 +73,7 @@ export function CartMenu({ catalog }: { catalog: Product[] }) {
           <PopoverClose asChild>
             <Button asChild className="w-full justify-center text-center"><Link href="/cart">View cart</Link></Button>
           </PopoverClose>
-          {lines.length > 0 && (
+          {(lines.length > 0 || missing.length > 0) && (
             <PopoverClose asChild>
               <Button asChild variant="buy" className="w-full justify-center text-center">
                 <Link href={blocked ? "/cart" : "/checkout/address"} onClick={() => { if (!blocked) start({ kind: "cart" }); }}>Checkout</Link>

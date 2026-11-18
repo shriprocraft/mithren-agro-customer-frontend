@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { AlertTriangle, ArrowRight, ShoppingCart, Trash2 } from "lucide-react";
 import { LoadingState, MessageState } from "@/components/checkout/PageState";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
@@ -15,7 +15,7 @@ import { useCheckout } from "@/context/CheckoutContext";
 import { useToast } from "@/context/ToastContext";
 import { useCheckoutQuote } from "@/hooks/useCheckoutQuote";
 import { useRemovedFromCartToast } from "@/hooks/useRemovedFromCartToast";
-import { itemKey, limitMessage, quantityLimits, resolveLines, summarize } from "@/lib/cart";
+import { limitMessage, quantityLimits, resolveLines, summarize } from "@/lib/cart";
 import { applyQuote } from "@/lib/checkout-quote";
 import { formatPrice } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -32,34 +32,51 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
   const { state: quote, refresh } = useCheckoutQuote(items, null, hydrated);
   const toast = useToast();
   // Items the store no longer sells (archived, deleted or switched off by the seller) leave the cart on
-  // their own, with a short notice: only what the server reports unavailable, never what this page's
-  // catalogue merely lacks.
-  const gone = (quote.quote?.unavailable ?? []).map((entry) => items[entry.item_index]).filter((item) => item !== undefined).map(itemKey);
-  const goneKey = gone.join("|");
+  // their own, with a notice naming them: only what the server reports unavailable in a quote of the cart
+  // as it is now (never an older answer, whose positions may point at other lines), and never what this
+  // page's catalogue merely lacks. Out-of-stock lines stay, marked, until the customer removes them.
+  const current = quote.status === "ready" && quote.quote ? quote.quote : null;
+  const goneKey = current ? applyQuote([], items, current).unavailableKeys.join("|") : "";
+  const names = useMemo(() => new Map(catalog.map((product) => [product.id, product.name])), [catalog]);
   useEffect(() => {
     if (!goneKey) return;
-    removeItems(goneKey.split("|"));
-    toast.info(goneKey.includes("|") ? "Some items were removed" : "An item was removed", {
+    const keys = goneKey.split("|");
+    removeItems(keys);
+    const named = keys.map((key) => names.get(key.split(":")[0] ?? "")).filter((name): name is string => Boolean(name));
+    toast.info(keys.length > 1 ? "Some items were removed from your cart" : "An item was removed from your cart", {
       id: "cart:gone",
-      description: "The seller no longer sells it, so it was taken out of your cart.",
+      description: `${named.length === keys.length ? named.join(", ") : keys.length > 1 ? "These items" : "This item"}: the seller no longer sells ${keys.length > 1 ? "them" : "it"}, so ${keys.length > 1 ? "they were" : "it was"} taken out of your cart.`,
     });
-  }, [goneKey, removeItems, toast]);
+  }, [goneKey, names, removeItems, toast]);
+
+  const resolved = resolveLines(items, catalog);
+  // A line this page can't show (its product was listed after the page loaded) is never hidden: the page
+  // reloads its catalogue once, and meanwhile the line is shown with a way to remove it.
+  const unseenKey = resolved.missing.filter((key) => !goneKey.split("|").includes(key)).join("|");
+  const refreshedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!hydrated || !unseenKey || refreshedFor.current === unseenKey) return;
+    refreshedFor.current = unseenKey;
+    router.refresh();
+  }, [hydrated, unseenKey, router]);
 
   if (!hydrated) return <LoadingState label="Loading your cart…" />;
 
-  const resolved = resolveLines(items, catalog);
   const quoted = quote.quote ? applyQuote(resolved.lines, items, quote.quote) : null;
   const priced = new Map(quoted?.lines.map((line) => [line.key, line]));
   const lines = quoted ? resolved.lines.map((line) => priced.get(line.key) ?? line) : resolved.lines;
+  const unseen = unseenKey ? unseenKey.split("|") : [];
   const summary = quoted?.summary ?? summarize(lines);
   const blocker =
     quote.status === "error"
       ? quote.message
       : quote.status === "loading" || !quoted
         ? "Checking prices and stock…"
-        : quoted.blocker;
+        : unseen.length > 0
+          ? "Some items are still loading. Reload the page, or remove them to continue."
+          : quoted.blocker;
 
-  if (lines.length === 0) {
+  if (lines.length === 0 && unseen.length === 0) {
     return (
       <MessageState
         icon={ShoppingCart}
@@ -138,6 +155,18 @@ export function CartView({ catalog, vendorNames }: { catalog: Product[]; vendorN
               </li>
             );
           })}
+          {unseen.map((key) => (
+            <li key={key} className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">An item in your cart</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">Its details are still loading. Reload the page to see it.</p>
+              </div>
+              <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" aria-label="Remove this item from cart"
+                onClick={() => removed("The item", removeItem(key))}>
+                <Trash2 aria-hidden="true" />
+              </Button>
+            </li>
+          ))}
         </ul>
         <Button asChild variant="outline" className="mt-4">
           <Link href="/products">Continue shopping</Link>

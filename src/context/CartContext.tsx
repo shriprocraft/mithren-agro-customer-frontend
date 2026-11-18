@@ -1,19 +1,23 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useBackendCustomerId, useOptionalAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { ApiError } from "@/lib/api-client";
 import { usePersistentState } from "@/hooks/usePersistentState";
 import { addToCart, countItems, itemKey, parseCart, removeFromCart, setCartQuantity, type AddResult } from "@/lib/cart";
-import { cartService as defaultCartService, type CartService } from "@/services/cart";
-import type { CartItem } from "@/types/cart";
+import { lineKey } from "@/lib/variants";
+import { cartService as defaultCartService, type CartService, type CartSnapshot } from "@/services/cart";
+import type { CartItem, CartRemoval } from "@/types/cart";
 
 // The single source of truth for the cart, behind one interface:
 // - signed in: the customer's cart on the backend (/customer/cart), so it follows them to any device.
 //   On sign-in, lines kept in this browser are merged into the account (never removing any) and then
 //   cleared here. Every change shows at once and is sent to the API; if the store refuses it, the
 //   change is undone and the customer is told.
+//   Nothing ever leaves the cart without the customer being told: lines the store takes out (the seller
+//   no longer sells them) or can't take from this browser at sign-in (cart full) are named in a notice.
+//   An out-of-stock line stays in the cart, marked, until stock returns or the customer removes it.
 // - guests: saved in this browser's localStorage until they sign in.
 // Prices and names are looked up from the catalogue when rendered (lib/cart.ts resolveLines), and the
 // checkout quote prices the cart on the server.
@@ -39,6 +43,18 @@ const EMPTY: CartItem[] = [];
 
 type AccountCart = { customerId: string; items: CartItem[]; loaded: boolean };
 
+/** The notice for lines the store took out of the cart (or couldn't add from this browser). */
+export function removalNotice(removed: CartRemoval[]): { title: string; description: string } | null {
+  if (removed.length === 0) return null;
+  const full = removed.filter((line) => line.reason === "cart_full").length;
+  const notSold = removed.length - full;
+  const parts = [
+    notSold > 0 && (notSold === 1 ? "The seller no longer sells one item, so it was taken out of your cart." : `Sellers no longer sell ${notSold} items, so they were taken out of your cart.`),
+    full > 0 && (full === 1 ? "Your cart is full, so one item saved in this browser couldn't be added." : `Your cart is full, so ${full} items saved in this browser couldn't be added.`),
+  ].filter(Boolean);
+  return { title: removed.length === 1 ? "An item was removed from your cart" : "Some items were removed from your cart", description: parts.join(" ") };
+}
+
 export function CartProvider({ children, service = defaultCartService }: { children: ReactNode; service?: CartService | null }) {
   const [items, setItems, hydrated] = usePersistentState("mithren.cart", EMPTY, parseCart);
   const customerId = useBackendCustomerId();
@@ -55,6 +71,13 @@ export function CartProvider({ children, service = defaultCartService }: { child
   }, [items]);
   // Only the answer to the latest change may replace the account cart: earlier answers are out of date.
   const latestChange = useRef(0);
+  const tellRemoved = useCallback(
+    (removed: CartRemoval[]) => {
+      const notice = removalNotice(removed);
+      if (notice) toast.info(notice.title, { id: "cart:removed", description: notice.description, action: { href: "/cart", label: "View cart" } });
+    },
+    [toast],
+  );
 
   useEffect(() => {
     if (!backend || !customerId || !hydrated) return;
@@ -62,10 +85,12 @@ export function CartProvider({ children, service = defaultCartService }: { child
     const local = browserItems.current;
     const load = local.length > 0 ? backend.merge(local) : backend.list();
     load.then(
-      (list) => {
+      ({ items: list, removed }) => {
         if (!live) return;
         setAccount({ customerId, items: list, loaded: true });
-        if (local.length > 0) setItems([]); // now in the account
+        // Now in the account; anything that couldn't be added is named in the notice, never just lost.
+        if (local.length > 0) setItems([]);
+        tellRemoved(removed);
       },
       () => {
         if (!live) return;
@@ -77,7 +102,7 @@ export function CartProvider({ children, service = defaultCartService }: { child
     return () => {
       live = false;
     };
-  }, [backend, customerId, hydrated, setItems, toast]);
+  }, [backend, customerId, hydrated, setItems, toast, tellRemoved]);
 
   const accountCart = backend && account?.customerId === customerId ? account : null;
 
@@ -106,20 +131,23 @@ export function CartProvider({ children, service = defaultCartService }: { child
     const replace = (next: CartItem[]) =>
       setAccount((current) => (current && current.customerId === customerId ? { ...current, items: next } : current));
     // Shows the change at once, sends it, then takes the store's cart as the answer (when no later change
-    // was made meanwhile). If the store refuses, the cart goes back to how it was before this change.
-    const send = (next: CartItem[], request: () => Promise<CartItem[] | void>) => {
+    // was made meanwhile). If the store refuses, the cart goes back to how it was before this change and
+    // the customer is told why. `failure` names the notice, so a refused add replaces its "Added" toast.
+    const send = (next: CartItem[], request: () => Promise<CartSnapshot | void>, failure = { id: "cart:update", title: "Your cart couldn't be updated" }) => {
       const before = list;
       const change = ++latestChange.current;
       replace(next);
       request().then(
         (server) => {
-          if (server && change === latestChange.current) replace(server);
+          if (!server) return;
+          if (change === latestChange.current) replace(server.items);
+          tellRemoved(server.removed);
         },
         (error: unknown) => {
           if (change === latestChange.current) replace(before);
           // The store's own reason when it refused the change ("Only 4 available.", "This item is out of stock.").
           const reason = error instanceof ApiError && error.status !== null && error.status >= 400 && error.status < 500 && error.code !== "session_expired" ? error.message : null;
-          toast.error("Your cart couldn't be updated", { id: "cart:update", description: reason || "Please try again." });
+          toast.error(failure.title, { id: failure.id, description: reason || "Please try again." });
         },
       );
     };
@@ -138,7 +166,7 @@ export function CartProvider({ children, service = defaultCartService }: { child
         send(next.items, async () => {
           if (legacy) await backend.remove(productId);
           return backend.set(line);
-        });
+        }, { id: `cart:${lineKey(productId, variantId)}`, title: "Couldn't add to cart" });
         return "added";
       },
       setQuantity: (key, quantity, max) => {
@@ -162,7 +190,7 @@ export function CartProvider({ children, service = defaultCartService }: { child
         });
       },
     };
-  }, [backend, items, hydrated, sessionPending, setItems, accountCart, customerId, toast]);
+  }, [backend, items, hydrated, sessionPending, setItems, accountCart, customerId, toast, tellRemoved]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

@@ -11,7 +11,8 @@ import { unavailableAuthService } from "@/services/auth/unavailable";
 import { createHttpCart, type CartService } from "@/services/cart";
 import { createHttpCatalogSearch, searchQuery, type CatalogSearchService } from "@/services/catalog-search";
 import type { AuthService } from "@/types/auth";
-import type { CartItem } from "@/types/cart";
+import { ApiError } from "@/lib/api-client";
+import type { CartItem, CartRemoval } from "@/types/cart";
 import type { Product } from "@/types/catalog";
 
 vi.mock("next/navigation", () => ({
@@ -27,25 +28,28 @@ const signedIn: AuthService = {
 };
 
 /** An in-memory /customer/cart that behaves like the API (PUT sets, merge keeps the larger quantity). */
-function fakeCart(initial: CartItem[] = []) {
+function fakeCart(initial: CartItem[] = [], removed: CartRemoval[] = []) {
   let lines = [...initial];
   const key = (item: CartItem) => itemKey(item);
+  const snapshot = () => ({ items: [...lines], removed: [] as CartRemoval[] });
   return {
-    list: vi.fn(async () => [...lines]),
+    list: vi.fn(async () => snapshot()),
     set: vi.fn(async (item: CartItem) => {
       lines = lines.some((l) => key(l) === key(item)) ? lines.map((l) => (key(l) === key(item) ? item : l)) : [...lines, item];
-      return [...lines];
+      return snapshot();
     }),
     remove: vi.fn(async (productId: string, variantId?: string) => {
       lines = lines.filter((l) => key(l) !== key({ product_id: productId, variant_id: variantId, quantity: 1 }));
     }),
     clear: vi.fn(async () => { lines = []; }),
+    // `removed`: browser lines the store couldn't add (it no longer sells them, or the cart is full).
     merge: vi.fn(async (items: CartItem[]) => {
       for (const item of items) {
+        if (removed.some((r) => r.product_id === item.product_id)) continue;
         const existing = lines.find((l) => key(l) === key(item));
         lines = existing ? lines.map((l) => (l === existing ? { ...l, quantity: Math.max(l.quantity, item.quantity) } : l)) : [...lines, item];
       }
-      return [...lines];
+      return { items: [...lines], removed };
     }),
   } satisfies CartService;
 }
@@ -72,11 +76,17 @@ describe("cart service", () => {
     const client: ApiClient = {
       request: async <T,>(path: string, options?: unknown) => {
         calls.push([path, options]);
-        return { items: [{ product_id: "p1", variant_id: null, quantity: 2 }, { product_id: "p2", variant_id: "v1", quantity: 1 }] } as T;
+        return {
+          items: [{ product_id: "p1", variant_id: null, quantity: 2 }, { product_id: "p2", variant_id: "v1", quantity: 1 }],
+          removed: [{ product_id: "p9", variant_id: null, reason: "not_sold" }],
+        } as T;
       },
     };
     const service = createHttpCart(client);
-    expect(await service.list()).toEqual([{ product_id: "p1", quantity: 2 }, { product_id: "p2", variant_id: "v1", quantity: 1 }]);
+    expect(await service.list()).toEqual({
+      items: [{ product_id: "p1", quantity: 2 }, { product_id: "p2", variant_id: "v1", quantity: 1 }],
+      removed: [{ product_id: "p9", reason: "not_sold" }],
+    });
     await service.set({ product_id: "p 2", variant_id: "v1", quantity: 3 });
     await service.remove("p2", "v1");
     await service.remove("p1");
@@ -137,6 +147,38 @@ describe("the cart of a signed-in customer", () => {
     expect(show()).toHaveTextContent("p1x4");
     await waitFor(() => expect(show()).toHaveTextContent("p1x1"));
     expect(await screen.findByText("Your cart couldn't be updated")).toBeInTheDocument();
+  });
+
+  it("names the browser lines the account couldn't take at sign-in instead of dropping them silently", async () => {
+    localStorage.setItem("mithren.cart", JSON.stringify([{ product_id: "p-gone", quantity: 1 }, { product_id: "p-kept", quantity: 1 }, { product_id: "p-full", quantity: 1 }]));
+    const service = fakeCart([], [{ product_id: "p-gone", reason: "not_sold" }, { product_id: "p-full", reason: "cart_full" }]);
+    render(<AppProviders authService={signedIn} cartService={service}><Probe /></AppProviders>);
+    await waitFor(() => expect(show()).toHaveTextContent("p-keptx1"));
+    expect(await screen.findByText("Some items were removed from your cart")).toBeInTheDocument();
+    expect(screen.getByText(/The seller no longer sells one item.*Your cart is full, so one item saved in this browser couldn't be added/)).toBeInTheDocument();
+  });
+
+  it("tells the customer when the store has taken a line out of the account cart", async () => {
+    const service = fakeCart([{ product_id: "p1", quantity: 1 }]);
+    service.list.mockResolvedValueOnce({ items: [{ product_id: "p1", quantity: 1 }], removed: [{ product_id: "p-archived", reason: "not_sold" }] });
+    render(<AppProviders authService={signedIn} cartService={service}><Probe /></AppProviders>);
+    await waitFor(() => expect(show()).toHaveTextContent("p1x1"));
+    expect(await screen.findByText("An item was removed from your cart")).toBeInTheDocument();
+    expect(screen.getByText("The seller no longer sells one item, so it was taken out of your cart.")).toBeInTheDocument();
+  });
+
+  it("an add the store refuses (out of stock) is undone with the store's reason, and other lines stay", async () => {
+    const service = fakeCart([{ product_id: "p-old-order", quantity: 1 }]);
+    service.set.mockRejectedValueOnce(new ApiError("out_of_stock", "This item is out of stock.", 400));
+    render(<AppProviders authService={signedIn} cartService={service}><Probe /></AppProviders>);
+    await waitFor(() => expect(show()).toHaveTextContent("p-old-orderx1"));
+    act(() => void cart!.addItem("p-sold-out"));
+    await waitFor(() => expect(show()).toHaveTextContent(/^p-old-orderx1$/));
+    expect(await screen.findByText("Couldn't add to cart")).toBeInTheDocument();
+    expect(screen.getByText("This item is out of stock.")).toBeInTheDocument();
+    // Adding again works normally once it can be bought.
+    act(() => void cart!.addItem("p-sold-out"));
+    await waitFor(() => expect(show()).toHaveTextContent("p-old-orderx1,p-sold-outx1"));
   });
 
   it("guests keep the cart in this browser and never call the API", async () => {

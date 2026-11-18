@@ -11,7 +11,7 @@ import type { Product } from "@/types/catalog";
  * address, review and confirmation steps always agree with each other and with the cart. `items` are
  * the stored items behind the lines, as the checkout quote is asked for them.
  */
-export function useCheckoutLines(catalog: Product[]): { lines: CartLine[]; items: CartItem[]; isBuyNow: boolean; ready: boolean } {
+export function useCheckoutLines(catalog: Product[]): { lines: CartLine[]; items: CartItem[]; missing: string[]; isBuyNow: boolean; ready: boolean } {
   const cart = useCart();
   const { session, hydrated } = useCheckout();
   const { source } = session;
@@ -19,9 +19,13 @@ export function useCheckoutLines(catalog: Product[]): { lines: CartLine[]; items
     source.kind === "buy_now"
       ? [{ product_id: source.product_id, ...(source.variant_id && { variant_id: source.variant_id }), quantity: source.quantity }]
       : cart.items;
+  // `missing`: items this page's catalogue can't show. They are still part of `items` (and the order), so
+  // checkout waits until every item is on screen rather than ordering something the customer can't see.
+  const { lines, missing } = resolveLines(items, catalog);
   return {
-    lines: resolveLines(items, catalog).lines,
+    lines,
     items,
+    missing,
     isBuyNow: session.source.kind === "buy_now",
     ready: hydrated && cart.hydrated,
   };

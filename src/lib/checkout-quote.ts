@@ -23,12 +23,26 @@ export interface QuotedCheckout {
   pricesChanged: boolean;
 }
 
+/**
+ * The cart item a quote entry was asked for, or undefined when the item now at that position is a
+ * different one. A quote answers the items as they were when it was asked; while a newer one is on its
+ * way (the customer added or removed a line meanwhile), positions can point at other items, and nothing
+ * may be priced, flagged or removed by position alone.
+ */
+export function itemFor(items: CartItem[], entry: { item_index: number; product_id: string; variant_id?: string | null }): CartItem | undefined {
+  const item = items[entry.item_index];
+  if (!item || item.product_id !== entry.product_id) return undefined;
+  // A line saved before the product had options is priced as its default option: only a chosen option must match.
+  if (item.variant_id !== undefined && item.variant_id !== (entry.variant_id ?? undefined)) return undefined;
+  return item;
+}
+
 export function applyQuote(lines: CartLine[], items: CartItem[], quote: Quote): QuotedCheckout {
   const byKey = new Map(lines.map((line) => [line.key, line]));
   const priced: CartLine[] = [];
   let pricesChanged = false;
   for (const quoted of quote.lines) {
-    const item = items[quoted.item_index];
+    const item = itemFor(items, quoted);
     const local = item && byKey.get(itemKey(item));
     if (!local) continue;
     if (local.unit_price !== quoted.unit_price) pricesChanged = true;
@@ -38,7 +52,7 @@ export function applyQuote(lines: CartLine[], items: CartItem[], quote: Quote): 
     lines: priced,
     summary: { subtotal: quote.subtotal, charges: quote.charges, total: quote.total, count: quote.item_count },
     blocker: quote.blockers[0]?.message ?? null,
-    unavailableKeys: quote.unavailable.map(({ item_index }) => items[item_index]).filter(Boolean).map((item) => itemKey(item!)),
+    unavailableKeys: quote.unavailable.map((entry) => itemFor(items, entry)).filter((item) => item !== undefined).map(itemKey),
     pricesChanged,
   };
 }
